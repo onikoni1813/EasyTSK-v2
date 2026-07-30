@@ -21,11 +21,14 @@ class PwaController extends Controller
         $iconUrl = $siteLogo ?: $siteFavicon;
 
         return response()->json([
+            'id' => '/',
             'name' => $siteName,
             'short_name' => $siteShortName,
             'description' => $siteDescription,
             'start_url' => '/',
+            'scope' => '/',
             'display' => 'standalone',
+            'display_override' => ['standalone', 'minimal-ui'],
             'background_color' => '#02040a',
             'theme_color' => '#02040a',
             'orientation' => 'portrait',
