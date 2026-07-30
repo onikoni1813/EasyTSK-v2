@@ -177,13 +177,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineProps({
   pendingReviews: Object,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const selectedIds   = ref([]);
 const bulkApproving = ref(false);
@@ -201,7 +204,7 @@ const openImage = (url) => {
 const bulkApprove = () => {
   if (selectedIds.value.length === 0) return;
   bulkApproving.value = true;
-  router.post('/admin/reviews/bulk-approve', { ids: selectedIds.value }, {
+  router.post(`${adminPath.value}/reviews/bulk-approve`, { ids: selectedIds.value }, {
     preserveScroll: true,
     onSuccess: () => { selectedIds.value = []; },
     onFinish: () => { bulkApproving.value = false; },
@@ -222,7 +225,7 @@ const isDynamicProof = (data) => {
 };
 
 const approve = (review) => {
-  router.post(`/admin/reviews/${review.id}/approve`, {}, { preserveScroll: true });
+  router.post(`${adminPath.value}/reviews/${review.id}/approve`, {}, { preserveScroll: true });
 };
 
 const reject = (review) => {
@@ -240,7 +243,7 @@ const confirmReject = () => {
   if (!rejectingReview.value || !rejectReason.value.trim()) return;
   
   isRejecting.value = true;
-  router.post(`/admin/reviews/${rejectingReview.value.id}/reject`, {
+  router.post(`${adminPath.value}/reviews/${rejectingReview.value.id}/reject`, {
     admin_note: rejectReason.value.trim(),
   }, { 
     preserveScroll: true,

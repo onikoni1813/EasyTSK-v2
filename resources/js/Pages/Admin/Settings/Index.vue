@@ -587,6 +587,9 @@ const props = defineProps({
   maintenanceMessage: String,
 });
 
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
+
 const logoPreview = ref(null);
 const logoFileName = ref('');
 const faviconPreview = ref(null);
@@ -642,7 +645,7 @@ const testTelegram = (type) => {
     chat_id: isAdmin ? settingsForm.telegram_admin_chat_id : settingsForm.telegram_success_chat_id,
   };
 
-  useForm(payload).post('/admin/settings/telegram-test', {
+  useForm(payload).post(`${adminPath.value}/settings/telegram-test`, {
     preserveScroll: true,
     onFinish: () => {
       if (isAdmin) testingAdmin.value = false;
@@ -670,7 +673,7 @@ const handleFaviconUpload = (e) => {
 };
 
 const updateSettings = () => {
-  settingsForm.post('/admin/settings', {
+  settingsForm.post(`${adminPath.value}/settings`, {
     preserveScroll: true,
   });
 };

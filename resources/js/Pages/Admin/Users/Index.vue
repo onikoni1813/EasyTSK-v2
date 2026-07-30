@@ -237,8 +237,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import UserHistoryModal from '@/Components/UserHistoryModal.vue';
 
@@ -246,6 +246,9 @@ const props = defineProps({
   users: Object,
   filters: Object,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const searchQuery = ref(props.filters.search || '');
 const editingUser = ref(null);
@@ -272,12 +275,12 @@ const form = useForm({
 });
 
 const search = () => {
-  router.get('/admin/users', { search: searchQuery.value }, { preserveState: true });
+  router.get(`${adminPath.value}/users`, { search: searchQuery.value }, { preserveState: true });
 };
 
 const clearSearch = () => {
   searchQuery.value = '';
-  router.get('/admin/users');
+  router.get(`${adminPath.value}/users`);
 };
 
 const openEditModal = (user) => {
@@ -294,7 +297,7 @@ const openEditModal = (user) => {
 };
 
 const updateUser = () => {
-  form.put(`/admin/users/${editingUser.value.id}`, {
+  form.put(`${adminPath.value}/users/${editingUser.value.id}`, {
     preserveScroll: true,
     onSuccess: () => {
       editingUser.value = null;

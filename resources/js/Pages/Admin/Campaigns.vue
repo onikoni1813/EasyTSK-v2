@@ -7,7 +7,7 @@
           <h1 class="text-2xl font-extrabold text-white">📢 Campaign Manager</h1>
           <span class="badge badge-amber">{{ pendingCount }} pending</span>
         </div>
-        <a href="/admin/campaigns/export" class="btn-neon btn-indigo py-2 px-4 rounded-xl text-xs font-bold text-white flex items-center gap-2">
+        <a :href="`${adminPath}/campaigns/export`" class="btn-neon btn-indigo py-2 px-4 rounded-xl text-xs font-bold text-white flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
           Export Backup (CSV)
         </a>
@@ -149,10 +149,13 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({ campaigns: Array });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const activeTab   = ref('pending');
 const rejectTarget = ref(null);
@@ -177,7 +180,7 @@ const campaignIcon = (type) => ({ website: '🌐', telegram: '✈️', youtube: 
 const statusBadge  = (s)    => ({ pending: 'badge-amber', active: 'badge-emerald', completed: 'badge-cyan', rejected: 'badge-rose' })[s] || 'badge-indigo';
 
 const approve = (c) => {
-  router.post(`/admin/campaigns/${c.id}/approve`, {}, { preserveScroll: true });
+  router.post(`${adminPath.value}/campaigns/${c.id}/approve`, {}, { preserveScroll: true });
 };
 
 const startReject = (c) => {
@@ -187,7 +190,7 @@ const startReject = (c) => {
 
 const confirmReject = () => {
   if (!rejectNote.value.trim()) return;
-  router.post(`/admin/campaigns/${rejectTarget.value.id}/reject`, { admin_note: rejectNote.value }, {
+  router.post(`${adminPath.value}/campaigns/${rejectTarget.value.id}/reject`, { admin_note: rejectNote.value }, {
     preserveScroll: true,
     onSuccess: () => { rejectTarget.value = null; },
   });
@@ -199,7 +202,7 @@ const deleteCampaign = (c) => {
 
 const confirmDelete = () => {
   if (!deleteTarget.value) return;
-  router.delete(`/admin/campaigns/${deleteTarget.value.id}`, { 
+  router.delete(`${adminPath.value}/campaigns/${deleteTarget.value.id}`, { 
     preserveScroll: true,
     onSuccess: () => { deleteTarget.value = null; },
   });

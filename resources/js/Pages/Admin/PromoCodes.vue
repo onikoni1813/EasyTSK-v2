@@ -242,13 +242,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { useForm, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
   codes: Array,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const codeToDelete = ref(null);
 
@@ -269,7 +272,7 @@ const form = useForm({
 });
 
 const create = () => {
-  form.post('/admin/promo-codes', {
+  form.post(`${adminPath.value}/promo-codes`, {
     preserveScroll: true,
     onSuccess: () => {
       form.reset();
@@ -278,12 +281,12 @@ const create = () => {
 };
 
 const toggle = (code) => {
-  router.post(`/admin/promo-codes/${code.id}/toggle`, {}, { preserveScroll: true });
+  router.post(`${adminPath.value}/promo-codes/${code.id}/toggle`, {}, { preserveScroll: true });
 };
 
 const confirmDelete = () => {
   if (!codeToDelete.value) return;
-  router.delete(`/admin/promo-codes/${codeToDelete.value.id}`, {
+  router.delete(`${adminPath.value}/promo-codes/${codeToDelete.value.id}`, {
     preserveScroll: true,
     onSuccess: () => {
       codeToDelete.value = null;

@@ -210,8 +210,8 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed, nextTick } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import CommandButton from '@/Components/CommandButton.vue';
 import axios from 'axios';
@@ -228,6 +228,9 @@ const props = defineProps({
   appEnv: String,
   appUrl: String,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 // --- State ---
 const runningCommand    = ref(null);
@@ -288,7 +291,7 @@ const executeCommand = async (commandKey) => {
   lastCommandDuration.value = null;
 
   try {
-    const response = await axios.post('/admin/deploy/run', {
+    const response = await axios.post(`${adminPath.value}/deploy/run`, {
       command: commandKey,
     }, {
       headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
@@ -327,7 +330,7 @@ const runQuickDeploy = async () => {
     runningCommand.value = step.key;
 
     try {
-      const res = await axios.post('/admin/deploy/run', { command: step.key }, {
+      const res = await axios.post(`${adminPath.value}/deploy/run`, { command: step.key }, {
         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
       });
 

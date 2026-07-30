@@ -364,7 +364,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { router, Link, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -372,6 +372,9 @@ const props = defineProps({
   filters: Object,
   counts: Object,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const activeStatus = ref(props.filters?.status || 'all');
 const searchQuery = ref(props.filters?.search || '');
@@ -406,7 +409,7 @@ const generatedBackupUrl = computed(() => {
     if (backupEndDate.value) params.append('end_date', backupEndDate.value);
   }
   if (searchQuery.value) params.append('search', searchQuery.value);
-  return `/admin/withdrawals/export-csv?${params.toString()}`;
+  return `${adminPath.value}/withdrawals/export-csv?${params.toString()}`;
 });
 
 let searchTimeout = null;
@@ -426,7 +429,7 @@ const handleSearch = () => {
 };
 
 const triggerFetch = () => {
-  router.get('/admin/withdrawals', {
+  router.get(`${adminPath.value}/withdrawals`, {
     status: activeStatus.value,
     search: searchQuery.value,
   }, {
@@ -510,7 +513,7 @@ const submitDelete = () => {
   isProcessing.value = true;
 
   if (isBulkDeleteMode.value) {
-    router.post('/admin/withdrawals/bulk-delete', {
+    router.post(`${adminPath.value}/withdrawals/bulk-delete`, {
       ids: selectedIds.value,
     }, {
       onSuccess: () => {
@@ -522,7 +525,7 @@ const submitDelete = () => {
       }
     });
   } else {
-    router.delete(`/admin/withdrawals/${currentWithdrawal.value.id}`, {
+    router.delete(`${adminPath.value}/withdrawals/${currentWithdrawal.value.id}`, {
       onSuccess: () => {
         isDeleteModalOpen.value = false;
       },
@@ -537,7 +540,7 @@ const submitCleanup = () => {
   if (isProcessing.value) return;
   isProcessing.value = true;
 
-  router.post('/admin/withdrawals/cleanup', {
+  router.post(`${adminPath.value}/withdrawals/cleanup`, {
     status: cleanupStatus.value,
     days: cleanupDays.value,
   }, {
@@ -554,7 +557,7 @@ const submitApprove = () => {
   if (!transactionId.value || isProcessing.value) return;
   isProcessing.value = true;
   
-  router.post(`/admin/withdrawals/${currentWithdrawal.value.id}/approve`, {
+  router.post(`${adminPath.value}/withdrawals/${currentWithdrawal.value.id}/approve`, {
     transaction_id: transactionId.value,
   }, {
     onSuccess: () => {
@@ -570,7 +573,7 @@ const submitReject = () => {
   if (!rejectionReason.value || isProcessing.value) return;
   isProcessing.value = true;
 
-  router.post(`/admin/withdrawals/${currentWithdrawal.value.id}/reject`, {
+  router.post(`${adminPath.value}/withdrawals/${currentWithdrawal.value.id}/reject`, {
     admin_note: rejectionReason.value,
   }, {
     onSuccess: () => {

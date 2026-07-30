@@ -3,7 +3,7 @@
     <div class="max-w-4xl mx-auto space-y-6">
       <!-- Top Navigation -->
       <div class="flex items-center justify-between">
-        <Link href="/admin/support-tickets" class="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors">
+        <Link :href="`${adminPath}/support-tickets`" class="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors">
           <span>&larr; Back to Tickets Overview</span>
         </Link>
 
@@ -123,13 +123,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router, useForm, Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { useForm, router, Link, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
   ticket: Object,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const ticketStatus = ref(props.ticket.status);
 
@@ -139,7 +142,7 @@ const replyForm = useForm({
 });
 
 const submitReply = () => {
-  replyForm.post(`/admin/support-tickets/${props.ticket.id}/reply`, {
+  replyForm.post(`${adminPath.value}/support-tickets/${props.ticket.id}/reply`, {
     onSuccess: () => {
       replyForm.reset('message');
     },
@@ -147,7 +150,7 @@ const submitReply = () => {
 };
 
 const changeStatus = () => {
-  router.post(`/admin/support-tickets/${props.ticket.id}/status`, {
+  router.post(`${adminPath.value}/support-tickets/${props.ticket.id}/status`, {
     status: ticketStatus.value,
   });
 };

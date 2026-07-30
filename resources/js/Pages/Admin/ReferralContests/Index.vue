@@ -268,8 +268,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -277,6 +277,9 @@ const props = defineProps({
   activeContest: Object,
   leaderboard: Array,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const showCreateModal = ref(false);
 const submitting = ref(false);
@@ -310,7 +313,7 @@ const removePrizeRow = (index) => {
 
 const submitCreateContest = () => {
   submitting.value = true;
-  router.post('/admin/referral-contests', form.value, {
+  router.post(`${adminPath.value}/referral-contests`, form.value, {
     onFinish: () => {
       submitting.value = false;
       showCreateModal.value = false;
@@ -323,7 +326,7 @@ const distributeRewards = () => {
     return;
   }
   distributing.value = true;
-  router.post(`/admin/referral-contests/${props.activeContest.id}/distribute`, {}, {
+  router.post(`${adminPath.value}/referral-contests/${props.activeContest.id}/distribute`, {}, {
     onFinish: () => {
       distributing.value = false;
     },
@@ -334,7 +337,7 @@ const cancelContest = () => {
   if (!confirm(`Are you sure you want to cancel "${props.activeContest.title}"?`)) {
     return;
   }
-  router.post(`/admin/referral-contests/${props.activeContest.id}/cancel`);
+  router.post(`${adminPath.value}/referral-contests/${props.activeContest.id}/cancel`);
 };
 
 const formatDate = (dateStr) => {

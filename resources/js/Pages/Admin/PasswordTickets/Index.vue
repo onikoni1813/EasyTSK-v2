@@ -265,8 +265,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router, Link, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, Link, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -275,6 +275,9 @@ const props = defineProps({
   stats: Object,
 });
 
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
+
 const currentStatus = ref(props.filters.status || 'all');
 const searchQuery   = ref(props.filters.search || '');
 
@@ -282,7 +285,7 @@ const selectedTicketForApprove = ref(null);
 const selectedTicketForReject  = ref(null);
 
 const approveForm = useForm({
-  admin_note: '',
+  admin_note: 'Identity verified. Reset approved.',
 });
 
 const rejectForm = useForm({
@@ -291,14 +294,14 @@ const rejectForm = useForm({
 
 const filterStatus = (st) => {
   currentStatus.value = st;
-  router.get('/admin/password-tickets', {
+  router.get(`${adminPath.value}/password-tickets`, {
     status: st,
     search: searchQuery.value,
   }, { preserveState: true, replace: true });
 };
 
 const handleSearch = () => {
-  router.get('/admin/password-tickets', {
+  router.get(`${adminPath.value}/password-tickets`, {
     status: currentStatus.value,
     search: searchQuery.value,
   }, { preserveState: true, replace: true });
@@ -316,7 +319,7 @@ const openRejectModal = (ticket) => {
 
 const submitApprove = () => {
   if (!selectedTicketForApprove.value) return;
-  approveForm.post(`/admin/password-tickets/${selectedTicketForApprove.value.id}/approve`, {
+  approveForm.post(`${adminPath.value}/password-tickets/${selectedTicketForApprove.value.id}/approve`, {
     onSuccess: () => {
       selectedTicketForApprove.value = null;
     },
@@ -325,7 +328,7 @@ const submitApprove = () => {
 
 const submitReject = () => {
   if (!selectedTicketForReject.value) return;
-  rejectForm.post(`/admin/password-tickets/${selectedTicketForReject.value.id}/reject`, {
+  rejectForm.post(`${adminPath.value}/password-tickets/${selectedTicketForReject.value.id}/reject`, {
     onSuccess: () => {
       selectedTicketForReject.value = null;
     },

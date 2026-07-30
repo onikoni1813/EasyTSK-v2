@@ -108,13 +108,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, useForm, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
   levels: Array,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const showForm = ref(false);
 const editingId = ref(null);
@@ -154,12 +157,12 @@ const closeForm = () => {
 
 const submit = () => {
   if (editingId.value) {
-    form.put(`/admin/levels/${editingId.value}`, {
+    form.put(`${adminPath.value}/levels/${editingId.value}`, {
       preserveScroll: true,
       onSuccess: () => closeForm(),
     });
   } else {
-    form.post('/admin/levels', {
+    form.post(`${adminPath.value}/levels`, {
       preserveScroll: true,
       onSuccess: () => closeForm(),
     });
@@ -172,7 +175,7 @@ const requestDelete = (level) => {
 
 const confirmDelete = () => {
   if (!levelToDelete.value) return;
-  router.delete(`/admin/levels/${levelToDelete.value.id}`, { 
+  router.delete(`${adminPath.value}/levels/${levelToDelete.value.id}`, { 
     preserveScroll: true,
     onSuccess: () => { levelToDelete.value = null; }
   });

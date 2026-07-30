@@ -129,7 +129,7 @@
 
                 <td class="py-3.5 px-4 text-right whitespace-nowrap">
                   <Link
-                    :href="`/admin/support-tickets/${ticket.id}`"
+                    :href="`${adminPath}/support-tickets/${ticket.id}`"
                     class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow-sm inline-block"
                   >
                     Open Thread &rarr;
@@ -160,8 +160,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, Link, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -170,19 +170,22 @@ const props = defineProps({
   stats: Object,
 });
 
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
+
 const currentStatus = ref(props.filters.status || 'all');
 const searchQuery   = ref(props.filters.search || '');
 
 const filterStatus = (st) => {
   currentStatus.value = st;
-  router.get('/admin/support-tickets', {
+  router.get(`${adminPath.value}/support-tickets`, {
     status: st,
     search: searchQuery.value,
   }, { preserveState: true, replace: true });
 };
 
 const handleSearch = () => {
-  router.get('/admin/support-tickets', {
+  router.get(`${adminPath.value}/support-tickets`, {
     status: currentStatus.value,
     search: searchQuery.value,
   }, { preserveState: true, replace: true });

@@ -4,6 +4,10 @@ import { ref, computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({ offerwalls: Array });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
+
 const showModal = ref(false);
 const showPostbackModal = ref(false);
 const selectedOfferwall = ref(null);
@@ -33,15 +37,15 @@ function openModal(offerwall = null) {
 
 function save() {
   if (isEditing.value) {
-    router.put('/admin/offerwalls/' + currentId.value, form.value, { onSuccess: () => showModal.value = false });
+    router.put(`${adminPath.value}/offerwalls/` + currentId.value, form.value, { onSuccess: () => showModal.value = false });
   } else {
-    router.post('/admin/offerwalls', form.value, { onSuccess: () => showModal.value = false });
+    router.post(`${adminPath.value}/offerwalls`, form.value, { onSuccess: () => showModal.value = false });
   }
 }
 
 function deleteOfferwall(id) {
   if (confirm('Are you sure you want to delete this offerwall?')) {
-    router.delete('/admin/offerwalls/' + id);
+    router.delete(`${adminPath.value}/offerwalls/` + id);
   }
 }
 
