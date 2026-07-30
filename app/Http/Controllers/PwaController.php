@@ -18,7 +18,8 @@ class PwaController extends Controller
         $siteLogo = AppSetting::getByKey('site_logo', null);
         $siteFavicon = AppSetting::getByKey('site_favicon', '/favicon.ico');
 
-        $iconUrl = $siteLogo ?: $siteFavicon;
+        $icon192 = $siteLogo ?: '/icon-192.png';
+        $icon512 = $siteLogo ?: '/icon-512.png';
 
         return response()->json([
             'id' => '/',
@@ -34,13 +35,13 @@ class PwaController extends Controller
             'orientation' => 'portrait',
             'icons' => [
                 [
-                    'src' => $iconUrl,
+                    'src' => $icon192,
                     'sizes' => '192x192',
                     'type' => 'image/png',
                     'purpose' => 'any maskable'
                 ],
                 [
-                    'src' => $iconUrl,
+                    'src' => $icon512,
                     'sizes' => '512x512',
                     'type' => 'image/png',
                     'purpose' => 'any maskable'
