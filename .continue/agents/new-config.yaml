@@ -1,0 +1,15 @@
+name: Local Jan Config
+version: 1.0.0
+schema: v1
+
+models:
+  - name: GLM Local Model (Jan)
+    provider: openai
+    model: glm-4.7-flash-claude-4.5-opus.q4_k_m
+    apiBase: http://localhost:1337/v1
+    apiKey: jan
+    roles:
+      - chat
+      - edit
+      - apply
+      - autocomplete

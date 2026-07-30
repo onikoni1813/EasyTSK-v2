@@ -1,0 +1,42 @@
+Developers API
+
+For developers ShrinkMe.io prepared API which returns responses in JSON or TEXT formats.
+
+Currently there is one method which can be used to shorten links on behalf of your account.
+
+All you have to do is to send a GET request with your API token and URL Like the following:
+
+https://shrinkme.io/api?api=d4010139b013fb1e1cf8260ace15c49e985fab5d&url=yourdestinationlink.com&alias=CustomAlias
+You will get a JSON response like the following
+
+{"status":"success","shortenedUrl":""https:\/\/shrinkme.io\/xxxxx""}
+If you want a TEXT response just add &format=text at the end of your request as the below example. This will return just the short link. Note that if an error occurs, it will not output anything.
+
+https://shrinkme.io/api?api=d4010139b013fb1e1cf8260ace15c49e985fab5d&url=yourdestinationlink.com&alias=CustomAlias&format=text
+ Note
+api & url are required fields and the other fields like alias, format & type are optional.
+That's it :)
+
+Using the API in PHP
+To use the API in your PHP application, you need to send a GET request via file_get_contents or cURL. Please check the below sample examples using file_get_contents
+
+Using JSON Response
+
+$long_url = urlencode('yourdestinationlink.com');
+$api_token = 'd4010139b013fb1e1cf8260ace15c49e985fab5d';
+$api_url = "https://shrinkme.io/api?api={$api_token}&url={$long_url}&alias=CustomAlias";
+$result = @json_decode(file_get_contents($api_url),TRUE);
+if($result["status"] === 'error') {
+ echo $result["message"];
+} else {
+ echo $result["shortenedUrl"];
+}
+Using Plain Text Response
+
+$long_url = urlencode('yourdestinationlink.com');
+$api_token = 'd4010139b013fb1e1cf8260ace15c49e985fab5d';
+$api_url = "https://shrinkme.io/api?api={$api_token}&url={$long_url}&alias=CustomAlias&format=text";
+$result = @file_get_contents($api_url);
+if( $result ){
+ echo $result;
+}
