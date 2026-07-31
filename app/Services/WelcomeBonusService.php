@@ -54,16 +54,23 @@ class WelcomeBonusService
             $freshUser = User::where('id', $user->id)->lockForUpdate()->first();
 
             if ($freshUser && !$freshUser->has_claimed_welcome_bonus) {
-                $amount = (float) $freshUser->welcome_bonus_amount;
-                $actualTransfer = min($amount, (float) $freshUser->locked_balance);
+                $amount = (float) ($freshUser->welcome_bonus_amount ?: 50.0);
+                $locked = (float) $freshUser->locked_balance;
+                $actualTransfer = $locked > 0 ? min($amount, $locked) : $amount;
                 
-                if ($actualTransfer > 0) {
-                    $freshUser->decrement('locked_balance', $actualTransfer);
-                    $freshUser->increment('main_balance', $actualTransfer);
+                if ($locked > 0) {
+                    $freshUser->decrement('locked_balance', min($amount, $locked));
                 }
+                $freshUser->increment('main_balance', $actualTransfer);
                 
                 // Mark as claimed
                 $freshUser->update(['has_claimed_welcome_bonus' => true]);
+
+                // Mark any old unread welcome bonus notifications as read first
+                \App\Models\Notification::where('user_id', $freshUser->id)
+                    ->where('title', 'like', '%Welcome Bonus%')
+                    ->whereNull('read_at')
+                    ->update(['read_at' => now()]);
 
                 \App\Models\Notification::send(
                     $freshUser,
@@ -73,7 +80,7 @@ class WelcomeBonusService
                     '/dashboard'
                 );
                 
-                // Optionally award XP for the welcome bonus (was +10 XP before)
+                // Award XP for the welcome bonus
                 $freshUser->addXp(10);
             }
         });

@@ -35,7 +35,16 @@ class HandleInertiaRequests extends Middleware
                     'has_claimed_welcome_bonus' => (bool) $request->user()->has_claimed_welcome_bonus,
                 ] : null,
                 'notifications' => $request->user() 
-                    ? \App\Models\Notification::where('user_id', $request->user()->id)->latest()->take(15)->get() 
+                    ? (function() use ($request) {
+                        $user = $request->user();
+                        if ($user->has_claimed_welcome_bonus) {
+                            \App\Models\Notification::where('user_id', $user->id)
+                                ->where('title', 'like', '%Welcome Bonus%')
+                                ->whereNull('read_at')
+                                ->update(['read_at' => now()]);
+                        }
+                        return \App\Models\Notification::where('user_id', $user->id)->latest()->take(15)->get();
+                    })()
                     : [],
                 'unreadNotificationsCount' => $request->user() 
                     ? \App\Models\Notification::where('user_id', $request->user()->id)->whereNull('read_at')->count() 
