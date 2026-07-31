@@ -57,8 +57,11 @@
  * Shared moderation row for admin user lists (High Risk Users, Low Health Users, etc.).
  * Wires ban toggle, risk score, and health adjustments to their backend endpoints.
  */
-import { ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -72,7 +75,7 @@ const banning     = ref(false);
 
 const toggleBan = () => {
   banning.value = true;
-  router.post(`/admin/users/${props.user.id}/ban`, {}, {
+  router.post(`${adminPath.value}/users/${props.user.id}/ban`, {}, {
     preserveScroll: true,
     onFinish: () => { banning.value = false; },
   });
@@ -80,7 +83,7 @@ const toggleBan = () => {
 
 const saveRisk = () => {
   savingRisk.value = true;
-  router.post(`/admin/users/${props.user.id}/risk-score`, { risk_score: riskInput.value }, {
+  router.post(`${adminPath.value}/users/${props.user.id}/risk-score`, { risk_score: riskInput.value }, {
     preserveScroll: true,
     onFinish: () => { savingRisk.value = false; },
   });
@@ -88,7 +91,7 @@ const saveRisk = () => {
 
 const saveHealth = () => {
   savingHealth.value = true;
-  router.post(`/admin/users/${props.user.id}/health`, { health: healthInput.value }, {
+  router.post(`${adminPath.value}/users/${props.user.id}/health`, { health: healthInput.value }, {
     preserveScroll: true,
     onFinish: () => { savingHealth.value = false; },
   });

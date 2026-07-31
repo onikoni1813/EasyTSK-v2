@@ -284,8 +284,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const props = defineProps({
   show: Boolean,
@@ -305,7 +309,7 @@ const fetchHistory = async () => {
   errorMsg.value = '';
   historyData.value = null;
   try {
-    const res = await axios.get(`/admin/users/${props.user.id}/history`);
+    const res = await axios.get(`${adminPath.value}/users/${props.user.id}/history`);
     historyData.value = res.data;
   } catch (err) {
     console.error('Failed to load user history', err);

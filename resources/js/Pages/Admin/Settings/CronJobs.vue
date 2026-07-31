@@ -36,21 +36,54 @@
       </div>
 
       <!-- How to Setup Cron Job Card -->
-      <div class="glass-card p-6 rounded-3xl border border-indigo-500/30">
-        <h2 class="text-lg font-bold text-white mb-2">How to Setup Cron Job</h2>
-        <p class="text-sm text-slate-400 mb-6">
-          To run automated background tasks like releasing pending balances and cleaning up orphaned screenshots, 
-          you need to add the following command to your cPanel or server's Cron Jobs list. 
-          Set the frequency to <strong>Every Minute (* * * * *)</strong>.
-        </p>
+      <div class="glass-card p-6 rounded-3xl border border-indigo-500/30 space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-white mb-2">How to Setup Cron Job</h2>
+          <p class="text-sm text-slate-400">
+            To run automated background tasks (releasing offerwall earnings, cleanup screenshots, health scores, contest distribution), 
+            add a cron job on your server to run <strong>Every Minute (* * * * *)</strong>.
+          </p>
+        </div>
 
-        <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl flex items-center justify-between gap-4">
-          <code class="text-emerald-400 text-sm font-mono overflow-x-auto whitespace-nowrap flex-1 select-all">
-            * * * * * cd {{ base_path }} && php artisan schedule:run >> /dev/null 2>&1
-          </code>
-          <button @click="copyCommand" class="btn-neon btn-primary px-4 py-2 rounded-xl text-xs font-bold text-white whitespace-nowrap shrink-0">
-            {{ copied ? '✅ Copied!' : '📋 Copy Command' }}
-          </button>
+        <!-- Option 1: cPanel Command Box -->
+        <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-indigo-400">Option 1: For cPanel "Command" Input Box (Recommended)</span>
+            <span class="text-[11px] text-slate-500">Do NOT include timing stars * * * * * in cPanel command box!</span>
+          </div>
+          <div class="bg-slate-900/80 border border-slate-700/80 p-3.5 rounded-xl flex items-center justify-between gap-4">
+            <code class="text-emerald-400 text-xs font-mono overflow-x-auto whitespace-nowrap flex-1 select-all">
+              cd {{ base_path }} && php artisan schedule:run >> /dev/null 2>&1
+            </code>
+            <button @click="copyCpanelCommand" class="btn-neon btn-primary px-4 py-2 rounded-xl text-xs font-bold text-white whitespace-nowrap shrink-0">
+              {{ copiedCpanel ? '✅ Copied for cPanel!' : '📋 Copy cPanel Command' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 2: Full Crontab Line for SSH / Server Terminal -->
+        <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-purple-400">Option 2: Full Crontab Line (For SSH / `crontab -e`)</span>
+            <span class="text-[11px] text-slate-500">Includes timing 5-stars at the beginning</span>
+          </div>
+          <div class="bg-slate-900/80 border border-slate-700/80 p-3.5 rounded-xl flex items-center justify-between gap-4">
+            <code class="text-amber-400 text-xs font-mono overflow-x-auto whitespace-nowrap flex-1 select-all">
+              * * * * * cd {{ base_path }} && php artisan schedule:run >> /dev/null 2>&1
+            </code>
+            <button @click="copyFullCommand" class="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all">
+              {{ copiedFull ? '✅ Copied Full Line!' : '📋 Copy SSH Line' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- cPanel Common Error Warning -->
+        <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-start gap-2.5">
+          <span class="text-base shrink-0">💡</span>
+          <div>
+            <strong>cPanel "bad command / Invalid crontab file" Error Fix:</strong>
+            In cPanel &rarr; Cron Jobs, set frequency dropdown to <strong>Once Per Minute (* * * * *)</strong>, and paste <strong>Option 1</strong> into the "Command" box. If you include `* * * * *` inside cPanel's Command box, cPanel duplicates the stars and causes an <em>"Invalid crontab file, can't install"</em> error.
+          </div>
         </div>
       </div>
 
@@ -174,15 +207,28 @@ const props = defineProps({
   base_path: String,
 });
 
-const copied = ref(false);
+const copiedCpanel = ref(false);
+const copiedFull = ref(false);
 const runningTask = ref(null);
 
-const copyCommand = async () => {
+const copyCpanelCommand = async () => {
+  const command = `cd ${props.base_path} && php artisan schedule:run >> /dev/null 2>&1`;
+  try {
+    await navigator.clipboard.writeText(command);
+    copiedCpanel.value = true;
+    setTimeout(() => { copiedCpanel.value = false; }, 2000);
+  } catch (err) {
+    console.error('Failed to copy text: ', err);
+    alert('Failed to copy to clipboard. Please copy manually.');
+  }
+};
+
+const copyFullCommand = async () => {
   const command = `* * * * * cd ${props.base_path} && php artisan schedule:run >> /dev/null 2>&1`;
   try {
     await navigator.clipboard.writeText(command);
-    copied.value = true;
-    setTimeout(() => { copied.value = false; }, 2000);
+    copiedFull.value = true;
+    setTimeout(() => { copiedFull.value = false; }, 2000);
   } catch (err) {
     console.error('Failed to copy text: ', err);
     alert('Failed to copy to clipboard. Please copy manually.');

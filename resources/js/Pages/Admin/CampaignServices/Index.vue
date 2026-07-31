@@ -285,9 +285,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { useForm, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const props = defineProps({
   campaignServices: Array,
@@ -315,7 +318,7 @@ const showEditModal = ref(false);
 const serviceToDelete = ref(null);
 
 const createService = () => {
-  serviceForm.post('/admin/campaign-services', {
+  serviceForm.post(`${adminPath.value}/campaign-services`, {
     onSuccess: () => {
       serviceForm.reset();
     },
@@ -340,7 +343,7 @@ const closeEditModal = () => {
 
 const updateService = () => {
   if (editForm.id) {
-    editForm.put(`/admin/campaign-services/${editForm.id}`, {
+    editForm.put(`${adminPath.value}/campaign-services/${editForm.id}`, {
       preserveScroll: true,
       onSuccess: () => {
         closeEditModal();
@@ -361,7 +364,7 @@ const closeDeleteModal = () => {
 
 const executeDelete = () => {
   if (serviceToDelete.value) {
-    router.delete(`/admin/campaign-services/${serviceToDelete.value}`, {
+    router.delete(`${adminPath.value}/campaign-services/${serviceToDelete.value}`, {
       preserveScroll: true,
       onSuccess: () => {
         closeDeleteModal();
