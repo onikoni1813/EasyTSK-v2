@@ -124,7 +124,11 @@ class DashboardController extends Controller
             $notification->update(['read_at' => now()]);
         }
 
-        return response()->json(['success' => true]);
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back();
     }
 
     public function markAllNotificationsRead()
@@ -133,6 +137,10 @@ class DashboardController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        return response()->json(['success' => true]);
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return back();
     }
 }

@@ -158,28 +158,27 @@ const formatDate = (dateStr) => {
   });
 };
 
-const handleClick = async (item) => {
+const handleClick = (item) => {
   if (!item.read_at) {
-    try {
-      await axios.post(`/api/notifications/${item.id}/read`);
-      router.reload({ preserveScroll: true });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  if (item.action_url) {
+    router.post(`/api/notifications/${item.id}/read`, {}, {
+      preserveScroll: true,
+      onFinish: () => {
+        if (item.action_url) {
+          emit('close');
+          router.visit(item.action_url);
+        }
+      }
+    });
+  } else if (item.action_url) {
     emit('close');
     router.visit(item.action_url);
   }
 };
 
-const markAllAsRead = async () => {
-  try {
-    await axios.post('/api/notifications/read-all');
-    router.reload({ preserveScroll: true });
-  } catch (e) {
-    console.error(e);
-  }
+const markAllAsRead = () => {
+  router.post('/api/notifications/read-all', {}, {
+    preserveScroll: true
+  });
 };
 </script>
 

@@ -133,18 +133,18 @@ onMounted(() => {
   checkForAchievement();
 });
 
-const dismiss = async () => {
+const dismiss = () => {
   if (activeAchievement.value) {
     const item = activeAchievement.value;
     dismissedIds.value.add(item.id);
     activeAchievement.value = null;
 
-    try {
-      await axios.post(`/api/notifications/${item.id}/read`);
-      router.reload({ preserveScroll: true });
-    } catch (e) {
-      console.error(e);
-    }
+    router.post(`/api/notifications/${item.id}/read`, {}, {
+      preserveScroll: true,
+      onFinish: () => {
+        // State successfully updated
+      }
+    });
   }
 };
 
