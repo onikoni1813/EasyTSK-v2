@@ -12,9 +12,8 @@
           </p>
         </div>
         <button
-          v-if="!activeContest"
           @click="showCreateModal = true"
-          class="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg transition-all flex items-center gap-2"
+          class="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg transition-all flex items-center gap-2 shrink-0 cursor-pointer"
         >
           <span>➕ Create New Contest</span>
         </button>
@@ -182,6 +181,13 @@
           <button @click="showCreateModal = false" class="text-slate-400 hover:text-white">✕</button>
         </div>
 
+        <div v-if="activeContest" class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5">
+          <span class="text-base shrink-0">⚠️</span>
+          <div>
+            <strong>Active Contest Currently Running:</strong> "{{ activeContest.title }}" is active. Please distribute rewards to complete it or cancel it before starting a new contest.
+          </div>
+        </div>
+
         <form @submit.prevent="submitCreateContest" class="space-y-4">
           <div>
             <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Contest Title</label>
@@ -255,10 +261,10 @@
 
             <button
               type="submit"
-              :disabled="submitting"
-              class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md"
+              :disabled="submitting || activeContest !== null"
+              class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ submitting ? 'Creating...' : 'Create Contest' }}
+              {{ submitting ? 'Creating...' : (activeContest ? 'Finish Active Contest First' : 'Create Contest') }}
             </button>
           </div>
         </form>
