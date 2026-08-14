@@ -42,9 +42,34 @@ class GoogleAuthController extends Controller
         $deviceHash = $request->query('device_hash') ?: $request->cookie('device_hash');
         if ($deviceHash) {
             session(['google_device_hash' => $deviceHash]);
+            cookie()->queue('device_hash', $deviceHash, 525600); // 1 year cookie
         }
 
-        return Socialite::driver('google')->redirect();
+        $driver = Socialite::driver('google');
+
+        if ($deviceHash) {
+            // Pass device_hash in OAuth state parameter so it returns back on callback URL
+            $driver->with(['state' => 'dh:' . $deviceHash]);
+        }
+
+        return $driver->redirect();
+    }
+
+    private function extractDeviceHashFromState(?string $state): ?string
+    {
+        if (!$state) {
+            return null;
+        }
+
+        // Check if state starts with dh: or contains dh:
+        if (str_contains($state, 'dh:')) {
+            $parts = explode('dh:', $state);
+            $hash = end($parts);
+            $cleanHash = explode('&', $hash)[0];
+            return trim($cleanHash) ?: null;
+        }
+
+        return null;
     }
 
     public function handleGoogleCallback(Request $request)
@@ -59,7 +84,9 @@ class GoogleAuthController extends Controller
             $googleUser = Socialite::driver('google')->user();
 
             $deviceHash = session('google_device_hash') 
-                ?: ($request->cookie('device_hash') ?: $request->query('device_hash'));
+                ?: ($request->cookie('device_hash') 
+                ?: ($request->query('device_hash') 
+                ?: $this->extractDeviceHashFromState($request->input('state'))));
 
             $user = User::where('google_id', $googleUser->getId())
                 ->orWhere('email', $googleUser->getEmail())
@@ -102,14 +129,19 @@ class GoogleAuthController extends Controller
 
                 Auth::login($user);
             } else {
+                // Anti-Fraud Check: Device verification is mandatory for new Google account creation
+                if (empty($deviceHash)) {
+                    return redirect()->route('login')->withErrors([
+                        'email' => 'Device verification failed. Please ensure JavaScript and cookies are enabled before logging in with Google.',
+                    ]);
+                }
+
                 // Anti-Fraud Check: 1 Device = 1 Account Limit
-                if ($deviceHash) {
-                    $existingDeviceUser = User::where('device_hash', $deviceHash)->first();
-                    if ($existingDeviceUser) {
-                        return redirect()->route('login')->withErrors([
-                            'email' => 'An account is already registered from this device. Multiple accounts are strictly forbidden.',
-                        ]);
-                    }
+                $existingDeviceUser = User::where('device_hash', $deviceHash)->first();
+                if ($existingDeviceUser) {
+                    return redirect()->route('login')->withErrors([
+                        'email' => 'An account is already registered from this device. Multiple accounts are strictly forbidden.',
+                    ]);
                 }
 
                 $welcomeBonus = (float) AppSetting::getByKey('welcome_bonus', '50.0');

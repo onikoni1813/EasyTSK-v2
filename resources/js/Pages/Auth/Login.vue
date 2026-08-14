@@ -377,7 +377,18 @@ onMounted(async () => {
   }
 });
 
-const handleGoogleLogin = () => {
+const handleGoogleLogin = async () => {
+  if (!form.device_hash) {
+    try {
+      const fp = await FingerprintJS.load();
+      const result = await fp.get();
+      form.device_hash = result.visitorId;
+      document.cookie = `device_hash=${result.visitorId}; path=/; max-age=31536000; SameSite=Lax`;
+    } catch (e) {
+      console.error('Device fingerprint error:', e);
+    }
+  }
+
   const url = form.device_hash 
     ? `/auth/google?device_hash=${encodeURIComponent(form.device_hash)}`
     : '/auth/google';

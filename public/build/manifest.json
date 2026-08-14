@@ -289,7 +289,7 @@
     ]
   },
   "resources/js/Pages/Auth/Login.vue": {
-    "file": "assets/Login-Dq2uXN4x.js",
+    "file": "assets/Login-BIcJYuOF.js",
     "name": "Login",
     "src": "resources/js/Pages/Auth/Login.vue",
     "isDynamicEntry": true,
@@ -300,11 +300,11 @@
       "__plugin-vue_export-helper-DlAUqK2U.js"
     ],
     "css": [
-      "assets/Login-Bw-F6buw.css"
+      "assets/Login-D1KYjaR7.css"
     ]
   },
   "resources/js/Pages/Auth/Register.vue": {
-    "file": "assets/Register-CfLVN_bG.js",
+    "file": "assets/Register-BHDDZOtq.js",
     "name": "Register",
     "src": "resources/js/Pages/Auth/Register.vue",
     "isDynamicEntry": true,
@@ -529,7 +529,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-Di1wV6NX.js",
+    "file": "assets/app-DyTudP_8.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
