@@ -23,11 +23,17 @@ class AdminWithdrawalController extends Controller
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('account_details', 'like', "%{$search}%")
+                if (is_numeric($search)) {
+                    $q->where('id', (int)$search);
+                }
+                $q->orWhere('account_details', 'like', "%{$search}%")
                   ->orWhere('payment_method', 'like', "%{$search}%")
                   ->orWhere('transaction_id', 'like', "%{$search}%")
                   ->orWhereHas('user', function ($u) use ($search) {
-                      $u->where('name', 'like', "%{$search}%")
+                      if (is_numeric($search)) {
+                          $u->where('id', (int)$search);
+                      }
+                      $u->orWhere('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%");
                   });

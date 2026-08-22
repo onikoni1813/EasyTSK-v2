@@ -63,12 +63,16 @@ class ReferralContestService
 
             if ($isAdminView) {
                 // Fraud analysis for admin view
-                $sameDeviceCount = DB::table('referral_trackings')
-                    ->join('users as referred', 'referred.id', '=', 'referral_trackings.referred_user_id')
-                    ->where('referral_trackings.referrer_id', $user->id)
-                    ->whereNotNull('referred.device_hash')
-                    ->where('referred.device_hash', $user->device_hash)
-                    ->count();
+                $sameDeviceCount = 0;
+                if (!empty($user->device_hash)) {
+                    $sameDeviceCount = DB::table('referral_trackings')
+                        ->join('users as referred', 'referred.id', '=', 'referral_trackings.referred_user_id')
+                        ->where('referral_trackings.referrer_id', $user->id)
+                        ->whereNotNull('referred.device_hash')
+                        ->where('referred.device_hash', '!=', '')
+                        ->where('referred.device_hash', $user->device_hash)
+                        ->count();
+                }
 
                 $item['email'] = $user->email;
                 $item['device_hash'] = $user->device_hash;
@@ -157,10 +161,7 @@ class ReferralContestService
                     continue; // Skip banned/deleted users
                 }
 
-                // Credit main_balance
-                $user->increment('main_balance', $rewardAmount);
-
-                // Log financial transaction
+                // Log financial transaction before balance increment
                 Transaction::log(
                     $user,
                     'credit',
@@ -169,6 +170,9 @@ class ReferralContestService
                     'referral_contest_bonus',
                     (string)$lockedContest->id
                 );
+
+                // Credit main_balance
+                $user->increment('main_balance', $rewardAmount);
 
                 // Record winner row
                 $winner = ReferralContestWinner::create([
@@ -184,7 +188,7 @@ class ReferralContestService
                     'Contest Champion! 🏆',
                     "Congratulations! You secured Rank #{$rank} in the Top Referrer Contest '{$lockedContest->title}' and won {$rewardAmount} bonus points!",
                     'success',
-                    '/reffer'
+                    '/referral-contest'
                 );
 
                 $winnersCreated[] = [

@@ -18,11 +18,17 @@
 
         <!-- System Info Badges -->
         <div class="flex flex-wrap gap-2">
+          <span v-if="adminUser" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 flex items-center gap-1.5">
+            <UserIcon class="w-3.5 h-3.5" /> {{ adminUser.name }} ({{ adminUser.role }})
+          </span>
           <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/20">
             PHP {{ phpVersion }}
           </span>
           <span class="px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/20">
             Laravel {{ laravelVersion }}
+          </span>
+          <span v-if="serverOs" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+            {{ serverOs }}
           </span>
           <span :class="[
             'px-3 py-1.5 rounded-full text-xs font-semibold border',
@@ -30,7 +36,15 @@
               ? 'bg-rose-500/15 text-rose-300 border-rose-500/20'
               : 'bg-amber-500/15 text-amber-300 border-amber-500/20'
           ]">
-            {{ appEnv?.toUpperCase() }}
+            ENV: {{ appEnv?.toUpperCase() }}
+          </span>
+          <span :class="[
+            'px-3 py-1.5 rounded-full text-xs font-semibold border',
+            isMaintenance
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+          ]">
+            Maintenance: {{ isMaintenance ? 'ON' : 'OFF' }}
           </span>
         </div>
       </div>
@@ -56,7 +70,7 @@
               <div class="p-2 bg-orange-500/20 rounded-xl text-orange-400"><GitBranchIcon class="w-4 h-4" /></div>
               <h2 class="text-base font-bold text-white">Git Operations</h2>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <CommandButton
                 v-for="cmd in gitCommands" :key="cmd.key"
                 :cmd="cmd"
@@ -74,7 +88,7 @@
               <div class="p-2 bg-indigo-500/20 rounded-xl text-indigo-400"><TerminalIcon class="w-4 h-4" /></div>
               <h2 class="text-base font-bold text-white">Artisan Commands</h2>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <CommandButton
                 v-for="cmd in artisanCommands" :key="cmd.key"
                 :cmd="cmd"
@@ -162,7 +176,7 @@
 
             <!-- Terminal Body -->
             <div ref="terminalRef" class="h-80 overflow-y-auto p-4 font-mono text-xs bg-slate-950/30 space-y-1" style="scroll-behavior: smooth;">
-              <div v-if="!terminalOutput && !runningCommand" class="text-slate-600 text-center mt-16">
+              <div v-if="!outputHistory.length && !runningCommand" class="text-slate-600 text-center mt-16">
                 <TerminalIcon class="w-10 h-10 mx-auto mb-2 opacity-30" />
                 <p>কমান্ড চালালে এখানে আউটপুট দেখাবে</p>
               </div>
@@ -218,7 +232,7 @@ import axios from 'axios';
 import {
   RocketIcon, TerminalIcon, GitBranchIcon, GitCommitIcon,
   PackageIcon, ZapIcon, LoaderIcon, AlertTriangleIcon,
-  CheckCircleIcon, XCircleIcon,
+  CheckCircleIcon, XCircleIcon, UserIcon,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -227,6 +241,9 @@ const props = defineProps({
   laravelVersion: String,
   appEnv: String,
   appUrl: String,
+  serverOs: String,
+  isMaintenance: Boolean,
+  adminUser: Object,
 });
 
 const page = usePage();
@@ -234,7 +251,6 @@ const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 // --- State ---
 const runningCommand    = ref(null);
-const terminalOutput    = ref('');
 const outputHistory     = ref([]);
 const terminalRef       = ref(null);
 const lastCommandDuration = ref(null);
@@ -245,11 +261,14 @@ const quickDeploySteps    = ref([]);
 const gitCommands = [
   { key: 'git_pull',        label: 'git pull (main)',   icon: '⬇️', color: 'orange', danger: false },
   { key: 'git_pull_master', label: 'git pull (master)', icon: '⬇️', color: 'orange', danger: false },
+  { key: 'git_pull_current',label: 'git pull (current)',icon: '🔄', color: 'orange', danger: false },
   { key: 'git_status',      label: 'git status',        icon: '🔍', color: 'slate',  danger: false },
 ];
 
 const artisanCommands = [
   { key: 'migrate',       label: 'migrate',         icon: '🗃️',  color: 'amber',  danger: true  },
+  { key: 'migrate_fresh', label: 'migrate:fresh',   icon: '⚠️',  color: 'rose',   danger: true  },
+  { key: 'db_seed',       label: 'db:seed',         icon: '🌱',  color: 'emerald',danger: false },
   { key: 'cache_clear',   label: 'cache:clear',     icon: '🧹',  color: 'indigo', danger: false },
   { key: 'config_cache',  label: 'config:cache',    icon: '⚙️',  color: 'indigo', danger: false },
   { key: 'route_cache',   label: 'route:cache',     icon: '🛣️',  color: 'indigo', danger: false },
@@ -264,6 +283,7 @@ const artisanCommands = [
 
 const depCommands = [
   { key: 'composer_install', label: 'composer install', icon: '🎼', color: 'amber',   danger: false },
+  { key: 'composer_update',  label: 'composer update',  icon: '📦', color: 'amber',   danger: false },
   { key: 'npm_install',      label: 'npm install',      icon: '📦', color: 'emerald', danger: false },
   { key: 'npm_build',        label: 'npm run build',    icon: '🔨', color: 'sky',     danger: false },
 ];
@@ -285,13 +305,21 @@ const scrollTerminal = async () => {
   }
 };
 
+const getDeployRunUrl = () => {
+  try {
+    return route('admin.deploy.run');
+  } catch (e) {
+    return `${adminPath.value}/deploy/run`;
+  }
+};
+
 const executeCommand = async (commandKey) => {
   if (runningCommand.value) return;
   runningCommand.value = commandKey;
   lastCommandDuration.value = null;
 
   try {
-    const response = await axios.post(`${adminPath.value}/deploy/run`, {
+    const response = await axios.post(getDeployRunUrl(), {
       command: commandKey,
     }, {
       headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
@@ -330,7 +358,7 @@ const runQuickDeploy = async () => {
     runningCommand.value = step.key;
 
     try {
-      const res = await axios.post(`${adminPath.value}/deploy/run`, { command: step.key }, {
+      const res = await axios.post(getDeployRunUrl(), { command: step.key }, {
         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
       });
 

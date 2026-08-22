@@ -46,8 +46,8 @@
                   <div class="text-slate-500 text-[10px]">{{ user.email }}</div>
                 </td>
                 <td class="px-4 py-3">
-                  <div class="text-emerald-400 font-bold">M: ৳{{ user.main_balance }}</div>
-                  <div class="text-amber-400">P: ৳{{ user.pending_balance }}</div>
+                  <div class="text-emerald-400 font-bold">M: {{ user.main_balance }} pts</div>
+                  <div class="text-amber-400">P: {{ user.pending_balance }} pts</div>
                 </td>
                 <td class="px-4 py-3">
                   <div class="flex flex-col gap-1">
@@ -58,11 +58,11 @@
                 </td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
                   <div class="flex items-center justify-end space-x-2">
-                    <button @click.stop="openHistoryModal(user)" class="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-lg text-[11px] transition-all flex items-center space-x-1">
+                    <button type="button" @click.stop="openHistoryModal(user)" class="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-lg text-[11px] transition-all flex items-center space-x-1">
                       <span>📜</span>
                       <span>History</span>
                     </button>
-                    <button @click.stop="openEditModal(user)" class="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg text-[11px] transition-all">
+                    <button type="button" @click.stop="openEditModal(user)" class="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg text-[11px] transition-all">
                       Edit
                     </button>
                   </div>
@@ -100,13 +100,14 @@
 
             <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-800/80">
               <div class="flex items-center space-x-3">
-                <span class="text-emerald-400 font-bold">Main: ৳{{ user.main_balance }}</span>
-                <span class="text-amber-400 font-bold">Pending: ৳{{ user.pending_balance }}</span>
+                <span class="text-emerald-400 font-bold">Main: {{ user.main_balance }} pts</span>
+                <span class="text-amber-400 font-bold">Pending: {{ user.pending_balance }} pts</span>
               </div>
             </div>
 
             <div class="flex items-center space-x-2 pt-2 border-t border-slate-800/80">
               <button 
+                type="button"
                 @click.stop="openHistoryModal(user)" 
                 class="flex-1 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all"
               >
@@ -114,6 +115,7 @@
                 <span>History</span>
               </button>
               <button 
+                type="button"
                 @click.stop="openEditModal(user)" 
                 class="flex-1 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all"
               >

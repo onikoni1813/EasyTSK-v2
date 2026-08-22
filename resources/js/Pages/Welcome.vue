@@ -347,7 +347,7 @@ const openFaq = ref(null);
 const steps = [
   {
     icon: '📝', title: 'Create Free Account',
-    desc: 'Sign up in under 60 seconds using your email or Google account. No credit card, no deposit — completely free.',
+    desc: 'Sign up in under 60 seconds using your phone or email. No credit card, no deposit — completely free.',
     iconBg: 'bg-indigo-500/15 border border-indigo-500/25',
     borderColor: 'hover:border-indigo-500/30',
     badgeBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30',

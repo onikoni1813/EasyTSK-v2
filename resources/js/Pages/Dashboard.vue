@@ -9,7 +9,7 @@
 
     <div class="space-y-5 animate-slide-in-up">
 
-      <!-- ── Hero Banner ──────────────────────────────────────────────── -->
+      <!-- ── Hero Banner (User Profile & Dynamic Level Overview) ────────── -->
       <div class="glass-card rounded-3xl border border-indigo-500/15 relative overflow-hidden cyber-grid">
         <!-- Glow orbs -->
         <div class="absolute -right-16 -top-16 w-56 h-56 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -38,8 +38,9 @@
 
               <!-- Info -->
               <div>
-                <div class="flex items-center gap-2 mb-1.5">
+                <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                   <span class="badge badge-indigo shadow-[0_0_8px_rgba(99,102,241,0.3)]">Level {{ user.level }}</span>
+                  <span v-if="user.joined_at" class="text-[10px] text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700/50">Member since {{ user.joined_at }}</span>
                   <span v-if="user.is_banned" class="badge badge-rose">⛔ Banned</span>
                   <span v-if="user.risk_score > 50" class="badge badge-amber">⚠️ High Risk</span>
                 </div>
@@ -47,9 +48,11 @@
                   {{ user.name }}
                 </h1>
                 <p class="text-[11px] sm:text-xs text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
-                  <span class="text-violet-400 font-bold drop-shadow-[0_0_4px_rgba(167,139,250,0.5)]">{{ user.xp_points }} XP</span>
+                  <span v-if="user.email" class="text-slate-300">{{ user.email }}</span>
+                  <span v-if="user.email && user.phone" class="text-slate-600">•</span>
+                  <span v-if="user.phone" class="text-slate-400 font-mono">{{ user.phone }}</span>
                   <span class="text-slate-600">•</span>
-                  <span>{{ completedTasksCount }} tasks done</span>
+                  <span class="text-violet-400 font-bold drop-shadow-[0_0_4px_rgba(167,139,250,0.5)]">{{ user.xp_points }} XP</span>
                   <span class="text-slate-600">•</span>
                   <span class="font-mono text-indigo-400 text-[9px] sm:text-[10px] bg-indigo-500/10 px-1.5 py-0.5 rounded">REF: {{ user.referral_code || '—' }}</span>
                 </p>
@@ -90,11 +93,11 @@
             </div>
           </div>
 
-          <!-- XP Progress Bar -->
+          <!-- Dynamic XP Progress Bar -->
           <div class="mt-5 space-y-1.5">
             <div class="flex justify-between text-[11px] font-semibold">
-              <span class="text-slate-400">Level {{ user.level }} Progress</span>
-              <span class="text-indigo-400">{{ xpPercent }}% → Level {{ user.level + 1 }}</span>
+              <span class="text-slate-400">Level {{ user.level }} Progress ({{ user.xp_points }} / {{ user.next_level_xp }} XP)</span>
+              <span class="text-indigo-400">{{ xpPercent }}% → Level {{ user.next_level_number }}</span>
             </div>
             <div class="progress-track">
               <div
@@ -136,6 +139,53 @@
           </div>
           <AnimatedNumber :value="user.locked_balance" :decimals="0" class="text-2xl font-black text-white" />
           <div class="text-[10px] text-slate-400 mt-0.5">Referral bonus</div>
+        </div>
+      </div>
+
+      <!-- ── Task Statistics Overview Grid ───────────────────────────── -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <!-- Approved Tasks -->
+        <div class="glass-card p-3.5 rounded-2xl border border-emerald-500/15 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-400 text-lg font-bold shrink-0">
+            ✓
+          </div>
+          <div>
+            <div class="text-lg font-black text-white">{{ completedTasksCount }}</div>
+            <div class="text-[10px] text-slate-400 font-medium">Approved Tasks</div>
+          </div>
+        </div>
+
+        <!-- Pending Tasks -->
+        <div class="glass-card p-3.5 rounded-2xl border border-amber-500/15 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400 text-lg font-bold shrink-0">
+            ⏳
+          </div>
+          <div>
+            <div class="text-lg font-black text-white">{{ pendingTasksCount }}</div>
+            <div class="text-[10px] text-slate-400 font-medium">Under Review</div>
+          </div>
+        </div>
+
+        <!-- Rejected Tasks -->
+        <div class="glass-card p-3.5 rounded-2xl border border-rose-500/15 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center text-rose-400 text-lg font-bold shrink-0">
+            ✕
+          </div>
+          <div>
+            <div class="text-lg font-black text-white">{{ rejectedTasksCount }}</div>
+            <div class="text-[10px] text-slate-400 font-medium">Rejected Tasks</div>
+          </div>
+        </div>
+
+        <!-- Total Available Active Tasks -->
+        <div class="glass-card p-3.5 rounded-2xl border border-indigo-500/15 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/15 flex items-center justify-center text-indigo-400 text-lg font-bold shrink-0">
+            ⚡
+          </div>
+          <div>
+            <div class="text-lg font-black text-white">{{ totalActiveTasks }}</div>
+            <div class="text-[10px] text-slate-400 font-medium">Available Microtasks</div>
+          </div>
         </div>
       </div>
 
@@ -206,7 +256,7 @@
             <div class="mt-2 progress-track">
               <div
                 class="progress-fill bg-gradient-to-r from-amber-500 to-orange-400"
-                :style="{ width: (tasksCompletedToday / 3 * 100) + '%' }"
+                :style="{ width: Math.min(100, Math.max(0, (tasksCompletedToday / 3 * 100))) + '%' }"
               ></div>
             </div>
           </div>
@@ -244,6 +294,46 @@
         </div>
       </div>
 
+      <!-- ── Recent Task Submissions Widget ───────────────────────────── -->
+      <div v-if="recentTaskSubmissions && recentTaskSubmissions.length > 0" class="glass-card p-5 rounded-2xl border border-indigo-500/15">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📋</span>
+            <h2 class="text-sm font-bold text-white">Recent Submissions</h2>
+          </div>
+          <Link href="/tasks-history" class="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
+            View All History →
+          </Link>
+        </div>
+
+        <div class="space-y-2.5">
+          <div
+            v-for="sub in recentTaskSubmissions"
+            :key="sub.id"
+            class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-indigo-500/20 transition-all gap-3"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="text-xs font-semibold text-white truncate">{{ sub.title }}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">{{ sub.submitted_at }}</div>
+            </div>
+
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="text-xs font-bold text-violet-300">+{{ sub.reward_points }} pts</span>
+              <span
+                class="px-2 py-0.5 rounded text-[9px] font-bold uppercase"
+                :class="{
+                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': sub.status === 'approved',
+                  'bg-amber-500/20 text-amber-400 border border-amber-500/30': sub.status === 'pending',
+                  'bg-rose-500/20 text-rose-400 border border-rose-500/30': sub.status === 'rejected',
+                }"
+              >
+                {{ sub.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Referral Card ────────────────────────────────────────────── -->
       <div class="glass-card p-5 rounded-2xl border border-indigo-500/15 relative overflow-hidden">
         <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none"></div>
@@ -251,7 +341,7 @@
 
         <div class="relative z-10">
           <!-- Header -->
-          <div class="flex items-center gap-2 mb-3">
+          <div class="flex items-center gap-2 mb-3 flex-wrap">
             <span class="text-lg">👥</span>
             <h2 class="text-sm font-bold text-white">Refer & Earn</h2>
             <Link href="/referral-contest" class="px-3 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold transition-all flex items-center gap-1">
@@ -420,12 +510,15 @@ import axios from 'axios';
 const page = usePage();
 
 const props = defineProps({
-  user:                 Object,
-  streakCount:          Number,
-  tasksCompletedToday:  Number,
-  completedTasksCount:  Number,
-  totalActiveTasks:     Number,
-  canSpin:              Boolean,
+  user:                  Object,
+  streakCount:           Number,
+  tasksCompletedToday:   Number,
+  completedTasksCount:   Number,
+  pendingTasksCount:     Number,
+  rejectedTasksCount:    Number,
+  totalActiveTasks:      Number,
+  recentTaskSubmissions: Array,
+  canSpin:               Boolean,
 });
 
 const referrals = ref([]);
@@ -464,13 +557,14 @@ const promoSuccess  = ref('');
 const promoLoading  = ref(false);
 const copied        = ref(false);
 
-const formatBal = (v) => Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-
 const xpPercent = computed(() => {
-  const xp = props.user.xp_points || 0;
-  if (props.user.level === 1) return Math.min(100, Math.floor((xp / 100) * 100));
-  if (props.user.level === 2) return Math.min(100, Math.floor(((xp - 100) / 400) * 100));
-  return 100;
+  const currentXp = props.user?.xp_points || 0;
+  const minXp     = props.user?.current_level_xp || 0;
+  const maxXp     = props.user?.next_level_xp || 500;
+  
+  if (maxXp <= minXp) return 100;
+  const percent = Math.floor(((currentXp - minXp) / (maxXp - minXp)) * 100);
+  return Math.min(100, Math.max(0, percent));
 });
 
 const canSpinLocal = ref(props.canSpin || false);
@@ -500,7 +594,7 @@ const redeemPromo = async () => {
 };
 
 const referralUrl = computed(() =>
-  `${window.location.origin}/register?ref=${props.user.referral_code || ''}`
+  `${window.location.origin}/register?ref=${props.user?.referral_code || ''}`
 );
 
 const shareText = computed(() =>
@@ -531,9 +625,7 @@ const copyReferral = () => {
 };
 
 const onSpinComplete = (prize) => {
-  // Update local state immediately so UI reflects spin used
   canSpinLocal.value = false;
-  // After 2.5s let user see prize, then close modal & reload current page props
   setTimeout(() => {
     showSpinWheel.value = false;
     router.reload({ preserveScroll: true });

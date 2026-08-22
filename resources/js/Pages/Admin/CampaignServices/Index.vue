@@ -8,7 +8,7 @@
           <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
             Campaign Services
           </h1>
-          <p class="text-sm text-slate-400 mt-1">Manage dynamic pricing, margins, and platforms for micro-campaigns</p>
+          <p class="text-sm text-slate-400 mt-1">Manage dynamic pricing, margins, proof requirements, and platforms for micro-campaigns</p>
         </div>
       </div>
 
@@ -42,7 +42,7 @@
                   <div>
                     <div class="flex justify-between items-start mb-3">
                       <div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                           <h3 class="text-base font-bold text-slate-100">
                             {{ service.platform }}
                           </h3>
@@ -52,8 +52,11 @@
                           <span v-else class="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
                             <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Disabled
                           </span>
+                          <span v-if="service.requires_proof" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            📸 Proof Required
+                          </span>
                         </div>
-                        <p class="text-xs font-medium text-cyan-400 mt-1 px-2 py-0.5 bg-cyan-900/30 rounded-md inline-block">
+                        <p class="text-xs font-medium text-cyan-400 mt-1.5 px-2 py-0.5 bg-cyan-900/30 rounded-md inline-block">
                           {{ service.action }}
                         </p>
                       </div>
@@ -92,8 +95,8 @@
                     <!-- Profit Margin Indicator -->
                     <div class="mt-2.5 bg-indigo-950/40 border border-indigo-800/40 rounded-xl px-3 py-1.5 flex justify-between items-center">
                       <span class="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">System Margin</span>
-                      <span class="text-xs font-extrabold text-cyan-300">
-                        +{{ (parseFloat(service.creator_cost) - parseFloat(service.clicker_reward)).toFixed(2) }} <span class="text-[9px] font-normal text-indigo-400">pts/click</span>
+                      <span class="text-xs font-extrabold" :class="(parseFloat(service.creator_cost) - parseFloat(service.clicker_reward)) >= 0 ? 'text-cyan-300' : 'text-rose-400'">
+                        {{ (parseFloat(service.creator_cost) - parseFloat(service.clicker_reward)) >= 0 ? '+' : '' }}{{ (parseFloat(service.creator_cost) - parseFloat(service.clicker_reward)).toFixed(2) }} <span class="text-[9px] font-normal text-indigo-400">pts/click</span>
                       </span>
                     </div>
                   </div>
@@ -121,9 +124,10 @@
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span class="text-slate-500">📱</span>
                   </div>
-                  <input v-model="serviceForm.platform" type="text" placeholder="e.g. Facebook, YouTube" required 
+                  <input v-model="serviceForm.platform" type="text" placeholder="e.g. Facebook, YouTube, Instagram" required 
                          class="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 transition-all shadow-inner" />
                 </div>
+                <p v-if="serviceForm.errors.platform" class="text-xs text-rose-400 mt-1 font-medium">{{ serviceForm.errors.platform }}</p>
               </div>
               
               <div class="space-y-1">
@@ -132,9 +136,10 @@
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span class="text-slate-500">⚡</span>
                   </div>
-                  <input v-model="serviceForm.action" type="text" placeholder="e.g. Like, Subscribe, Share" required 
+                  <input v-model="serviceForm.action" type="text" placeholder="e.g. Like, Subscribe, Follow, Share" required 
                          class="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white placeholder-slate-600 transition-all shadow-inner" />
                 </div>
+                <p v-if="serviceForm.errors.action" class="text-xs text-rose-400 mt-1 font-medium">{{ serviceForm.errors.action }}</p>
               </div>
               
               <div class="grid grid-cols-2 gap-4 pt-2">
@@ -147,6 +152,7 @@
                     <input v-model="serviceForm.creator_cost" type="number" step="0.1" required 
                            class="w-full pl-8 pr-2 py-2.5 bg-slate-950/50 border border-rose-900/30 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl text-sm text-white font-mono transition-all shadow-inner" />
                   </div>
+                  <p v-if="serviceForm.errors.creator_cost" class="text-xs text-rose-400 mt-1 font-medium">{{ serviceForm.errors.creator_cost }}</p>
                 </div>
                 
                 <div class="space-y-1">
@@ -158,14 +164,27 @@
                     <input v-model="serviceForm.clicker_reward" type="number" step="0.1" required 
                            class="w-full pl-8 pr-2 py-2.5 bg-slate-950/50 border border-emerald-900/30 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white font-mono transition-all shadow-inner" />
                   </div>
+                  <p v-if="serviceForm.errors.clicker_reward" class="text-xs text-rose-400 mt-1 font-medium">{{ serviceForm.errors.clicker_reward }}</p>
                 </div>
+              </div>
+
+              <!-- Proof Requirement Toggle -->
+              <div class="pt-2 flex items-center justify-between bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+                <div>
+                  <span class="text-xs font-bold text-slate-300 block">Requires Proof</span>
+                  <span class="text-[10px] text-slate-500 block">User must submit action proof</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="serviceForm.requires_proof" class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
               </div>
 
               <!-- Live Profit Margin Summary -->
               <div class="bg-slate-950/40 p-3 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
                 <span class="text-slate-400 font-medium">Estimated Platform Profit:</span>
-                <span class="font-bold font-mono text-cyan-400">
-                  +{{ (parseFloat(serviceForm.creator_cost || 0) - parseFloat(serviceForm.clicker_reward || 0)).toFixed(2) }} pts/click
+                <span class="font-bold font-mono" :class="(parseFloat(serviceForm.creator_cost || 0) - parseFloat(serviceForm.clicker_reward || 0)) >= 0 ? 'text-cyan-400' : 'text-rose-400'">
+                  {{ (parseFloat(serviceForm.creator_cost || 0) - parseFloat(serviceForm.clicker_reward || 0)) >= 0 ? '+' : '' }}{{ (parseFloat(serviceForm.creator_cost || 0) - parseFloat(serviceForm.clicker_reward || 0)).toFixed(2) }} pts/click
                 </span>
               </div>
 
@@ -202,12 +221,14 @@
             <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider pl-1">Platform</label>
             <input v-model="editForm.platform" type="text" required 
                    class="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-700/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white font-medium" />
+            <p v-if="editForm.errors.platform" class="text-xs text-rose-400 mt-1 font-medium">{{ editForm.errors.platform }}</p>
           </div>
 
           <div class="space-y-1">
             <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider pl-1">Action Type</label>
             <input v-model="editForm.action" type="text" required 
                    class="w-full px-4 py-2.5 bg-slate-950/60 border border-slate-700/60 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white font-medium" />
+            <p v-if="editForm.errors.action" class="text-xs text-rose-400 mt-1 font-medium">{{ editForm.errors.action }}</p>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
@@ -215,12 +236,14 @@
               <label class="block text-[11px] font-bold text-rose-400 uppercase tracking-wider pl-1">Creator Cost</label>
               <input v-model="editForm.creator_cost" type="number" step="0.1" required 
                      class="w-full px-3 py-2 bg-slate-950/60 border border-rose-900/40 focus:border-rose-500 rounded-xl text-sm text-white font-mono" />
+              <p v-if="editForm.errors.creator_cost" class="text-xs text-rose-400 mt-1 font-medium">{{ editForm.errors.creator_cost }}</p>
             </div>
 
             <div class="space-y-1">
               <label class="block text-[11px] font-bold text-emerald-400 uppercase tracking-wider pl-1">User Reward</label>
               <input v-model="editForm.clicker_reward" type="number" step="0.1" required 
                      class="w-full px-3 py-2 bg-slate-950/60 border border-emerald-900/40 focus:border-emerald-500 rounded-xl text-sm text-white font-mono" />
+              <p v-if="editForm.errors.clicker_reward" class="text-xs text-rose-400 mt-1 font-medium">{{ editForm.errors.clicker_reward }}</p>
             </div>
           </div>
 
@@ -233,11 +256,20 @@
             </label>
           </div>
 
+          <!-- Proof Requirement Toggle -->
+          <div class="flex items-center justify-between bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+            <span class="text-xs font-bold text-slate-300">Requires Proof:</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" v-model="editForm.requires_proof" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
+          </div>
+
           <!-- Live Margin -->
           <div class="bg-indigo-950/40 p-3 rounded-xl border border-indigo-900/40 text-xs flex justify-between items-center">
             <span class="text-indigo-300 font-medium">Calculated System Margin:</span>
-            <span class="font-bold font-mono text-cyan-300">
-              +{{ (parseFloat(editForm.creator_cost || 0) - parseFloat(editForm.clicker_reward || 0)).toFixed(2) }} pts/click
+            <span class="font-bold font-mono" :class="(parseFloat(editForm.creator_cost || 0) - parseFloat(editForm.clicker_reward || 0)) >= 0 ? 'text-cyan-300' : 'text-rose-400'">
+              {{ (parseFloat(editForm.creator_cost || 0) - parseFloat(editForm.clicker_reward || 0)) >= 0 ? '+' : '' }}{{ (parseFloat(editForm.creator_cost || 0) - parseFloat(editForm.clicker_reward || 0)).toFixed(2) }} pts/click
             </span>
           </div>
 
@@ -301,6 +333,7 @@ const serviceForm = useForm({
   action: '',
   creator_cost: 5.0,
   clicker_reward: 2.0,
+  requires_proof: false,
   is_active: true,
 });
 
@@ -310,6 +343,7 @@ const editForm = useForm({
   action: '',
   creator_cost: 5.0,
   clicker_reward: 2.0,
+  requires_proof: false,
   is_active: true,
 });
 
@@ -332,6 +366,7 @@ const openEditModal = (service) => {
   editForm.action = service.action;
   editForm.creator_cost = service.creator_cost;
   editForm.clicker_reward = service.clicker_reward;
+  editForm.requires_proof = Boolean(service.requires_proof);
   editForm.is_active = Boolean(service.is_active);
   showEditModal.value = true;
 };
@@ -373,4 +408,3 @@ const executeDelete = () => {
   }
 };
 </script>
-

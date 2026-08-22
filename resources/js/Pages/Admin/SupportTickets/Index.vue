@@ -39,29 +39,66 @@
       </div>
 
       <!-- Filter Controls -->
-      <div class="glass-card p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          <button
-            v-for="st in ['all', 'open', 'in_progress', 'resolved', 'closed']"
-            :key="st"
-            @click="filterStatus(st)"
-            :class="[
-              'px-3 py-1.5 rounded-xl text-xs font-semibold capitalize whitespace-nowrap transition-all',
-              currentStatus === st ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
-            ]"
-          >
-            {{ st.replace('_', ' ') }}
-          </button>
+      <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3">
+        <div class="flex flex-col md:flex-row gap-3 items-center justify-between">
+          <!-- Status Tabs -->
+          <div class="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+            <span class="text-xs text-slate-500 font-semibold mr-1">Status:</span>
+            <button
+              v-for="st in ['all', 'open', 'in_progress', 'resolved', 'closed']"
+              :key="st"
+              @click="filterStatus(st)"
+              :class="[
+                'px-3 py-1.5 rounded-xl text-xs font-semibold capitalize whitespace-nowrap transition-all',
+                currentStatus === st ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
+              ]"
+            >
+              {{ st.replace('_', ' ') }}
+            </button>
+          </div>
+
+          <!-- Search Query -->
+          <div class="w-full md:w-72 flex gap-2">
+            <input
+              v-model="searchQuery"
+              @keyup.enter="applyFilters"
+              type="text"
+              placeholder="Search ticket #, subject, user..."
+              class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+            <button
+              @click="applyFilters"
+              class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors"
+            >
+              Search
+            </button>
+          </div>
         </div>
 
-        <div class="w-full md:w-64">
-          <input
-            v-model="searchQuery"
-            @keyup.enter="handleSearch"
-            type="text"
-            placeholder="Search ticket #, subject, user..."
-            class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
+        <!-- Category Dropdown & Reset -->
+        <div class="flex items-center justify-between border-t border-slate-800/80 pt-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-semibold">Category Filter:</span>
+            <select
+              v-model="currentCategory"
+              @change="applyFilters"
+              class="bg-slate-900 border border-slate-800 text-white font-bold rounded-xl px-3 py-1 text-xs focus:outline-none focus:border-indigo-500"
+            >
+              <option value="all">All Categories</option>
+              <option value="withdrawal">💸 Withdrawal</option>
+              <option value="task">🧩 Task & Offerwall</option>
+              <option value="account">🔐 Account & Security</option>
+              <option value="general">💬 General</option>
+            </select>
+          </div>
+
+          <button
+            v-if="currentStatus !== 'all' || currentCategory !== 'all' || searchQuery"
+            @click="resetFilters"
+            class="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 transition-colors"
+          >
+            ✕ Reset Filters
+          </button>
         </div>
       </div>
 
@@ -75,6 +112,7 @@
                 <th class="py-3.5 px-4">User</th>
                 <th class="py-3.5 px-4">Category</th>
                 <th class="py-3.5 px-4">Subject</th>
+                <th class="py-3.5 px-4">Priority</th>
                 <th class="py-3.5 px-4">Status</th>
                 <th class="py-3.5 px-4">Last Reply</th>
                 <th class="py-3.5 px-4 text-right">Action</th>
@@ -82,7 +120,7 @@
             </thead>
             <tbody class="divide-y divide-slate-800/60 text-xs">
               <tr v-if="tickets.data.length === 0">
-                <td colspan="7" class="py-8 text-center text-slate-500 font-medium">
+                <td colspan="8" class="py-8 text-center text-slate-500 font-medium">
                   No support tickets found.
                 </td>
               </tr>
@@ -107,6 +145,19 @@
 
                 <td class="py-3.5 px-4 max-w-xs truncate font-semibold text-slate-200">
                   {{ ticket.subject }}
+                </td>
+
+                <td class="py-3.5 px-4 whitespace-nowrap">
+                  <span
+                    :class="[
+                      'px-2 py-0.5 rounded text-[10px] font-black uppercase border',
+                      ticket.priority === 'high' ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse' : '',
+                      ticket.priority === 'medium' ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : '',
+                      ticket.priority === 'low' ? 'bg-slate-800 text-slate-400 border-slate-700' : ''
+                    ]"
+                  >
+                    {{ ticket.priority || 'medium' }}
+                  </span>
                 </td>
 
                 <td class="py-3.5 px-4 whitespace-nowrap">
@@ -173,22 +224,28 @@ const props = defineProps({
 const page = usePage();
 const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
-const currentStatus = ref(props.filters.status || 'all');
-const searchQuery   = ref(props.filters.search || '');
+const currentStatus   = ref(props.filters.status || 'all');
+const currentCategory = ref(props.filters.category || 'all');
+const searchQuery     = ref(props.filters.search || '');
 
 const filterStatus = (st) => {
   currentStatus.value = st;
+  applyFilters();
+};
+
+const applyFilters = () => {
   router.get(`${adminPath.value}/support-tickets`, {
-    status: st,
-    search: searchQuery.value,
+    status:   currentStatus.value,
+    category: currentCategory.value,
+    search:   searchQuery.value,
   }, { preserveState: true, replace: true });
 };
 
-const handleSearch = () => {
-  router.get(`${adminPath.value}/support-tickets`, {
-    status: currentStatus.value,
-    search: searchQuery.value,
-  }, { preserveState: true, replace: true });
+const resetFilters = () => {
+  currentStatus.value   = 'all';
+  currentCategory.value = 'all';
+  searchQuery.value     = '';
+  applyFilters();
 };
 
 const formatDate = (dateStr) => {

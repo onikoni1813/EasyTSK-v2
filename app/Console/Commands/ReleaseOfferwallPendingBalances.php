@@ -15,6 +15,8 @@ class ReleaseOfferwallPendingBalances extends Command
     {
         $releasedCount = $offerwallPostbackController->releasePendingBalances();
 
+        \App\Models\AppSetting::setByKey('cron_last_run_offerwall:release-pending', now()->toDateTimeString());
+
         $this->info("Released {$releasedCount} offerwall pending balance(s) into main_balance.");
 
         return self::SUCCESS;

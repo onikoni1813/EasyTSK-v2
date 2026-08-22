@@ -12,6 +12,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            \App\Http\Middleware\DomainRoutingMiddleware::class,
+            \App\Http\Middleware\EnsureExternalSiteAccess::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\CheckMaintenanceMode::class,
         ]);

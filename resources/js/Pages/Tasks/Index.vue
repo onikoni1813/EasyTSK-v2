@@ -112,19 +112,38 @@
       </template>
 
       <!-- ── Offerwall Hub ──────────────────────────────────────────────── -->
-      <div id="offerwall" class="ow-hub-wrapper glass-card rounded-3xl border border-cyan-500/15">
+      <div id="offerwall" class="ow-hub-wrapper glass-card rounded-3xl border border-cyan-500/15 overflow-hidden">
 
-        <!-- Section header (always visible) -->
-        <div class="flex items-center gap-3 px-4 pt-4 sm:px-6 sm:pt-5 pb-3">
-          <span class="section-title">🏆 Offerwall Hub</span>
-          <div class="section-header-line"></div>
-          <span class="badge badge-cyan shrink-0">11+ Networks</span>
-          <span v-if="is_locked" class="badge badge-rose shrink-0 animate-pulse-neon">🔒 Locked</span>
+        <!-- Section header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 pt-4 sm:px-6 sm:pt-5 pb-3">
+          <div class="flex items-center gap-3">
+            <span class="section-title">🏆 Offerwall Hub</span>
+            <span class="badge badge-cyan shrink-0">{{ offerwalls.length }} Networks</span>
+            <span v-if="is_locked" class="badge badge-rose shrink-0 animate-pulse-neon">🔒 Locked</span>
+          </div>
+
+          <!-- Tab Switcher (Networks / My History) -->
+          <div class="flex items-center gap-1.5 p-1 bg-slate-900/60 border border-white/10 rounded-2xl shrink-0 self-start sm:self-auto">
+            <button 
+              @click="activeOwTab = 'networks'" 
+              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+              :class="activeOwTab === 'networks' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/25' : 'text-slate-400 hover:text-white'"
+            >
+              🌐 Networks
+            </button>
+            <button 
+              @click="activeOwTab = 'history'" 
+              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+              :class="activeOwTab === 'history' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/25' : 'text-slate-400 hover:text-white'"
+            >
+              📊 History & Stats
+              <span v-if="offerwallStats?.pending_amount > 0" class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            </button>
+          </div>
         </div>
 
-        <!-- Cards + overlay wrapper -->
-        <div class="ow-cards-area px-4 pb-4 sm:px-6 sm:pb-5">
-
+        <!-- ── TAB 1: NETWORKS ── -->
+        <div v-if="activeOwTab === 'networks'" class="ow-cards-area px-4 pb-4 sm:px-6 sm:pb-5">
           <!-- Offerwall grid (always rendered) -->
           <div class="ow-grid">
             <div
@@ -146,7 +165,6 @@
           <Transition name="lock-fade">
             <div v-if="is_locked" class="ow-locked-overlay">
               <div class="ow-locked-card">
-                <!-- Animated lock ring -->
                 <div class="ow-lock-ring">
                   <div class="ow-lock-ring-inner">
                     <span class="ow-lock-icon">🔒</span>
@@ -162,8 +180,75 @@
           </Transition>
         </div>
 
+        <!-- ── TAB 2: HISTORY & STATS ── -->
+        <div v-else class="px-4 pb-5 sm:px-6 space-y-4">
+          <!-- User Offerwall Stats Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg">💰</div>
+              <div>
+                <div class="text-[10px] font-bold text-cyan-400/80 uppercase tracking-wider">Total Earned</div>
+                <div class="text-base font-black text-white">+{{ offerwallStats?.total_earned || 0 }} <span class="text-[10px] text-cyan-300 font-normal">Coins</span></div>
+              </div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">⏳</div>
+              <div>
+                <div class="text-[10px] font-bold text-amber-400/80 uppercase tracking-wider">Pending Hold</div>
+                <div class="text-base font-black text-white">{{ offerwallStats?.pending_amount || 0 }} <span class="text-[10px] text-amber-300 font-normal">Coins</span></div>
+              </div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg">✅</div>
+              <div>
+                <div class="text-[10px] font-bold text-emerald-400/80 uppercase tracking-wider">Offers Completed</div>
+                <div class="text-base font-black text-white">{{ offerwallStats?.completed_count || 0 }} <span class="text-[10px] text-emerald-300 font-normal">Offers</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Offerwall Logs Table -->
+          <div class="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40">
+            <div v-if="!offerwallLogs || offerwallLogs.length === 0" class="p-8 text-center text-slate-500 text-xs">
+              <span class="text-2xl block mb-1.5">📜</span>
+              No offerwall conversions recorded yet. Complete offers from any network to see your rewards here!
+            </div>
+            <div v-else class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-white/5 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-white/10">
+                  <tr>
+                    <th class="px-4 py-2.5">Provider</th>
+                    <th class="px-4 py-2.5">Transaction ID</th>
+                    <th class="px-4 py-2.5">Coins</th>
+                    <th class="px-4 py-2.5">Status</th>
+                    <th class="px-4 py-2.5">Date</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-slate-300">
+                  <tr v-for="log in offerwallLogs" :key="log.id" class="hover:bg-white/[0.02]">
+                    <td class="px-4 py-3 font-bold text-white flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full" :class="log.status === 'approved' ? 'bg-emerald-400' : log.status === 'pending' ? 'bg-amber-400' : 'bg-rose-400'"></span>
+                      {{ log.provider }}
+                    </td>
+                    <td class="px-4 py-3 font-mono text-[11px] text-slate-400 truncate max-w-[140px]">{{ log.transaction_id }}</td>
+                    <td class="px-4 py-3 font-black text-emerald-400">+{{ log.amount }}</td>
+                    <td class="px-4 py-3">
+                      <span v-if="log.status === 'approved'" class="badge badge-emerald">Approved</span>
+                      <span v-else-if="log.status === 'pending'" class="badge badge-amber" title="In hold period">Pending (Hold)</span>
+                      <span v-else class="badge badge-rose">Reversed</span>
+                    </td>
+                    <td class="px-4 py-3 text-[11px] text-slate-400 whitespace-nowrap">{{ log.created_at }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <p class="text-[10px] text-slate-600 px-4 pb-3 sm:px-6 sm:pb-4 text-center leading-relaxed">
-          Points from offerwalls are held in Pending Balance for {{ offerwallPendingHours }} hours before release.
+          Points from offerwalls are held in Pending Balance for {{ offerwallPendingHours }} hours before release into Main Balance.
         </p>
       </div>
 
@@ -464,26 +549,48 @@
 
     </div><!-- END space-y-5 wrapper -->
 
-    <!-- Fullscreen Iframe Modal for Offerwalls -->
+    <!-- Fullscreen / Responsive Iframe Modal for Offerwalls -->
     <Teleport to="body">
-      <div v-if="isIframeOpen" class="fixed top-0 left-0 w-full h-[100dvh] z-[100] bg-slate-950 flex flex-col overflow-hidden">
-        <div class="flex items-center justify-between px-3 py-2.5 sm:p-4 bg-slate-900 border-b border-white/10 shrink-0">
-          <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-            Offerwall Partner
-          </h2>
-          <button @click="closeIframe" class="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors text-sm shrink-0">
-            ✕
-          </button>
-        </div>
-        <div class="flex-1 bg-slate-950 relative w-full h-full overflow-hidden">
-          <div v-if="!iframeLoaded" class="absolute inset-0 p-4 space-y-3 pointer-events-none z-0">
-            <SkeletonBlock height="32px" rounded="rounded-xl" width="40%" />
-            <SkeletonBlock height="180px" rounded="rounded-2xl" />
-            <SkeletonBlock height="14px" width="70%" />
-            <SkeletonBlock height="14px" width="55%" />
+      <div v-if="isIframeOpen" class="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex flex-col overflow-hidden">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-cyan-500/20 shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold overflow-hidden">
+              <img v-if="activeOfferwall?.image_url" :src="activeOfferwall.image_url" :alt="activeOfferwall?.name" class="w-full h-full object-contain p-1" />
+              <span v-else>{{ activeOfferwall?.name?.charAt(0) || '🏆' }}</span>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white leading-none flex items-center gap-2">
+                {{ activeOfferwall?.name || 'Offerwall Network' }}
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              </h3>
+              <p class="text-[10px] text-cyan-400 font-medium mt-0.5">Ratio: x{{ activeOfferwall?.reward_ratio || 1.0 }} · Complete tasks to earn points</p>
+            </div>
           </div>
-          <iframe :src="activeIframeUrl" class="absolute top-0 left-0 w-full h-full border-none z-10 bg-white" allow="camera; microphone;" @load="iframeLoaded = true"></iframe>
+
+          <div class="flex items-center gap-2">
+            <button 
+              @click="closeIframe" 
+              class="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-xl flex items-center justify-center transition-all text-xs font-bold gap-1 border border-rose-500/30"
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+
+        <!-- Body / Iframe -->
+        <div class="flex-1 bg-slate-950 relative w-full h-full overflow-hidden">
+          <div v-if="!iframeLoaded" class="absolute inset-0 p-6 flex flex-col items-center justify-center gap-3 bg-slate-950/90 z-20">
+            <div class="w-10 h-10 border-3 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
+            <p class="text-xs text-cyan-300 font-bold animate-pulse">Loading {{ activeOfferwall?.name || 'Offerwall' }}...</p>
+          </div>
+          <iframe 
+            v-if="activeIframeUrl" 
+            :src="activeIframeUrl" 
+            class="absolute top-0 left-0 w-full h-full border-none z-10 bg-white" 
+            allow="camera; microphone; clipboard-write; encrypted-media" 
+            @load="iframeLoaded = true"
+          ></iframe>
         </div>
       </div>
     </Teleport>
@@ -506,6 +613,8 @@ const props = defineProps({
   health_gate_expires_at: String,
   taskHistory: Array,
   offerwallPendingHours: Number,
+  offerwallLogs: { type: Array, default: () => [] },
+  offerwallStats: { type: Object, default: () => ({ total_earned: 0, pending_amount: 0, completed_count: 0 }) },
 });
 
 const gateCountdown = ref('--:--:--');
@@ -531,19 +640,28 @@ onMounted(() => {
     updateGateCountdown();
     gateTimerInterval = setInterval(updateGateCountdown, 1000);
   }
+  if (window.location.hash === '#offerwall') {
+    setTimeout(() => {
+      const el = document.getElementById('offerwall');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 150);
+  }
 });
 
 onUnmounted(() => {
   clearInterval(gateTimerInterval);
 });
 
-const activeFilter  = ref('all');
-const activeCustomTask  = ref(null);
-const customTaskText    = ref('');
+const activeOwTab = ref('networks');
+const activeFilter = ref('all');
+const activeCustomTask = ref(null);
+const customTaskText = ref('');
 const customSecretCodes = ref([]);
-const customTaskFile    = ref(null);
-const customTaskProofs  = ref({});
-const customTaskError   = ref('');
+const customTaskFile = ref(null);
+const customTaskProofs = ref({});
+const customTaskError = ref('');
 const isSubmittingProof = ref(false);
 
 const categories = [
@@ -559,6 +677,7 @@ const filteredTasks = computed(() =>
     : props.tasks.filter(t => t.type === activeFilter.value)
 );
 
+const activeOfferwall = ref(null);
 const activeIframeUrl = ref(null);
 const isIframeOpen = ref(false);
 const iframeLoaded = ref(false);
@@ -566,7 +685,19 @@ const iframeLoaded = ref(false);
 const openOfferwall = (ow) => {
   if (props.is_locked) return;
   const user = usePage().props.auth.user;
-  let url = ow.iframe_url_pattern.replace('{user_id}', user.id);
+  activeOfferwall.value = ow;
+  let url = ow.iframe_url_pattern || '';
+  if (user) {
+    url = url
+      .replace(/{user_id}/gi, user.id)
+      .replace(/{uid}/gi, user.id)
+      .replace(/{sub_id}/gi, user.id)
+      .replace(/{sub_id1}/gi, user.id)
+      .replace(/{userID}/gi, user.id)
+      .replace(/{id}/gi, user.id)
+      .replace(/{username}/gi, encodeURIComponent(user.name || ''))
+      .replace(/{email}/gi, encodeURIComponent(user.email || ''));
+  }
   iframeLoaded.value = false;
   activeIframeUrl.value = url;
   isIframeOpen.value = true;
@@ -575,6 +706,7 @@ const openOfferwall = (ow) => {
 const closeIframe = () => {
   isIframeOpen.value = false;
   activeIframeUrl.value = null;
+  activeOfferwall.value = null;
   iframeLoaded.value = false;
 };
 

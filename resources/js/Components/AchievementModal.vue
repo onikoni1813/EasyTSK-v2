@@ -78,6 +78,7 @@ const dismissedIds = ref(new Set());
 
 const tagText = computed(() => {
   if (!activeAchievement.value) return 'Notification';
+  if (activeAchievement.value.is_popup) return 'System Announcement';
   const title = activeAchievement.value.title;
   if (title.includes('Withdrawal Paid')) return 'Payout Successful';
   if (title.includes('Level Upgraded')) return 'Level Upgrade';
@@ -88,6 +89,13 @@ const tagText = computed(() => {
 
 const icon = computed(() => {
   if (!activeAchievement.value) return '🏆';
+  if (activeAchievement.value.is_popup) {
+    const type = activeAchievement.value.type;
+    if (type === 'danger') return '🚨';
+    if (type === 'warning') return '⚠️';
+    if (type === 'success') return '🎉';
+    return '📢';
+  }
   const title = activeAchievement.value.title;
   if (title.includes('Level')) return '⚡';
   if (title.includes('Referral')) return '🎁';
@@ -96,6 +104,13 @@ const icon = computed(() => {
   if (title.includes('Welcome')) return '🚀';
   return '🎉';
 });
+
+const isRecent = (dateStr) => {
+  if (!dateStr) return false;
+  const created = new Date(dateStr).getTime();
+  const now = Date.now();
+  return (now - created) < (24 * 60 * 60 * 1000); // Only pop up if less than 24 hours old
+};
 
 const checkForAchievement = () => {
   if (!props.notifications || props.notifications.length === 0) {
@@ -107,11 +122,17 @@ const checkForAchievement = () => {
     !n.read_at && 
     !dismissedIds.value.has(n.id) &&
     (
-      n.title.includes('Level Upgraded') || 
-      n.title.includes('Referral Bonus Unlocked') || 
-      n.title.includes('Contest Champion') || 
-      n.title.includes('Withdrawal Paid') ||
-      n.title.includes('Welcome Bonus Unlocked')
+      n.is_popup ||
+      (
+        isRecent(n.created_at) &&
+        (
+          n.title.includes('Level Upgraded') || 
+          n.title.includes('Referral Bonus Unlocked') || 
+          n.title.includes('Contest Champion') || 
+          n.title.includes('Withdrawal Paid') ||
+          n.title.includes('Welcome Bonus Unlocked')
+        )
+      )
     )
   );
 

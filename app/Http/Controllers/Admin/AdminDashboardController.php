@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
+use App\Models\PasswordResetTicket;
 use App\Models\PromoCode;
+use App\Models\ReferralContest;
+use App\Models\SupportTicket;
+use App\Models\Task;
 use App\Models\User;
 use App\Models\UserTask;
 use App\Models\Withdrawal;
@@ -19,12 +23,20 @@ class AdminDashboardController extends Controller
 {
     public function index()
     {
-        $totalUsers              = User::where('role', 'user')->count();
-        $totalMainLiability      = User::sum('main_balance');
-        $totalPendingLiability   = User::sum('pending_balance');
-        $pendingReviewsCount     = UserTask::where('status', 'pending')->count();
-        $pendingWithdrawalsCount = Withdrawal::where('status', 'pending')->count();
-        $pendingCampaigns        = Campaign::where('status', 'pending')->count();
+        $totalUsers                  = User::where('role', 'user')->count();
+        $newUsersThisWeek            = User::where('role', 'user')->where('created_at', '>=', now()->subDays(7))->count();
+        $bannedUsersCount            = User::where('is_banned', true)->count();
+        $totalMainLiability          = (float) User::sum('main_balance');
+        $totalPendingLiability       = (float) User::sum('pending_balance');
+        $totalPaidOut                = (float) Withdrawal::where('status', 'approved')->sum('amount_bdt');
+
+        $pendingReviewsCount         = UserTask::where('status', 'pending')->count();
+        $pendingWithdrawalsCount     = Withdrawal::where('status', 'pending')->count();
+        $pendingCampaigns            = Campaign::where('status', 'pending')->count();
+        $pendingPasswordTicketsCount = PasswordResetTicket::where('status', 'pending')->count();
+        $openSupportTicketsCount     = SupportTicket::where('status', 'open')->count();
+        $activeTasksCount            = Task::where('status', 'active')->count();
+        $activeContestsCount         = ReferralContest::where('status', 'active')->count();
 
         // Flagged multi-account devices
         $flaggedDevices = User::select('device_hash', DB::raw('count(*) as count'))
@@ -35,56 +47,68 @@ class AdminDashboardController extends Controller
 
         // High risk users (risk_score > 60)
         $highRiskUsers = User::where('risk_score', '>', 60)
-            ->select('id', 'name', 'email', 'risk_score', 'health', 'is_banned', 'created_at')
+            ->select('id', 'name', 'email', 'phone', 'main_balance', 'pending_balance', 'risk_score', 'health', 'is_banned', 'created_at')
             ->orderByDesc('risk_score')
             ->take(10)
             ->get()
             ->map(fn($u) => [
-                'id'         => $u->id,
-                'name'       => $u->name,
-                'email'      => $u->email,
-                'risk_score' => (float) $u->risk_score,
-                'health'     => (int) $u->health,
-                'is_banned'  => (bool) $u->is_banned,
+                'id'              => $u->id,
+                'name'            => $u->name,
+                'email'           => $u->email,
+                'phone'           => $u->phone,
+                'main_balance'    => (float) $u->main_balance,
+                'pending_balance' => (float) $u->pending_balance,
+                'risk_score'      => (float) $u->risk_score,
+                'health'          => (int) $u->health,
+                'is_banned'       => (bool) $u->is_banned,
+                'created_at'      => $u->created_at ? $u->created_at->format('M d, Y') : '',
             ]);
 
         // Low health users (health <= 30) — may not yet be flagged as high risk, but worth admin attention
         $lowHealthUsers = User::where('health', '<=', 30)
             ->where('role', 'user')
-            ->select('id', 'name', 'email', 'risk_score', 'health', 'is_banned', 'created_at')
+            ->select('id', 'name', 'email', 'phone', 'main_balance', 'pending_balance', 'risk_score', 'health', 'is_banned', 'created_at')
             ->orderBy('health')
             ->take(10)
             ->get()
             ->map(fn($u) => [
-                'id'         => $u->id,
-                'name'       => $u->name,
-                'email'      => $u->email,
-                'risk_score' => (float) $u->risk_score,
-                'health'     => (int) $u->health,
-                'is_banned'  => (bool) $u->is_banned,
+                'id'              => $u->id,
+                'name'            => $u->name,
+                'email'           => $u->email,
+                'phone'           => $u->phone,
+                'main_balance'    => (float) $u->main_balance,
+                'pending_balance' => (float) $u->pending_balance,
+                'risk_score'      => (float) $u->risk_score,
+                'health'          => (int) $u->health,
+                'is_banned'       => (bool) $u->is_banned,
+                'created_at'      => $u->created_at ? $u->created_at->format('M d, Y') : '',
             ]);
 
-        // New users last 7 days
-        $newUsersThisWeek = User::where('role', 'user')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->count();
-
-        // Active promo codes
+        // Active promo codes logic fixed with closure grouping and max_uses check
         $activeCodes = PromoCode::where('is_active', true)
-            ->whereNull('expires_at')->orWhere('expires_at', '>', now())
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->whereColumn('used_count', '<', 'max_uses')
             ->count();
 
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
-                'totalUsers'              => $totalUsers,
-                'newUsersThisWeek'        => $newUsersThisWeek,
-                'totalMainLiability'      => (float) $totalMainLiability,
-                'totalPendingLiability'   => (float) $totalPendingLiability,
-                'pendingReviewsCount'     => $pendingReviewsCount,
-                'pendingWithdrawalsCount' => $pendingWithdrawalsCount,
-                'pendingCampaigns'        => $pendingCampaigns,
-                'flaggedDevicesCount'     => $flaggedDevices->count(),
-                'activeCodes'            => $activeCodes,
+                'totalUsers'                  => $totalUsers,
+                'newUsersThisWeek'            => $newUsersThisWeek,
+                'bannedUsersCount'            => $bannedUsersCount,
+                'totalMainLiability'          => $totalMainLiability,
+                'totalPendingLiability'       => $totalPendingLiability,
+                'totalPaidOut'                => $totalPaidOut,
+                'pendingReviewsCount'         => $pendingReviewsCount,
+                'pendingWithdrawalsCount'     => $pendingWithdrawalsCount,
+                'pendingCampaigns'            => $pendingCampaigns,
+                'pendingPasswordTicketsCount' => $pendingPasswordTicketsCount,
+                'openSupportTicketsCount'     => $openSupportTicketsCount,
+                'activeTasksCount'            => $activeTasksCount,
+                'activeContestsCount'         => $activeContestsCount,
+                'flaggedDevicesCount'         => $flaggedDevices->count(),
+                'activeCodes'                => $activeCodes,
             ],
             'highRiskUsers'  => $highRiskUsers,
             'lowHealthUsers' => $lowHealthUsers,
@@ -114,8 +138,8 @@ class AdminDashboardController extends Controller
 
         return [
             'labels'         => $days->map(fn ($day) => $day->format('M d'))->values()->all(),
-            'newUsers'       => $days->map(fn ($day) => $newUsersByDay->get($day->format('Y-m-d'), 0))->values()->all(),
-            'completedTasks' => $days->map(fn ($day) => $completedTasksByDay->get($day->format('Y-m-d'), 0))->values()->all(),
+            'newUsers'       => $days->map(fn ($day) => (int) $newUsersByDay->get($day->format('Y-m-d'), 0))->values()->all(),
+            'completedTasks' => $days->map(fn ($day) => (int) $completedTasksByDay->get($day->format('Y-m-d'), 0))->values()->all(),
         ];
     }
 
@@ -310,7 +334,7 @@ class AdminDashboardController extends Controller
             'description'   => $request->description,
             'reward_points' => $request->reward_points,
             'max_uses'      => $request->max_uses,
-            'expires_at'    => $request->expires_at,
+            'expires_at'    => $request->expires_at ? Carbon::parse($request->expires_at)->endOfDay() : null,
             'is_active'     => true,
         ]);
 

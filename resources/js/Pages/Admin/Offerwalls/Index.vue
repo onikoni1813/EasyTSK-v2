@@ -43,6 +43,10 @@ function save() {
   }
 }
 
+function toggleStatus(ow) {
+  router.post(`${adminPath.value}/offerwalls/${ow.id}/toggle`);
+}
+
 function deleteOfferwall(id) {
   if (confirm('Are you sure you want to delete this offerwall?')) {
     router.delete(`${adminPath.value}/offerwalls/` + id);
@@ -92,10 +96,16 @@ function copyToClipboard(text) {
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       <div v-for="ow in offerwalls" :key="ow.id" class="bg-[#1e293b]/50 backdrop-blur-xl border border-white/5 hover:border-emerald-500/30 transition-colors p-6 rounded-3xl shadow-xl relative overflow-hidden group">
-        <div class="absolute top-0 right-0 p-4 opacity-50 group-hover:opacity-100 transition-opacity">
-          <div :class="ow.status ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'" class="px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase">
+        <div class="absolute top-0 right-0 p-4 opacity-75 group-hover:opacity-100 transition-opacity">
+          <button 
+            @click.stop="toggleStatus(ow)"
+            title="Click to toggle status"
+            :class="ow.status ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30'" 
+            class="px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <span class="w-1.5 h-1.5 rounded-full" :class="ow.status ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'"></span>
             {{ ow.status ? 'Active' : 'Inactive' }}
-          </div>
+          </button>
         </div>
         
         <div class="flex items-center gap-4 mb-6">

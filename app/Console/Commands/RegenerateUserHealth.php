@@ -25,6 +25,8 @@ class RegenerateUserHealth extends Command
             $affected++;
         });
 
+        \App\Models\AppSetting::setByKey('cron_last_run_health:regenerate-daily', now()->toDateTimeString());
+
         $this->info("Regenerated health for {$affected} user(s).");
 
         return self::SUCCESS;

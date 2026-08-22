@@ -18,6 +18,14 @@
         </div>
       </div>
 
+      <!-- Flash Alerts -->
+      <div v-if="pageProps.flash?.success" class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-semibold flex items-center justify-between">
+        <span>✅ {{ pageProps.flash.success }}</span>
+      </div>
+      <div v-if="pageProps.flash?.error" class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm font-semibold flex items-center justify-between">
+        <span>❌ {{ pageProps.flash.error }}</span>
+      </div>
+
       <!-- Create Campaign -->
       <div class="glass-card p-6 rounded-3xl border border-violet-500/15">
         <div class="section-header mb-5">
@@ -61,6 +69,24 @@
             <div class="flex justify-between text-[10px] text-slate-600 mt-1">
               <span>50 clicks</span>
               <span>5,000 clicks</span>
+            </div>
+          </div>
+
+          <!-- Calculation & Balance Breakdown Card -->
+          <div v-if="selectedService" class="p-3.5 rounded-2xl bg-slate-900/60 border border-indigo-500/20 text-xs space-y-1.5">
+            <div class="flex justify-between text-slate-300">
+              <span>Rate per Click:</span>
+              <span class="font-bold text-amber-300">{{ selectedService.creator_cost }} Pts</span>
+            </div>
+            <div class="flex justify-between text-slate-300">
+              <span>Total Campaign Cost:</span>
+              <span class="font-bold text-emerald-400">{{ totalCost }} Pts</span>
+            </div>
+            <div class="flex justify-between text-slate-400 pt-1 border-t border-slate-800">
+              <span>Remaining Balance After Launch:</span>
+              <span class="font-bold" :class="remainingBalance >= 0 ? 'text-cyan-400' : 'text-rose-400'">
+                {{ remainingBalance >= 0 ? formatBal(remainingBalance) + ' Pts' : 'Insufficient Points!' }}
+              </span>
             </div>
           </div>
 
@@ -204,8 +230,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { router, Link, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AnimatedNumber from '@/Components/AnimatedNumber.vue';
@@ -218,21 +244,34 @@ const props = defineProps({
   services:        Array,
 });
 
+const page = usePage();
+const pageProps = computed(() => page.props);
+
 const form = reactive({
-  title:         '',
-  description:   '',
-  target_url:    '',
+  title:               '',
+  description:         '',
+  target_url:          '',
   campaign_service_id: '',
-  target_clicks: 100,
+  target_clicks:       100,
+});
+
+onMounted(() => {
+  if (props.services && props.services.length > 0 && !form.campaign_service_id) {
+    form.campaign_service_id = props.services[0].id;
+  }
 });
 
 const selectedService = computed(() => {
-  return props.services.find(s => s.id === form.campaign_service_id);
+  return props.services ? props.services.find(s => s.id === form.campaign_service_id) : null;
 });
 
 const totalCost = computed(() => {
   if (!selectedService.value) return 0;
   return form.target_clicks * selectedService.value.creator_cost;
+});
+
+const remainingBalance = computed(() => {
+  return (props.user?.main_balance || 0) - totalCost.value;
 });
 
 const errors     = ref({});
@@ -253,7 +292,7 @@ const formatBal = (v) => Number(v || 0).toLocaleString('en-US', { minimumFractio
 
 const campaignIcon = (type) => {
   const icons = { website: '🌐', telegram: '✈️', youtube: '▶️', facebook: '📘', other: '📎' };
-  return icons[type] || '📎';
+  return icons[type?.toLowerCase()] || '📎';
 };
 
 const statusBadge = (status) => {
@@ -276,7 +315,10 @@ const createCampaign = () => {
       form.description = '';
       form.target_url  = '';
       form.target_clicks = 100;
-      form.campaign_service_id = '';
+      if (props.services && props.services.length > 0) {
+        form.campaign_service_id = props.services[0].id;
+      }
+      addToast('Campaign submitted for review!', '🚀');
     },
   });
 };
@@ -285,9 +327,10 @@ const clickCampaign = async (campaign) => {
   if (clickedIds.value.has(campaign.id) || loadingIds.value.has(campaign.id)) return;
   
   loadingIds.value.add(campaign.id);
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
   try {
     const res = await axios.post(`/campaigns/${campaign.id}/click`, {}, {
-      headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+      headers: { 'X-CSRF-TOKEN': csrfToken },
     });
     if (res.data.success) {
       clickedIds.value = new Set([...clickedIds.value, campaign.id]);
@@ -299,7 +342,8 @@ const clickCampaign = async (campaign) => {
       router.reload({ only: ['user', 'activeCampaigns'] });
     }
   } catch (e) {
-    console.error(e);
+    const msg = e.response?.data?.message || 'Failed to process campaign click.';
+    addToast(msg, '❌');
   } finally {
     loadingIds.value.delete(campaign.id);
   }

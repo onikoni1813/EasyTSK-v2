@@ -21,3 +21,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/scratch
+*.sql
+public/build.zip
+

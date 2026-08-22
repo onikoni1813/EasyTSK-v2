@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Notification;
 use App\Models\PromoCode;
 use App\Models\PromoCodeUse;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -45,12 +47,17 @@ class PromoCodeController extends Controller
             $promo->used_count += 1;
             $promo->save();
 
+            // Log transaction BEFORE balance increment so balance_before and balance_after are calculated correctly
+            Transaction::log($user, 'credit', (float) $promo->reward_points, "Promo Code Redeemed: {$promo->code}", 'promo', (string) $promo->id);
+
             $user->increment('main_balance', $promo->reward_points);
             $user->addXp(5);
-            \App\Models\Transaction::log($user, 'credit', (float) $promo->reward_points, "Promo Code Redeemed: {$promo->code}", 'promo', (string) $promo->id);
-            \App\Models\Notification::send($user, 'Promo Code Redeemed! 🎁', "You redeemed promo code '{$promo->code}' for +{$promo->reward_points} bonus points!", 'success');
+            $user->refresh();
+
+            Notification::send($user, 'Promo Code Redeemed! 🎁', "You redeemed promo code '{$promo->code}' for +{$promo->reward_points} bonus points!", 'success');
 
             return back()->with('success', "Promo code redeemed! +{$promo->reward_points} points added to your balance.");
         });
     }
 }
+

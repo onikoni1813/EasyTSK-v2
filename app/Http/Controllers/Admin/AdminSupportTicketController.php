@@ -67,7 +67,7 @@ class AdminSupportTicketController extends Controller
     public function show(SupportTicket $ticket)
     {
         $ticket->load([
-            'user:id,name,email,phone,created_at,risk_score,is_banned,health',
+            'user:id,name,email,phone,created_at,risk_score,is_banned,health,main_balance,pending_balance,level,xp_points,payment_method,payment_number,role',
             'messages.sender:id,name,role',
         ]);
 
@@ -82,15 +82,22 @@ class AdminSupportTicketController extends Controller
     public function reply(Request $request, SupportTicket $ticket)
     {
         $request->validate([
-            'message' => 'required|string|max:3000',
-            'status'  => 'nullable|in:open,in_progress,resolved,closed',
+            'message'    => 'required|string|max:3000',
+            'status'     => 'nullable|in:open,in_progress,resolved,closed',
+            'attachment' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = '/storage/' . $request->file('attachment')->store('support_attachments', 'public');
+        }
+
         SupportTicketMessage::create([
-            'ticket_id' => $ticket->id,
-            'sender_id' => Auth::id(),
-            'is_admin'  => true,
-            'message'   => trim($request->message),
+            'ticket_id'  => $ticket->id,
+            'sender_id'  => Auth::id(),
+            'is_admin'   => true,
+            'message'    => trim($request->message),
+            'attachment' => $attachmentPath,
         ]);
 
         $newStatus = $request->status ?? 'in_progress';

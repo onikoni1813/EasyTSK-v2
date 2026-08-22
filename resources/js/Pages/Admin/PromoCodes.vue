@@ -207,12 +207,12 @@
             <div class="w-24 shrink-0">
               <div class="flex justify-between text-[10px] text-slate-400 mb-1 font-mono">
                 <span>Usage</span>
-                <span>{{ Math.round((code.used_count / code.max_uses) * 100) }}%</span>
+                <span>{{ Math.round((code.used_count / (code.max_uses || 1)) * 100) }}%</span>
               </div>
               <div class="progress-track">
                 <div
                   class="progress-fill bg-gradient-to-r from-cyan-500 to-indigo-500"
-                  :style="{ width: Math.min(100, (code.used_count / code.max_uses) * 100) + '%' }"
+                  :style="{ width: Math.min(100, (code.used_count / (code.max_uses || 1)) * 100) + '%' }"
                 ></div>
               </div>
             </div>

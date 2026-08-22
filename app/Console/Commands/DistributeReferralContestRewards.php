@@ -49,6 +49,8 @@ class DistributeReferralContestRewards extends Command
             }
         }
 
+        \App\Models\AppSetting::setByKey('cron_last_run_referral-contest:distribute', now()->toDateTimeString());
+
         return self::SUCCESS;
     }
 }

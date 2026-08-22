@@ -30,7 +30,16 @@ class AdminTaskReviewController extends Controller
 
     public function index()
     {
-        $pendingReviews = UserTask::with(['user', 'task', 'screenshotHashes'])
+        $pendingReviews = UserTask::with([
+            'user' => function ($query) {
+                $query->withCount([
+                    'userTasks as approved_tasks_count' => fn ($q) => $q->where('status', 'approved'),
+                    'userTasks as rejected_tasks_count' => fn ($q) => $q->where('status', 'rejected'),
+                ]);
+            },
+            'task',
+            'screenshotHashes',
+        ])
             ->where('status', 'pending')
             ->latest()
             ->paginate(15);

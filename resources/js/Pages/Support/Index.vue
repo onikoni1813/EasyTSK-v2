@@ -133,9 +133,20 @@
                 <textarea v-model="form.message" rows="4" placeholder="Please provide all details (transaction ID, task title, etc.) so we can help you fast..." required class="input-dark text-xs py-2.5"></textarea>
               </div>
 
+              <div>
+                <label class="text-xs font-semibold text-slate-400 block mb-1">Attach Screenshot (Optional)</label>
+                <input
+                  type="file"
+                  @change="handleFileChange"
+                  accept="image/*"
+                  class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700"
+                />
+              </div>
+
               <div v-if="form.errors.category" class="text-xs text-rose-400">{{ form.errors.category }}</div>
               <div v-if="form.errors.subject" class="text-xs text-rose-400">{{ form.errors.subject }}</div>
               <div v-if="form.errors.message" class="text-xs text-rose-400">{{ form.errors.message }}</div>
+              <div v-if="form.errors.attachment" class="text-xs text-rose-400">{{ form.errors.attachment }}</div>
 
               <div class="flex gap-2 pt-2">
                 <button type="button" @click="showCreateModal = false" class="flex-1 py-3 glass-pill text-xs text-slate-400 rounded-xl border border-white/8 hover:text-white transition-colors">Cancel</button>
@@ -164,13 +175,21 @@ const props = defineProps({
 const showCreateModal = ref(false);
 
 const form = useForm({
-  category: 'withdrawal',
-  subject:  '',
-  message:  '',
+  category:   'withdrawal',
+  subject:    '',
+  message:    '',
+  attachment: null,
 });
+
+const handleFileChange = (e) => {
+  if (e.target.files && e.target.files[0]) {
+    form.attachment = e.target.files[0];
+  }
+};
 
 const submitTicket = () => {
   form.post('/support', {
+    forceFormData: true,
     onSuccess: () => {
       showCreateModal.value = false;
       form.reset();

@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\CampaignService;
+use App\Models\OfferwallLog;
+use App\Models\ReferralContest;
+use App\Models\ScreenshotHash;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
@@ -40,8 +44,6 @@ class AdminSettingsController extends Controller
 
         $siteLogo = AppSetting::getByKey('site_logo', null);
         $siteFavicon = AppSetting::getByKey('site_favicon', '/favicon.ico');
-        $googleClientId = AppSetting::getByKey('google_client_id', config('services.google.client_id', ''));
-        $googleClientSecret = AppSetting::getByKey('google_client_secret', config('services.google.client_secret', ''));
 
         $telegramAdminBotEnabled = AppSetting::getByKey('telegram_admin_bot_enabled', 'false') === 'true';
         $telegramAdminBotToken = AppSetting::getByKey('telegram_admin_bot_token', '');
@@ -77,8 +79,6 @@ class AdminSettingsController extends Controller
             'companyAddress' => $companyAddress,
             'siteLogo' => $siteLogo,
             'siteFavicon' => $siteFavicon,
-            'googleClientId' => $googleClientId,
-            'googleClientSecret' => $googleClientSecret,
             'telegramAdminBotEnabled' => $telegramAdminBotEnabled,
             'telegramAdminBotToken' => $telegramAdminBotToken,
             'telegramAdminChatId' => $telegramAdminChatId,
@@ -117,8 +117,6 @@ class AdminSettingsController extends Controller
             'site_favicon_file' => 'nullable|file|max:2048',
             'site_logo_url' => 'nullable|string|max:500',
             'site_favicon_url' => 'nullable|string|max:500',
-            'google_client_id' => 'nullable|string|max:255',
-            'google_client_secret' => 'nullable|string|max:255',
             'telegram_admin_bot_enabled' => 'nullable|boolean',
             'telegram_admin_bot_token' => 'nullable|string|max:255',
             'telegram_admin_chat_id' => 'nullable|string|max:255',
@@ -157,12 +155,6 @@ class AdminSettingsController extends Controller
         AppSetting::setByKey('support_email', $request->support_email);
         AppSetting::setByKey('contact_email', $request->contact_email);
         AppSetting::setByKey('company_address', $request->company_address);
-        if ($request->has('google_client_id')) {
-            AppSetting::setByKey('google_client_id', $request->google_client_id ?? '');
-        }
-        if ($request->has('google_client_secret')) {
-            AppSetting::setByKey('google_client_secret', $request->google_client_secret ?? '');
-        }
 
         AppSetting::setByKey('telegram_admin_bot_enabled', $request->telegram_admin_bot_enabled ? 'true' : 'false');
         AppSetting::setByKey('telegram_admin_bot_token', $request->telegram_admin_bot_token ?? '');
@@ -210,8 +202,36 @@ class AdminSettingsController extends Controller
 
     public function cronJobs()
     {
+        $stats = [
+            'pending_offerwall_count' => OfferwallLog::where('status', 'pending')->count(),
+            'pending_offerwall_amount' => (float) OfferwallLog::where('status', 'pending')->sum('amount'),
+            'proofs_eligible_for_cleanup' => ScreenshotHash::whereNotNull('file_path')
+                ->whereHas('userTask', function ($query) {
+                    $query->whereIn('status', ['approved', 'rejected'])
+                          ->where('updated_at', '<=', now()->subHours(24));
+                })->count(),
+            'users_needing_health_regen' => User::where('health', '<', User::MAX_HEALTH)->count(),
+            'active_referral_contests_count' => ReferralContest::where('status', 'active')->count(),
+            'due_referral_contests_count' => ReferralContest::where('status', 'active')
+                ->where('end_date', '<=', now())
+                ->whereNull('distributed_at')
+                ->count(),
+        ];
+
+        $lastRuns = [
+            'all' => AppSetting::getByKey('cron_last_run_all', null),
+            'offerwall:release-pending' => AppSetting::getByKey('cron_last_run_offerwall:release-pending', null),
+            'proofs:cleanup-screenshots' => AppSetting::getByKey('cron_last_run_proofs:cleanup-screenshots', null),
+            'health:regenerate-daily' => AppSetting::getByKey('cron_last_run_health:regenerate-daily', null),
+            'referral-contest:distribute' => AppSetting::getByKey('cron_last_run_referral-contest:distribute', null),
+        ];
+
         return Inertia::render('Admin/Settings/CronJobs', [
             'base_path' => base_path(),
+            'php_path' => PHP_BINARY,
+            'server_time' => now()->format('d M Y, h:i:s A T'),
+            'stats' => $stats,
+            'last_runs' => $lastRuns,
         ]);
     }
 
@@ -224,14 +244,23 @@ class AdminSettingsController extends Controller
         $target = $request->target;
 
         try {
+            $now = now()->toDateTimeString();
             if ($target === 'all') {
                 Artisan::call('offerwall:release-pending');
                 Artisan::call('proofs:cleanup-screenshots');
                 Artisan::call('health:regenerate-daily');
                 Artisan::call('referral-contest:distribute');
+
+                AppSetting::setByKey('cron_last_run_all', $now);
+                AppSetting::setByKey('cron_last_run_offerwall:release-pending', $now);
+                AppSetting::setByKey('cron_last_run_proofs:cleanup-screenshots', $now);
+                AppSetting::setByKey('cron_last_run_health:regenerate-daily', $now);
+                AppSetting::setByKey('cron_last_run_referral-contest:distribute', $now);
+
                 $output = "All scheduled cron jobs executed successfully!";
             } else {
                 Artisan::call($target);
+                AppSetting::setByKey('cron_last_run_' . $target, $now);
                 $rawOutput = trim(Artisan::output());
                 $output = $rawOutput ?: "Cron job '{$target}' executed successfully!";
             }

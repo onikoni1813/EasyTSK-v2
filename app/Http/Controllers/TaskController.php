@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Models\OfferwallLog;
 use App\Models\Task;
 use App\Models\UserTask;
 use App\Services\GamificationService;
@@ -96,7 +97,26 @@ class TaskController extends Controller
                 'submitted_at'=> $ut->created_at->format('M d, Y · H:i'),
             ]);
 
+        $offerwallLogs = OfferwallLog::where('user_id', $user->id)
+            ->latest()
+            ->take(15)
+            ->get()
+            ->map(fn(OfferwallLog $log) => [
+                'id'             => $log->id,
+                'provider'       => $log->provider,
+                'transaction_id' => $log->transaction_id,
+                'amount'         => (float) $log->amount,
+                'status'         => $log->status,
+                'reason'         => $log->reason,
+                'release_time'   => $log->release_time ? $log->release_time->toIso8601String() : null,
+                'created_at'     => $log->created_at->format('M d, Y · H:i'),
+            ]);
 
+        $offerwallStats = [
+            'total_earned'    => (float) OfferwallLog::where('user_id', $user->id)->where('status', 'approved')->sum('amount'),
+            'pending_amount'  => (float) OfferwallLog::where('user_id', $user->id)->where('status', 'pending')->sum('amount'),
+            'completed_count' => OfferwallLog::where('user_id', $user->id)->whereIn('status', ['approved', 'pending'])->count(),
+        ];
 
         return Inertia::render('Tasks/Index', [
             'tasks' => $tasks,
@@ -110,6 +130,8 @@ class TaskController extends Controller
                 : null,
             'taskHistory' => $taskHistory,
             'offerwallPendingHours' => AppSetting::offerwallPendingHours(),
+            'offerwallLogs' => $offerwallLogs,
+            'offerwallStats' => $offerwallStats,
         ]);
     }
 
@@ -183,6 +205,11 @@ class TaskController extends Controller
             $submittedData['text_proof'] = $request->text_proof;
         }
 
+        if ($request->input('secret_codes')) {
+            $codes = $request->input('secret_codes');
+            $submittedData['secret_codes'] = is_array($codes) ? implode(', ', $codes) : $codes;
+        }
+
         if (!$request->hasFile('screenshot') && empty($request->text_proof) && empty($request->input('secret_codes'))) {
             $userTask->delete();
             return back()->withErrors(['message' => 'You must provide either a screenshot, text proof, or secret code to complete this task.']);
@@ -196,6 +223,10 @@ class TaskController extends Controller
             if (!$submittedCodes && !empty($request->text_proof)) {
                 // If legacy text_proof was sent and it's a comma separated string, split it, or just use as array of 1
                 $submittedCodes = array_map('trim', explode(',', $request->text_proof));
+            }
+
+            if (!empty($submittedCodes)) {
+                $submittedData['secret_codes'] = is_array($submittedCodes) ? implode(', ', $submittedCodes) : $submittedCodes;
             }
 
             if (!is_array($submittedCodes) || count($submittedCodes) === 0) {

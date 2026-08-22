@@ -9,10 +9,10 @@
         <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30 mb-3">
-              <span>🏆</span> Weekly Top Referrer Contest
+              <span>🏆</span> {{ contestStatusBadge }}
             </div>
             <h1 class="text-2xl sm:text-3xl font-black text-white">
-              Refer & Win Leaderboard
+              {{ activeContest ? activeContest.title : 'Refer & Win Leaderboard' }}
             </h1>
             <p class="text-sm text-slate-300 mt-1 max-w-xl">
               Only verified <span class="text-emerald-400 font-bold">Unlocked Referrals</span> qualify! Invite active users, climb the rankings, and win bonus rewards credited directly to your main balance.
@@ -21,8 +21,10 @@
 
           <!-- Countdown Timer -->
           <div v-if="activeContest" class="glass-card p-4 rounded-2xl border border-amber-500/30 text-center w-full md:w-auto shrink-0 bg-slate-900/60 backdrop-blur-md">
-            <div class="text-[11px] uppercase tracking-wider font-bold text-amber-400 mb-1">Contest Ends In</div>
-            <div class="flex items-center justify-center gap-2 text-white font-mono font-black text-xl sm:text-2xl">
+            <div class="text-[11px] uppercase tracking-wider font-bold text-amber-400 mb-1">
+              {{ countdownTitle }}
+            </div>
+            <div v-if="!isEnded" class="flex items-center justify-center gap-2 text-white font-mono font-black text-xl sm:text-2xl">
               <div class="bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30">
                 <span>{{ countdown.days }}</span>
                 <span class="text-[10px] block font-sans text-amber-300 font-normal uppercase">Days</span>
@@ -42,6 +44,9 @@
                 <span>{{ countdown.seconds }}</span>
                 <span class="text-[10px] block font-sans text-amber-300 font-normal uppercase">Sec</span>
               </div>
+            </div>
+            <div v-else class="text-emerald-400 font-bold text-sm py-2">
+              ⚡ Calculating Final Results & Rewards...
             </div>
           </div>
 
@@ -230,23 +235,57 @@ const topThree = computed(() => {
   return (props.leaderboard || []).slice(0, 3);
 });
 
+const isUpcoming = computed(() => {
+  if (!props.activeContest || !props.activeContest.start_date) return false;
+  const isoStart = typeof props.activeContest.start_date === 'string'
+    ? props.activeContest.start_date.replace(' ', 'T')
+    : props.activeContest.start_date;
+  return new Date(isoStart).getTime() > new Date().getTime();
+});
+
+const isEnded = computed(() => {
+  if (!props.activeContest || !props.activeContest.end_date) return false;
+  const isoEnd = typeof props.activeContest.end_date === 'string'
+    ? props.activeContest.end_date.replace(' ', 'T')
+    : props.activeContest.end_date;
+  return new Date(isoEnd).getTime() <= new Date().getTime();
+});
+
+const contestStatusBadge = computed(() => {
+  if (isUpcoming.value) return 'Upcoming Referral Contest';
+  if (isEnded.value) return 'Contest Ended (Payout Pending)';
+  return 'Active Top Referrer Contest';
+});
+
+const countdownTitle = computed(() => {
+  if (isUpcoming.value) return 'Contest Starts In';
+  if (isEnded.value) return 'Contest Ended';
+  return 'Contest Ends In';
+});
+
 // Countdown Timer logic
 const countdown = ref({ days: '00', hours: '00', minutes: '00', seconds: '00' });
 let timerInterval = null;
 
 const updateCountdown = () => {
-  if (!props.activeContest || !props.activeContest.end_date) {
+  if (!props.activeContest) {
     countdown.value = { days: '00', hours: '00', minutes: '00', seconds: '00' };
     return;
   }
 
-  const endDate = new Date(props.activeContest.end_date).getTime();
+  const rawTargetDate = isUpcoming.value ? props.activeContest.start_date : props.activeContest.end_date;
+  if (!rawTargetDate) {
+    countdown.value = { days: '00', hours: '00', minutes: '00', seconds: '00' };
+    return;
+  }
+
+  const isoStr = typeof rawTargetDate === 'string' ? rawTargetDate.replace(' ', 'T') : rawTargetDate;
+  const targetTime = new Date(isoStr).getTime();
   const now = new Date().getTime();
-  const diff = endDate - now;
+  const diff = targetTime - now;
 
   if (diff <= 0) {
     countdown.value = { days: '00', hours: '00', minutes: '00', seconds: '00' };
-    clearInterval(timerInterval);
     return;
   }
 

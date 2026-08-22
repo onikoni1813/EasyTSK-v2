@@ -17,7 +17,8 @@ class CampaignController extends Controller
     {
         /** @var \App\Models\User $user */
         $user      = Auth::user();
-        $campaigns = Campaign::where('user_id', $user->id)
+        $campaigns = Campaign::with('service')
+            ->where('user_id', $user->id)
             ->latest()
             ->take(5)
             ->get()
@@ -26,8 +27,8 @@ class CampaignController extends Controller
                 'title'          => $c->title,
                 'description'    => $c->description,
                 'target_url'     => $c->target_url,
-                'type'           => $c->type,
-                'action'         => $c->action,
+                'type'           => $c->type ?: ($c->service->platform ?? 'other'),
+                'action'         => $c->action ?: ($c->service->action ?? ''),
                 'budget_points'  => (float) $c->budget_points,
                 'cost_per_click' => (float) $c->cost_per_click,
                 'total_clicks'   => $c->total_clicks,
@@ -39,7 +40,8 @@ class CampaignController extends Controller
             ]);
 
         // Active campaigns from OTHER users that this user can click
-        $activeCampaigns = Campaign::where('status', 'active')
+        $activeCampaigns = Campaign::with('service')
+            ->where('status', 'active')
             ->where('user_id', '!=', $user->id)
             ->whereRaw('total_clicks < target_clicks')
             ->whereDoesntHave('clicks', fn($q) => $q->where('user_id', $user->id))
@@ -48,8 +50,8 @@ class CampaignController extends Controller
                 return [
                     'id'             => $campaign->id,
                     'title'          => $campaign->title,
-                    'type'           => $campaign->type ?? ($campaign->service->platform ?? 'other'),
-                    'action'         => $campaign->action ?? ($campaign->service->action ?? ''),
+                    'type'           => $campaign->type ?: ($campaign->service->platform ?? 'other'),
+                    'action'         => $campaign->action ?: ($campaign->service->action ?? ''),
                     'cost_per_click' => (float) $campaign->cost_per_click,
                     'target_url'     => $campaign->target_url,
                 ];
@@ -59,15 +61,20 @@ class CampaignController extends Controller
 
         return Inertia::render('Campaigns/Index', [
             'user'            => [
-                'main_balance' => (float) $user->main_balance,
-                'level'        => $user->level,
-                'xp_points'    => $user->xp_points,
+                'id'              => $user->id,
+                'name'            => $user->name,
+                'email'           => $user->email,
+                'main_balance'    => (float) $user->main_balance,
+                'pending_balance' => (float) $user->pending_balance,
+                'level'           => (int) $user->level,
+                'xp_points'       => (int) $user->xp_points,
+                'health'          => (int) $user->health,
             ],
             'myCampaigns'     => $campaigns,
             'activeCampaigns' => $activeCampaigns,
             'services'        => $services,
             'settings'        => [
-                'min_budget'             => 100,
+                'min_budget'      => 100,
             ],
         ]);
     }
@@ -85,6 +92,10 @@ class CampaignController extends Controller
         /** @var \App\Models\User $user */
         $user          = Auth::user();
         $service       = CampaignService::findOrFail($request->campaign_service_id);
+
+        if (!$service->is_active) {
+            return back()->withErrors(['campaign_service_id' => 'The selected campaign service is not active.']);
+        }
         
         $costPerClick  = (float) $service->clicker_reward;
         $costPerClickForCreator = (float) $service->creator_cost;
@@ -212,7 +223,8 @@ class CampaignController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        $campaigns = Campaign::where('user_id', $user->id)
+        $campaigns = Campaign::with('service')
+            ->where('user_id', $user->id)
             ->latest()
             ->get()
             ->map(fn(Campaign $c) => [
@@ -220,8 +232,8 @@ class CampaignController extends Controller
                 'title'          => $c->title,
                 'description'    => $c->description,
                 'target_url'     => $c->target_url,
-                'type'           => $c->type,
-                'action'         => $c->action,
+                'type'           => $c->type ?: ($c->service->platform ?? 'other'),
+                'action'         => $c->action ?: ($c->service->action ?? ''),
                 'budget_points'  => (float) $c->budget_points,
                 'cost_per_click' => (float) $c->cost_per_click,
                 'total_clicks'   => $c->total_clicks,

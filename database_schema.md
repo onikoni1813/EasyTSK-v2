@@ -424,3 +424,79 @@ These exist from Laravel's default scaffolding and are used as-is:
 
 For the business logic that governs how these tables and columns are mutated (reward calculations,
 balance transfers, anti-fraud checks, etc.), see `core_logics.md`.
+
+---
+
+## 22. site_types
+Stores extensible categories of external properties (Tools, Guides, Education, etc.).
+
+| Column | Type | Notes |
+|---|---|---|
+| id | BigInt, PK, auto-increment | |
+| 
+ame | string | e.g. Tools, Guides, Education |
+| slug | string, unique | e.g. 	ools, guides, education |
+| description | text, nullable | |
+| icon | string, nullable | Emoji or icon class |
+| is_active | boolean, default true | |
+| created_at, updated_at | timestamps | |
+
+**Relationships (SiteType model):** hasMany Site
+
+---
+
+## 23. sites
+Registry of all external websites managed by the AD-SITE ENGINE.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | BigInt, PK, auto-increment | |
+| site_type_id | BigInt, FK -> site_types.id (estrictOnDelete) | Belongs to site type |
+| 
+ame | string | e.g. EasyTSK Image & Text Tools |
+| slug | string, unique | e.g. 	ools-site |
+| subdomain | string, unique, nullable | e.g. 	ools |
+| primary_domain | string, unique, nullable | e.g. 	ools.easytsk.com |
+| status | enum(ctive, inactive, maintenance), default ctive | Routing availability |
+| 	heme | string, default default | Layout theme |
+| default_language | string, default en | |
+| nalytics_id | string, nullable | GA4 / Tag Manager ID |
+| meta_title | string, nullable | SEO Default Title |
+| meta_description | text, nullable | SEO Default Description |
+| created_at, updated_at | timestamps | |
+
+**Relationships (Site model):** elongsTo SiteType; hasMany SiteDomain, SiteSetting
+
+---
+
+## 24. site_domains
+Domain mappings supporting primary domains, subdomains, and alias domains per external site.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | BigInt, PK, auto-increment | |
+| site_id | BigInt, FK -> sites.id (cascadeOnDelete) | |
+| domain_name | string, unique | e.g. 	ools.easytsk.com or easytools.net |
+| is_primary | boolean, default false | Primary canonical domain |
+| is_verified | boolean, default true | Domain ownership status |
+| ssl_status | enum(pending, ctive, ailed), default ctive | |
+| created_at, updated_at | timestamps | |
+
+**Relationships (SiteDomain model):** elongsTo Site
+
+---
+
+## 25. site_settings
+Dynamic Key-Value configuration store for per-site branding, ad network parameters, and layout flags.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | BigInt, PK, auto-increment | |
+| site_id | BigInt, FK -> sites.id (cascadeOnDelete) | |
+| key | string | Setting identifier |
+| alue | text, nullable | |
+| 	ype | enum(string, oolean, integer, json), default string | Data type casting |
+| created_at, updated_at | timestamps | |
+| — | unique(site_id, key) | Unique setting key per site |
+
+**Relationships (SiteSetting model):** elongsTo Site

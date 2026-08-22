@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Level;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -11,9 +12,21 @@ class AdminLevelController extends Controller
 {
     public function index()
     {
-        $levels = Level::orderBy('level_number', 'asc')->get();
+        $levels = Level::orderBy('level_number', 'asc')->get()->map(function ($level) {
+            $level->users_count = User::where('level', $level->level_number)->count();
+            return $level;
+        });
+
+        $stats = [
+            'total_levels'   => Level::count(),
+            'total_users'    => User::count(),
+            'max_user_level' => User::max('level') ?? 1,
+            'avg_user_xp'    => (int) round(User::avg('xp_points') ?? 0),
+        ];
+
         return Inertia::render('Admin/Levels/Index', [
-            'levels' => $levels
+            'levels' => $levels,
+            'stats'  => $stats,
         ]);
     }
 
@@ -49,8 +62,14 @@ class AdminLevelController extends Controller
             return back()->with('error', 'Cannot delete Level 1.');
         }
 
+        $userCount = User::where('level', $level->level_number)->count();
+        if ($userCount > 0) {
+            return back()->with('error', "Cannot delete Level {$level->level_number} because {$userCount} user(s) are currently assigned to this level.");
+        }
+
         $level->delete();
 
         return back()->with('success', 'Level deleted successfully.');
     }
 }
+

@@ -113,6 +113,14 @@ class User extends Authenticatable
     // ─── Balance Helpers ──────────────────────────────────────────────────────
 
     /**
+     * Accessor for balance attribute as an alias for main_balance
+     */
+    public function getBalanceAttribute(): float
+    {
+        return (float) ($this->attributes['main_balance'] ?? 0);
+    }
+
+    /**
      * Add reward points to main balance safely within DB transaction
      */
     public function addMainBalance(float $amount): void

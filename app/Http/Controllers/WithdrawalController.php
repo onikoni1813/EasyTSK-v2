@@ -51,6 +51,12 @@ class WithdrawalController extends Controller
 
         $withdrawals = Withdrawal::where('user_id', $user->id)->latest()->take(5)->get();
 
+        $userStats = [
+            'totalWithdrawnBdt' => (float) Withdrawal::where('user_id', $user->id)->where('status', 'paid')->sum('amount_bdt'),
+            'pendingWithdrawnBdt' => (float) Withdrawal::where('user_id', $user->id)->where('status', 'pending')->sum('amount_bdt'),
+            'totalCount' => Withdrawal::where('user_id', $user->id)->count(),
+        ];
+
         return Inertia::render('Withdraw/Index', [
             'mainBalance' => (float) $user->main_balance,
             'canWithdraw' => $canWithdraw,
@@ -65,6 +71,8 @@ class WithdrawalController extends Controller
             'mobileRechargeFixedCharge' => $mobileRechargeFixedCharge,
             'savedMethod' => $user->payment_method,
             'savedNumber' => $user->payment_number,
+            'hasRecoveryPin' => !empty($user->recovery_pin),
+            'userStats' => $userStats,
             'withdrawals' => $withdrawals,
         ]);
     }

@@ -291,10 +291,16 @@ const showCreateModal = ref(false);
 const submitting = ref(false);
 const distributing = ref(false);
 
+const getLocalDateTimeString = (offsetMs = 0) => {
+  const d = new Date(Date.now() + offsetMs);
+  const tzOffset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+};
+
 const form = ref({
   title: 'Weekly Top Referrer Contest',
-  start_date: new Date().toISOString().slice(0, 16),
-  end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+  start_date: getLocalDateTimeString(0),
+  end_date: getLocalDateTimeString(7 * 24 * 60 * 60 * 1000),
   min_unlocked_required: 1,
   prizes: [
     { rank: 1, reward: 5000 },
@@ -320,9 +326,11 @@ const removePrizeRow = (index) => {
 const submitCreateContest = () => {
   submitting.value = true;
   router.post(`${adminPath.value}/referral-contests`, form.value, {
+    onSuccess: () => {
+      showCreateModal.value = false;
+    },
     onFinish: () => {
       submitting.value = false;
-      showCreateModal.value = false;
     },
   });
 };
@@ -348,6 +356,8 @@ const cancelContest = () => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
-  return new Date(dateStr).toLocaleString();
+  const isoStr = typeof dateStr === 'string' ? dateStr.replace(' ', 'T') : dateStr;
+  const d = new Date(isoStr);
+  return isNaN(d.getTime()) ? dateStr : d.toLocaleString();
 };
 </script>

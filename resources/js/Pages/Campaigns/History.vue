@@ -84,7 +84,7 @@ const props = defineProps({
 
 const campaignIcon = (type) => {
   const icons = { website: '🌐', telegram: '✈️', youtube: '▶️', facebook: '📘', other: '📎' };
-  return icons[type] || '📎';
+  return icons[type?.toLowerCase()] || '📎';
 };
 
 const statusBadge = (status) => {

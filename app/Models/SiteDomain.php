@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class SiteDomain extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'site_id',
+        'domain_name',
+        'is_primary',
+        'is_verified',
+        'ssl_status',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_primary' => 'boolean',
+            'is_verified' => 'boolean',
+        ];
+    }
+
+    public function site(): BelongsTo
+    {
+        return $this->belongsTo(Site::class);
+    }
+}

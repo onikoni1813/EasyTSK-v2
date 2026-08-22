@@ -27,8 +27,7 @@ class CheckMaintenanceMode
                 $request->is('login') ||
                 $request->is('logout') ||
                 $request->is('postback/*') ||
-                $request->is('manifest.json') ||
-                $request->is('auth/google*')
+                $request->is('manifest.json')
             ) {
                 return $next($request);
             }

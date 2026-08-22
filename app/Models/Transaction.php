@@ -37,8 +37,8 @@ class Transaction extends Model
      */
     public static function log(User $user, string $type, float $amount, string $description, ?string $referenceType = null, ?string $referenceId = null): self
     {
-        $balanceBefore = (float) $user->balance;
-        $balanceAfter = $type === 'credit' ? $balanceBefore + $amount : $balanceBefore - $amount;
+        $balanceBefore = (float) ($user->main_balance ?? $user->balance ?? 0);
+        $balanceAfter = $type === 'credit' ? $balanceBefore + $amount : max(0, $balanceBefore - $amount);
 
         return self::create([
             'user_id' => $user->id,

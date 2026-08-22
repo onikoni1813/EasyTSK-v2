@@ -27,8 +27,10 @@ class AuthController extends Controller
 
     public function showRegister(Request $request)
     {
+        $refCode = $request->query('ref') ?? $request->query('ref_code');
         return Inertia::render('Auth/Register', [
-            'ref' => $request->query('ref'),
+            'ref'      => $refCode,
+            'ref_code' => $refCode,
         ]);
     }
 

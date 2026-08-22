@@ -9,6 +9,16 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
+          <!-- Bulk Approve Selected Button -->
+          <button
+            v-if="selectedPendingIds.length > 0"
+            @click="confirmBulkApprove"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-600/20 transition-all"
+          >
+            <span>✅</span>
+            <span>Approve Selected ({{ selectedPendingIds.length }})</span>
+          </button>
+
           <!-- Bulk Delete Selected Button -->
           <button
             v-if="selectedIds.length > 0"
@@ -112,9 +122,27 @@
                   <div class="font-mono text-slate-400">#{{ w.id }}</div>
                   <div class="text-[10px] text-slate-500">{{ formatDate(w.created_at) }}</div>
                 </td>
-                <td class="px-4 py-3 font-semibold text-white">
-                  <div>{{ w.user ? w.user.name : 'User' }}</div>
-                  <div class="text-[10px] text-slate-400 font-normal">{{ w.user ? w.user.email : '' }}</div>
+                <td class="px-4 py-3 text-white">
+                  <div class="flex items-center space-x-2">
+                    <button 
+                      v-if="w.user" 
+                      @click="openHistoryModal(w.user)"
+                      class="font-bold text-white hover:text-indigo-400 text-left transition-colors flex items-center space-x-1.5 group"
+                      title="Click to view full user activity history"
+                    >
+                      <span>{{ w.user.name }}</span>
+                      <span class="text-[10px] text-indigo-400 opacity-70 group-hover:opacity-100 transition-opacity">📜</span>
+                    </button>
+                    <span v-else class="font-semibold text-slate-400">User Deleted</span>
+
+                    <span v-if="w.user?.is_banned" class="px-1.5 py-0.5 text-[9px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded">BANNED</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                    <span v-if="w.user?.id" class="font-mono text-slate-500 font-semibold">#{{ w.user.id }}</span>
+                    <span v-if="w.user?.email">{{ w.user.email }}</span>
+                    <span v-if="w.user?.phone" class="text-slate-300 font-mono">📱 {{ w.user.phone }}</span>
+                    <span v-if="w.user" class="text-emerald-400 font-semibold font-mono">💰 ৳{{ w.user.main_balance }}</span>
+                  </div>
                 </td>
                 <td class="px-4 py-3 font-medium text-slate-200">
                   <span class="px-2 py-0.5 rounded bg-slate-800 text-[11px] border border-slate-700/50">
@@ -359,6 +387,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Bulk Approve Confirmation Modal -->
+    <div v-if="isBulkApproveModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+        <h3 class="text-lg font-bold text-emerald-400 flex items-center space-x-2">
+          <span>✅</span>
+          <span>Bulk Approve Withdrawals</span>
+        </h3>
+        <p class="text-sm text-slate-300">
+          Are you sure you want to mark <span class="font-bold text-white">{{ selectedPendingIds.length }} pending withdrawal request(s)</span> as Paid?
+        </p>
+        <div class="flex space-x-3 justify-end pt-2">
+          <button @click="isBulkApproveModalOpen = false" class="px-4 py-2 rounded-xl text-slate-300 hover:bg-slate-800 font-semibold text-sm transition-colors">Cancel</button>
+          <button @click="submitBulkApprove" :disabled="isProcessing" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors disabled:opacity-50">Confirm Bulk Approval</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- User History Modal -->
+    <UserHistoryModal 
+      :show="showHistoryModal" 
+      :user="historyUser" 
+      @close="showHistoryModal = false" 
+    />
   </AdminLayout>
 </template>
 
@@ -366,6 +418,7 @@
 import { ref, computed } from 'vue';
 import { router, Link, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import UserHistoryModal from '@/Components/UserHistoryModal.vue';
 
 const props = defineProps({
   withdrawals: Object,
@@ -375,6 +428,15 @@ const props = defineProps({
 
 const page = usePage();
 const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
+
+const showHistoryModal = ref(false);
+const historyUser = ref(null);
+
+const openHistoryModal = (user) => {
+  if (!user) return;
+  historyUser.value = user;
+  showHistoryModal.value = true;
+};
 
 const activeStatus = ref(props.filters?.status || 'all');
 const searchQuery = ref(props.filters?.search || '');
@@ -464,9 +526,39 @@ const formatDate = (dateString) => {
 };
 
 const isApproveModalOpen = ref(false);
+const isBulkApproveModalOpen = ref(false);
 const isRejectModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
 const isCleanupModalOpen = ref(false);
+
+const selectedPendingIds = computed(() => {
+  if (!props.withdrawals.data || props.withdrawals.data.length === 0) return [];
+  return props.withdrawals.data
+    .filter(w => selectedIds.value.includes(w.id) && w.status === 'pending')
+    .map(w => w.id);
+});
+
+const confirmBulkApprove = () => {
+  if (selectedPendingIds.value.length === 0) return;
+  isBulkApproveModalOpen.value = true;
+};
+
+const submitBulkApprove = () => {
+  if (isProcessing.value || selectedPendingIds.value.length === 0) return;
+  isProcessing.value = true;
+
+  router.post(`${adminPath.value}/withdrawals/bulk-approve`, {
+    ids: selectedPendingIds.value,
+  }, {
+    onSuccess: () => {
+      isBulkApproveModalOpen.value = false;
+      selectedIds.value = [];
+    },
+    onFinish: () => {
+      isProcessing.value = false;
+    }
+  });
+};
 
 const cleanupStatus = ref('all_completed');
 const cleanupDays = ref(30);

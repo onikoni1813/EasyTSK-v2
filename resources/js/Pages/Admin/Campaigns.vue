@@ -86,6 +86,12 @@
               Reject
             </button>
           </div>
+          <div v-else-if="c.status === 'active'" class="flex gap-2 mt-2">
+            <button @click="startReject(c)" class="btn-neon bg-rose-700 hover:bg-rose-600 w-full py-2.5 rounded-xl text-[11px] font-bold text-white uppercase tracking-wide flex justify-center items-center gap-1 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+              Stop & Cancel Campaign
+            </button>
+          </div>
           <div v-else-if="c.status === 'completed' || c.status === 'rejected'" class="mt-2 space-y-2">
             <div v-if="c.status === 'rejected' && c.admin_note" class="p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg text-xs text-rose-300 flex items-start gap-1">
                <span class="mt-0.5">💬</span>
@@ -100,17 +106,30 @@
       </div>
     </div>
 
-    <!-- Reject Modal -->
+    <!-- Reject/Stop Modal -->
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="rejectTarget" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
           <div class="glass-card max-w-sm w-full p-6 rounded-3xl border border-rose-500/30 animate-slide-in-up">
-            <h3 class="text-base font-black text-white mb-2">❌ Reject Campaign</h3>
-            <p class="text-xs text-slate-400 mb-4">The unspent budget will be refunded to the user.</p>
-            <textarea v-model="rejectNote" placeholder="Reason for rejection (required)" class="input-dark text-xs resize-none mb-3" rows="3"></textarea>
+            <h3 class="text-base font-black text-white mb-2">
+              {{ rejectTarget.status === 'active' ? '🛑 Stop Campaign' : '❌ Reject Campaign' }}
+            </h3>
+            <p class="text-xs text-slate-400 mb-2">
+              {{ rejectTarget.status === 'active' 
+                ? 'Stopping this active campaign will refund the unspent budget for remaining clicks to the user.' 
+                : 'The unspent budget will be refunded to the user.' }}
+            </p>
+            <div v-if="rejectTarget.status === 'active'" class="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center justify-between">
+              <span>Estimated Refund:</span>
+              <strong class="text-amber-200 font-bold stat-number text-sm">{{ calculateRefund(rejectTarget) }} Points</strong>
+            </div>
+            <textarea v-model="rejectNote" :placeholder="rejectTarget.status === 'active' ? 'Reason for stopping (optional)' : 'Reason for rejection (optional)'" class="input-dark text-xs resize-none mb-3" rows="3"></textarea>
             <div class="flex gap-2">
-              <button @click="rejectTarget = null" class="flex-1 py-2.5 glass-pill text-xs text-slate-400 rounded-xl border border-white/8">Cancel</button>
-              <button @click="confirmReject" class="flex-1 btn-neon bg-rose-700 hover:bg-rose-600 py-2.5 text-xs font-bold text-white rounded-xl">Reject</button>
+              <button @click="rejectTarget = null" :disabled="isSubmitting" class="flex-1 py-2.5 glass-pill text-xs text-slate-400 rounded-xl border border-white/8 disabled:opacity-50">Cancel</button>
+              <button @click="confirmReject" :disabled="isSubmitting" class="flex-1 btn-neon bg-rose-700 hover:bg-rose-600 py-2.5 text-xs font-bold text-white rounded-xl flex items-center justify-center gap-2 disabled:opacity-50">
+                <span v-if="isSubmitting" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                <span>{{ rejectTarget.status === 'active' ? (isSubmitting ? 'Stopping...' : 'Stop Now') : (isSubmitting ? 'Rejecting...' : 'Reject') }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -157,10 +176,11 @@ const props = defineProps({ campaigns: Array });
 const page = usePage();
 const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
-const activeTab   = ref('pending');
+const activeTab    = ref('pending');
 const rejectTarget = ref(null);
-const rejectNote  = ref('');
+const rejectNote   = ref('');
 const deleteTarget = ref(null);
+const isSubmitting = ref(false);
 
 const tabs = [
   { value: 'all',       label: 'All',       cls: 'badge-indigo' },
@@ -179,6 +199,13 @@ const pendingCount = computed(() => props.campaigns.filter(c => c.status === 'pe
 const campaignIcon = (type) => ({ website: '🌐', telegram: '✈️', youtube: '▶️', facebook: '📘', other: '📎' })[type] || '📎';
 const statusBadge  = (s)    => ({ pending: 'badge-amber', active: 'badge-emerald', completed: 'badge-cyan', rejected: 'badge-rose' })[s] || 'badge-indigo';
 
+const calculateRefund = (c) => {
+  if (!c || c.target_clicks === 0) return '0.00';
+  const creatorCostPerClick = c.budget_points / c.target_clicks;
+  const remainingClicks = Math.max(0, c.target_clicks - c.total_clicks);
+  return (remainingClicks * creatorCostPerClick).toFixed(2);
+};
+
 const approve = (c) => {
   router.post(`${adminPath.value}/campaigns/${c.id}/approve`, {}, { preserveScroll: true });
 };
@@ -189,10 +216,18 @@ const startReject = (c) => {
 };
 
 const confirmReject = () => {
-  if (!rejectNote.value.trim()) return;
-  router.post(`${adminPath.value}/campaigns/${rejectTarget.value.id}/reject`, { admin_note: rejectNote.value }, {
+  if (isSubmitting.value) return;
+  isSubmitting.value = true;
+  const note = rejectNote.value.trim() || (rejectTarget.value.status === 'active' ? 'Stopped by admin' : 'Rejected by admin');
+
+  router.post(`${adminPath.value}/campaigns/${rejectTarget.value.id}/reject`, { admin_note: note }, {
     preserveScroll: true,
-    onSuccess: () => { rejectTarget.value = null; },
+    onSuccess: () => {
+      rejectTarget.value = null;
+    },
+    onFinish: () => {
+      isSubmitting.value = false;
+    },
   });
 };
 

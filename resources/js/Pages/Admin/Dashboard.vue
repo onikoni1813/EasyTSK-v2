@@ -2,7 +2,13 @@
   <AdminLayout>
     <div class="space-y-6">
 
-      <h1 class="text-2xl font-extrabold text-white">📊 Admin Overview</h1>
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-extrabold text-white">📊 Admin Overview</h1>
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>System Online & Synced</span>
+        </div>
+      </div>
 
       <!-- Growth Trend Chart -->
       <GrowthChart :chart-data="growthChart" />
@@ -47,23 +53,41 @@
         </div>
       </div>
 
-      <!-- Quick Links -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link :href="`${adminPath}/reviews`" class="glass-card p-5 rounded-2xl border border-amber-500/15 card-hover text-center block">
-          <div class="text-3xl mb-2">📋</div>
-          <div class="text-sm font-bold text-white">Task Reviews</div>
-          <div class="badge badge-amber mt-2">{{ stats.pendingReviewsCount }} pending</div>
-        </Link>
-        <Link :href="`${adminPath}/withdrawals`" class="glass-card p-5 rounded-2xl border border-emerald-500/15 card-hover text-center block">
-          <div class="text-3xl mb-2">💸</div>
-          <div class="text-sm font-bold text-white">Withdrawals</div>
-          <div class="badge badge-emerald mt-2">{{ stats.pendingWithdrawalsCount }} pending</div>
-        </Link>
-        <Link :href="`${adminPath}/campaigns`" class="glass-card p-5 rounded-2xl border border-violet-500/15 card-hover text-center block">
-          <div class="text-3xl mb-2">📢</div>
-          <div class="text-sm font-bold text-white">Campaigns</div>
-          <div class="badge badge-violet mt-2">{{ stats.pendingCampaigns }} pending</div>
-        </Link>
+      <!-- Quick Links & Operation Hub -->
+      <div class="space-y-3">
+        <div class="text-xs font-extrabold uppercase tracking-wider text-slate-400">⚡ Quick Operations Hub</div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <Link :href="`${adminPath}/tasks/reviews`" class="glass-card p-4 rounded-2xl border border-amber-500/15 card-hover text-center block transition-transform hover:scale-105">
+            <div class="text-2xl mb-1">📋</div>
+            <div class="text-xs font-bold text-white">Task Reviews</div>
+            <div class="badge badge-amber mt-1 text-[10px]">{{ stats.pendingReviewsCount }} pending</div>
+          </Link>
+          <Link :href="`${adminPath}/withdrawals`" class="glass-card p-4 rounded-2xl border border-emerald-500/15 card-hover text-center block transition-transform hover:scale-105">
+            <div class="text-2xl mb-1">💸</div>
+            <div class="text-xs font-bold text-white">Withdrawals</div>
+            <div class="badge badge-emerald mt-1 text-[10px]">{{ stats.pendingWithdrawalsCount }} pending</div>
+          </Link>
+          <Link :href="`${adminPath}/campaigns`" class="glass-card p-4 rounded-2xl border border-violet-500/15 card-hover text-center block transition-transform hover:scale-105">
+            <div class="text-2xl mb-1">📢</div>
+            <div class="text-xs font-bold text-white">Campaigns</div>
+            <div class="badge badge-violet mt-1 text-[10px]">{{ stats.pendingCampaigns }} pending</div>
+          </Link>
+          <Link :href="`${adminPath}/password-tickets`" class="glass-card p-4 rounded-2xl border border-rose-500/15 card-hover text-center block transition-transform hover:scale-105">
+            <div class="text-2xl mb-1">🔐</div>
+            <div class="text-xs font-bold text-white">Pass Tickets</div>
+            <div class="badge badge-rose mt-1 text-[10px]">{{ stats.pendingPasswordTicketsCount }} pending</div>
+          </Link>
+          <Link :href="`${adminPath}/support-tickets`" class="glass-card p-4 rounded-2xl border border-indigo-500/15 card-hover text-center block transition-transform hover:scale-105">
+            <div class="text-2xl mb-1">💬</div>
+            <div class="text-xs font-bold text-white">Support Tickets</div>
+            <div class="badge badge-indigo mt-1 text-[10px]">{{ stats.openSupportTicketsCount }} open</div>
+          </Link>
+          <Link :href="`${adminPath}/referral-contests`" class="glass-card p-4 rounded-2xl border border-cyan-500/15 card-hover text-center block transition-transform hover:scale-105">
+            <div class="text-2xl mb-1">🏆</div>
+            <div class="text-xs font-bold text-white">Contests</div>
+            <div class="badge badge-cyan mt-1 text-[10px]">{{ stats.activeContestsCount }} active</div>
+          </Link>
+        </div>
       </div>
 
     </div>
@@ -85,16 +109,20 @@ const props = defineProps({
 });
 
 const page = usePage();
-const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
+const adminPath = computed(() => '/' + (page.props.admin_path || 'secret-panel'));
 
 const statCards = computed(() => [
-  { label: 'Total Users',       value: props.stats.totalUsers,              sub: `+${props.stats.newUsersThisWeek} this week`, border: 'border-indigo-500/15', labelCls: 'text-indigo-400', glow: 'bg-indigo-500', href: `${adminPath.value}/users` },
-  { label: 'Main Liability',    value: props.stats.totalMainLiability.toFixed(0) + ' pts', sub: 'Withdrawable balance', border: 'border-rose-500/15',    labelCls: 'text-rose-400',   glow: 'bg-rose-500',   href: `${adminPath.value}/users` },
-  { label: 'Pending Liability', value: props.stats.totalPendingLiability.toFixed(0) + ' pts', sub: '24h hold funds', border: 'border-amber-500/15',   labelCls: 'text-amber-400',  glow: 'bg-amber-500',  href: `${adminPath.value}/offerwalls` },
-  { label: 'Flagged Devices',   value: props.stats.flaggedDevicesCount,     sub: 'Multi-account detected', border: 'border-rose-500/15',   labelCls: 'text-rose-400',   glow: 'bg-rose-500',   href: `${adminPath.value}/users` },
-  { label: 'Task Reviews',      value: props.stats.pendingReviewsCount,     sub: 'Awaiting review', border: 'border-violet-500/15',  labelCls: 'text-violet-400', glow: 'bg-violet-500', href: `${adminPath.value}/reviews` },
-  { label: 'Withdrawals',       value: props.stats.pendingWithdrawalsCount, sub: 'Pending payout', border: 'border-emerald-500/15', labelCls: 'text-emerald-400',glow: 'bg-emerald-500', href: `${adminPath.value}/withdrawals` },
-  { label: 'Campaigns',         value: props.stats.pendingCampaigns,        sub: 'Awaiting approval', border: 'border-pink-500/15',    labelCls: 'text-pink-400',   glow: 'bg-pink-500',   href: `${adminPath.value}/campaigns` },
-  { label: 'Active Promo Codes',value: props.stats.activeCodes,            sub: 'Live promo codes', border: 'border-cyan-500/15',    labelCls: 'text-cyan-400',   glow: 'bg-cyan-500',   href: `${adminPath.value}/promo-codes` },
+  { label: 'Total Users',        value: Number(props.stats.totalUsers || 0).toLocaleString(),       sub: `+${props.stats.newUsersThisWeek} this week`, border: 'border-indigo-500/15', labelCls: 'text-indigo-400', glow: 'bg-indigo-500', href: `${adminPath.value}/users` },
+  { label: 'Banned Users',       value: Number(props.stats.bannedUsersCount || 0).toLocaleString(), sub: 'Restricted accounts', border: 'border-rose-500/15',   labelCls: 'text-rose-400',   glow: 'bg-rose-500',   href: `${adminPath.value}/users` },
+  { label: 'Main Liability',     value: Number(props.stats.totalMainLiability || 0).toLocaleString() + ' pts', sub: 'Withdrawable balance', border: 'border-rose-500/15', labelCls: 'text-rose-400', glow: 'bg-rose-500', href: `${adminPath.value}/users` },
+  { label: 'Pending Liability',  value: Number(props.stats.totalPendingLiability || 0).toLocaleString() + ' pts', sub: 'Hold / unlock balance', border: 'border-amber-500/15', labelCls: 'text-amber-400', glow: 'bg-amber-500', href: `${adminPath.value}/offerwalls` },
+  { label: 'Total Paid Out',     value: '৳' + Number(props.stats.totalPaidOut || 0).toLocaleString(), sub: 'Approved withdrawals', border: 'border-emerald-500/15', labelCls: 'text-emerald-400', glow: 'bg-emerald-500', href: `${adminPath.value}/withdrawals` },
+  { label: 'Flagged Devices',    value: Number(props.stats.flaggedDevicesCount || 0).toLocaleString(), sub: 'Multi-account detected', border: 'border-purple-500/15', labelCls: 'text-purple-400', glow: 'bg-purple-500', href: `${adminPath.value}/users` },
+  { label: 'Task Reviews',       value: Number(props.stats.pendingReviewsCount || 0).toLocaleString(), sub: 'Awaiting review', border: 'border-violet-500/15', labelCls: 'text-violet-400', glow: 'bg-violet-500', href: `${adminPath.value}/tasks/reviews` },
+  { label: 'Withdrawals',        value: Number(props.stats.pendingWithdrawalsCount || 0).toLocaleString(), sub: 'Pending payout', border: 'border-emerald-500/15', labelCls: 'text-emerald-400', glow: 'bg-emerald-500', href: `${adminPath.value}/withdrawals` },
+  { label: 'Campaigns',          value: Number(props.stats.pendingCampaigns || 0).toLocaleString(), sub: 'Awaiting approval', border: 'border-pink-500/15',   labelCls: 'text-pink-400',   glow: 'bg-pink-500',   href: `${adminPath.value}/campaigns` },
+  { label: 'Password Tickets',   value: Number(props.stats.pendingPasswordTicketsCount || 0).toLocaleString(), sub: 'Pending reset tickets', border: 'border-amber-500/15', labelCls: 'text-amber-400', glow: 'bg-amber-500', href: `${adminPath.value}/password-tickets` },
+  { label: 'Support Tickets',    value: Number(props.stats.openSupportTicketsCount || 0).toLocaleString(), sub: 'Open user tickets', border: 'border-blue-500/15', labelCls: 'text-blue-400', glow: 'bg-blue-500', href: `${adminPath.value}/support-tickets` },
+  { label: 'Active Promo Codes', value: Number(props.stats.activeCodes || 0).toLocaleString(), sub: 'Live promo codes', border: 'border-cyan-500/15',   labelCls: 'text-cyan-400',   glow: 'bg-cyan-500',   href: `${adminPath.value}/promo-codes` },
 ]);
 </script>

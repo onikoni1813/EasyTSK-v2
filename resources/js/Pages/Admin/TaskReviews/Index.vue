@@ -8,15 +8,20 @@
           </h1>
           <p class="text-xs sm:text-sm text-slate-400 mt-1">1-click proof approval & auto-delete image files</p>
         </div>
-        <button
-          v-if="selectedIds.length > 0"
-          @click="bulkApprove"
-          :disabled="bulkApproving"
-          class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-        >
-          <span v-if="bulkApproving" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-          {{ bulkApproving ? 'Approving...' : `✓ Bulk Approve (${selectedIds.length})` }}
-        </button>
+        <div class="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          <Link :href="`${adminPath}/tasks`" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center justify-center gap-2">
+            <span>🧩 Task Manager</span>
+          </Link>
+          <button
+            v-if="selectedIds.length > 0"
+            @click="bulkApprove"
+            :disabled="bulkApproving"
+            class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg shadow-emerald-500/30 transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+          >
+            <span v-if="bulkApproving" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+            {{ bulkApproving ? 'Approving...' : `✓ Bulk Approve (${selectedIds.length})` }}
+          </button>
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -31,19 +36,81 @@
       <!-- Cards Grid -->
       <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         <div v-for="review in pendingReviews.data" :key="review.id" class="bg-slate-900/40 backdrop-blur-sm p-4 sm:p-6 rounded-3xl border border-slate-800 hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.1)] transition-all duration-300 flex flex-col space-y-4">
-          <div class="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
-            <label class="flex items-start gap-3 cursor-pointer group w-full sm:w-auto">
-              <div class="relative flex items-center justify-center mt-0.5 sm:mt-1">
-                <input type="checkbox" :value="review.id" v-model="selectedIds" class="peer appearance-none w-5 h-5 border-2 border-slate-600 rounded-md checked:bg-indigo-500 checked:border-indigo-500 cursor-pointer transition-colors" />
-                <svg class="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+          
+          <!-- User Details Card Header -->
+          <div class="flex flex-col space-y-3 pb-2 border-b border-slate-800">
+            <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
+              <label class="flex items-start gap-3 cursor-pointer group w-full sm:w-auto">
+                <div class="relative flex items-center justify-center mt-1">
+                  <input type="checkbox" :value="review.id" v-model="selectedIds" class="peer appearance-none w-5 h-5 border-2 border-slate-600 rounded-md checked:bg-indigo-500 checked:border-indigo-500 cursor-pointer transition-colors" />
+                  <svg class="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="flex-grow">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <Link
+                      v-if="review.user"
+                      :href="`${adminPath}/users?search=${encodeURIComponent(review.user.email || review.user.name)}`"
+                      class="font-bold text-white text-sm hover:text-indigo-400 underline decoration-indigo-500/40 underline-offset-4 transition-colors"
+                      title="View user details in User Manager"
+                    >
+                      {{ review.user.name }}
+                    </Link>
+                    <span v-else class="font-bold text-slate-400 text-sm">Unknown User</span>
+
+                    <span v-if="review.user?.role === 'admin'" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Admin</span>
+                    <span v-if="review.user?.level" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Lvl {{ review.user.level }}</span>
+                    <span v-if="review.user?.is_banned" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">Banned</span>
+                  </div>
+                  <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                    <span class="text-slate-300 font-mono">{{ review.user?.email || review.user?.phone || 'No Contact' }}</span>
+                    <span class="text-slate-600">•</span>
+                    <span class="text-slate-400 font-semibold">User ID: #{{ review.user_id }}</span>
+                  </div>
+                </div>
+              </label>
+              <div class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1.5 rounded-lg text-xs font-semibold sm:shrink-0 text-left sm:text-right w-full sm:w-auto truncate">
+                {{ review.task ? review.task.title : 'Deleted Task' }}
               </div>
-              <div class="flex-grow">
-                <span class="font-bold text-white text-sm block group-hover:text-indigo-400 transition-colors truncate">{{ review.user ? review.user.name : 'Unknown User' }}</span>
-                <span class="text-xs text-slate-500">ID: {{ review.user_id }}</span>
+            </div>
+
+            <!-- Enhanced Dynamic User Metadata Bar -->
+            <div v-if="review.user" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2 text-[11px] bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+              <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Health HP</span>
+                <span class="font-bold flex items-center gap-1" :class="review.user.health > 50 ? 'text-emerald-400' : 'text-amber-400'">
+                  💚 {{ review.user.health ?? 100 }} HP
+                </span>
               </div>
-            </label>
-            <div class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1.5 rounded-lg text-xs font-semibold sm:shrink-0 text-left sm:text-right w-full sm:w-auto truncate">
-              {{ review.task ? review.task.title : 'Deleted Task' }}
+              <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Risk Score</span>
+                <span class="font-bold flex items-center gap-1" :class="review.user.risk_score > 50 ? 'text-rose-400' : 'text-indigo-300'">
+                  🛡️ {{ review.user.risk_score ?? 0 }}
+                </span>
+              </div>
+              <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Main Balance</span>
+                <span class="font-bold text-amber-400">
+                  💰 {{ review.user.main_balance ?? 0 }} pts
+                </span>
+              </div>
+              <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Task History</span>
+                <span class="font-bold text-slate-300">
+                  ✅ {{ review.user.approved_tasks_count ?? 0 }} / ❌ {{ review.user.rejected_tasks_count ?? 0 }}
+                </span>
+              </div>
+              <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Submitted IP</span>
+                <span class="font-mono text-slate-300 truncate block" :title="review.ip_address">
+                  🌐 {{ review.ip_address || 'N/A' }}
+                </span>
+              </div>
+              <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Member Since</span>
+                <span class="text-slate-300 truncate block font-medium">
+                  📅 {{ formatDate(review.user.created_at) }}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -97,15 +164,29 @@
           </div>
 
           <div class="grid grid-cols-2 gap-3 pt-2">
-            <button @click="approve(review)" class="py-2.5 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-400 border border-emerald-500/20 font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+            <button @click="approve(review)" class="py-2.5 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-400 border border-emerald-500/20 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
               Approve
             </button>
-            <button @click="reject(review)" class="py-2.5 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+            <button @click="reject(review)" class="py-2.5 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               Reject
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="pendingReviews.data && pendingReviews.data.length > 0" class="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-400 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+        <div>
+          Showing <span class="font-bold text-slate-200">{{ pendingReviews.from || 0 }}</span> to <span class="font-bold text-slate-200">{{ pendingReviews.to || 0 }}</span> of <span class="font-bold text-slate-200">{{ pendingReviews.total }}</span> pending reviews
+        </div>
+        <div class="flex items-center space-x-2">
+          <Link v-if="pendingReviews.prev_page_url" :href="pendingReviews.prev_page_url" class="px-4 py-2 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-200 rounded-xl font-bold transition-all border border-slate-700">Previous</Link>
+          <span v-else class="px-4 py-2 bg-slate-900 rounded-xl opacity-40 cursor-not-allowed border border-slate-800">Previous</span>
+
+          <Link v-if="pendingReviews.next_page_url" :href="pendingReviews.next_page_url" class="px-4 py-2 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-200 rounded-xl font-bold transition-all border border-slate-700">Next</Link>
+          <span v-else class="px-4 py-2 bg-slate-900 rounded-xl opacity-40 cursor-not-allowed border border-slate-800">Next</span>
         </div>
       </div>
       
@@ -128,7 +209,7 @@
           <div v-if="rejectingReview" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
             <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" @click="closeRejectModal"></div>
             
-            <div class="relative bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div class="relative bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col z-10">
               <div class="px-6 py-5 border-b border-slate-800/80 flex justify-between items-center bg-slate-900/50">
                 <h3 class="text-xl font-bold text-rose-500 flex items-center gap-2">
                   <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -178,7 +259,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { router, usePage, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineProps({
@@ -201,10 +282,16 @@ const openImage = (url) => {
   selectedImage.value = url;
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const bulkApprove = () => {
   if (selectedIds.value.length === 0) return;
   bulkApproving.value = true;
-  router.post(`${adminPath.value}/reviews/bulk-approve`, { ids: selectedIds.value }, {
+  router.post(`${adminPath.value}/tasks/reviews/bulk-approve`, { ids: selectedIds.value }, {
     preserveScroll: true,
     onSuccess: () => { selectedIds.value = []; },
     onFinish: () => { bulkApproving.value = false; },
@@ -225,7 +312,7 @@ const isDynamicProof = (data) => {
 };
 
 const approve = (review) => {
-  router.post(`${adminPath.value}/reviews/${review.id}/approve`, {}, { preserveScroll: true });
+  router.post(`${adminPath.value}/tasks/reviews/${review.id}/approve`, {}, { preserveScroll: true });
 };
 
 const reject = (review) => {
@@ -243,12 +330,12 @@ const confirmReject = () => {
   if (!rejectingReview.value || !rejectReason.value.trim()) return;
   
   isRejecting.value = true;
-  router.post(`${adminPath.value}/reviews/${rejectingReview.value.id}/reject`, {
+  router.post(`${adminPath.value}/tasks/reviews/${rejectingReview.value.id}/reject`, {
     admin_note: rejectReason.value.trim(),
   }, { 
     preserveScroll: true,
     onSuccess: () => {
-      // Force close the modal on success (bypassing the isRejecting check in closeRejectModal)
+      // Force close the modal on success
       rejectingReview.value = null;
       rejectReason.value = '';
     },

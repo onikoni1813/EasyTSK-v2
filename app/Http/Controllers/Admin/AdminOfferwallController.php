@@ -65,6 +65,12 @@ class AdminOfferwallController extends Controller
         return back()->with('success', 'Offerwall updated successfully!');
     }
 
+    public function toggleStatus(Offerwall $offerwall)
+    {
+        $offerwall->update(['status' => !$offerwall->status]);
+        return back()->with('success', 'Offerwall status updated successfully!');
+    }
+
     public function destroy(Offerwall $offerwall)
     {
         $offerwall->delete();

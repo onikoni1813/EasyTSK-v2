@@ -6,9 +6,15 @@
           <h1 class="text-2xl font-extrabold text-white">🧩 Task Manager</h1>
           <p class="text-xs text-slate-400">Create, edit, and manage all earning tasks</p>
         </div>
-        <button @click="openCreate" class="btn-neon btn-primary px-4 py-2.5 rounded-xl text-xs font-bold text-white">
-          ➕ New Task
-        </button>
+        <div class="flex items-center gap-3">
+          <Link :href="`${adminPath}/tasks/reviews`" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center gap-2">
+            <span>📸 Proof Reviews</span>
+            <span v-if="pendingReviewsCount > 0" class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500 text-white font-extrabold animate-pulse">{{ pendingReviewsCount }}</span>
+          </Link>
+          <button @click="openCreate" class="btn-neon btn-primary px-4 py-2.5 rounded-xl text-xs font-bold text-white">
+            ➕ New Task
+          </button>
+        </div>
       </div>
 
       <!-- Tasks Table -->
@@ -46,7 +52,7 @@
                 </td>
                 <td class="px-4 py-3 space-x-2 whitespace-nowrap">
                   <button @click="openEdit(t)" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-[11px]">Edit</button>
-                  <button @click="destroy(t)" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-[11px]">Delete</button>
+                  <button @click="openDeleteModal(t)" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-[11px]">Delete</button>
                 </td>
               </tr>
               <tr v-if="tasks.length === 0">
@@ -186,20 +192,80 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Custom Glassmorphic Delete Confirmation Modal -->
+    <Teleport to="body">
+      <Transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" enter-to-class="opacity-100 translate-y-0 sm:scale-100" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100 translate-y-0 sm:scale-100" leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+        <div v-if="taskToDelete" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" @click="closeDeleteModal"></div>
+          
+          <div class="relative bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col z-10">
+            <div class="px-6 py-5 border-b border-slate-800/80 flex justify-between items-center bg-slate-900/50">
+              <h3 class="text-lg font-bold text-rose-500 flex items-center gap-2">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Delete Task Confirmation
+              </h3>
+              <button @click="closeDeleteModal" class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+              <div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
+                <p class="text-xs text-rose-300 font-medium">
+                  ⚠️ <span class="font-bold">সতর্কতা:</span> টাস্কটি ডিলিট করলে এর সাথে সম্পর্কিত সকল ইউজার ডেটা ও আপলোড করা স্ক্রিনশট ফাইল সার্ভার থেকে চিরতরে মুছে যাবে।
+                </p>
+              </div>
+
+              <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-1">Task Title</p>
+                <p class="text-sm font-bold text-white">{{ taskToDelete.title }}</p>
+                <div class="flex items-center gap-4 mt-2 text-xs text-slate-400">
+                  <span>Type: <strong class="text-slate-200">{{ taskToDelete.type }}</strong></span>
+                  <span>Submissions: <strong class="text-indigo-400">{{ taskToDelete.submissions_count }}</strong></span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-slate-800/80 bg-slate-900/50 flex justify-end gap-3">
+              <button @click="closeDeleteModal" :disabled="isDeleting" class="px-4 py-2.5 rounded-xl font-bold text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
+                Cancel
+              </button>
+              <button 
+                @click="confirmDelete" 
+                :disabled="isDeleting"
+                class="px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-rose-600 hover:bg-rose-500 transition-all shadow-lg shadow-rose-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <span v-if="isDeleting" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                {{ isDeleting ? 'Deleting...' : '🗑️ Confirm Delete' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </AdminLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { router, useForm, usePage, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
   tasks: Array,
+  pendingReviewsCount: Number,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const showForm  = ref(false);
 const editingId = ref(null);
+
+// Delete confirmation state
+const taskToDelete = ref(null);
+const isDeleting   = ref(false);
 
 const emptyForm = () => ({
   title: '',
@@ -276,12 +342,12 @@ const submit = () => {
     form.transform((data) => ({
       ...data,
       _method: 'put',
-    })).post(`/admin/tasks/${editingId.value}`, {
+    })).post(`${adminPath.value}/tasks/${editingId.value}`, {
       preserveScroll: true,
       onSuccess: () => closeForm(),
     });
   } else {
-    form.transform((data) => data).post('/admin/tasks', {
+    form.transform((data) => data).post(`${adminPath.value}/tasks`, {
       preserveScroll: true,
       onSuccess: () => closeForm(),
     });
@@ -289,12 +355,30 @@ const submit = () => {
 };
 
 const toggleStatus = (task) => {
-  router.post(`/admin/tasks/${task.id}/toggle`, {}, { preserveScroll: true });
+  router.post(`${adminPath.value}/tasks/${task.id}/toggle`, {}, { preserveScroll: true });
 };
 
-const destroy = (task) => {
-  if (!confirm(`আপনি কি নিশ্চিত? টাস্কটি ডিলিট করলে এর সাথে থাকা সকল ডেটা এবং স্ক্রিনশট চিরতরে মুছে যাবে।`)) return;
-  router.delete(`/admin/tasks/${task.id}`, { preserveScroll: true });
+const openDeleteModal = (task) => {
+  taskToDelete.value = task;
+};
+
+const closeDeleteModal = () => {
+  if (isDeleting.value) return;
+  taskToDelete.value = null;
+};
+
+const confirmDelete = () => {
+  if (!taskToDelete.value) return;
+  isDeleting.value = true;
+  router.delete(`${adminPath.value}/tasks/${taskToDelete.value.id}`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      taskToDelete.value = null;
+    },
+    onFinish: () => {
+      isDeleting.value = false;
+    }
+  });
 };
 </script>
 
@@ -304,5 +388,3 @@ const destroy = (task) => {
 .modal-enter-from   { transform: scale(0.85); opacity: 0; }
 .modal-leave-to     { transform: scale(1.05); opacity: 0; }
 </style>
-   
- 

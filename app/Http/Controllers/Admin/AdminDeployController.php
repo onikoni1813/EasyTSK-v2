@@ -18,6 +18,7 @@ class AdminDeployController extends Controller
     private array $allowedCommands = [
         'git_pull'           => ['git', 'pull', 'origin', 'main'],
         'git_pull_master'    => ['git', 'pull', 'origin', 'master'],
+        'git_pull_current'   => ['git', 'pull'],
         'git_status'         => ['git', 'status'],
         'composer_install'   => ['composer', 'install', '--no-interaction', '--prefer-dist', '--optimize-autoloader'],
         'composer_update'    => ['composer', 'update', '--no-interaction'],
@@ -25,6 +26,7 @@ class AdminDeployController extends Controller
         'npm_build'          => ['npm', 'run', 'build'],
         'migrate'            => ['php', 'artisan', 'migrate', '--force'],
         'migrate_fresh'      => ['php', 'artisan', 'migrate:fresh', '--force', '--seed'],
+        'db_seed'            => ['php', 'artisan', 'db:seed', '--force'],
         'cache_clear'        => ['php', 'artisan', 'cache:clear'],
         'config_cache'       => ['php', 'artisan', 'config:cache'],
         'route_cache'        => ['php', 'artisan', 'route:cache'],
@@ -37,12 +39,13 @@ class AdminDeployController extends Controller
         'up'                 => ['php', 'artisan', 'up'],
     ];
 
-    public function index()
+    public function index(Request $request)
     {
-        // Gather system info
+        // Gather system & admin info
         $gitLog = $this->getGitLog();
         $phpVersion = PHP_VERSION;
         $laravelVersion = app()->version();
+        $user = $request->user();
 
         return Inertia::render('Admin/Deploy/Index', [
             'gitLog'          => $gitLog,
@@ -50,6 +53,14 @@ class AdminDeployController extends Controller
             'laravelVersion'  => $laravelVersion,
             'appEnv'          => config('app.env'),
             'appUrl'          => config('app.url'),
+            'serverOs'        => PHP_OS_FAMILY,
+            'isMaintenance'   => app()->isDownForMaintenance(),
+            'adminUser'       => $user ? [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ] : null,
         ]);
     }
 
@@ -62,6 +73,11 @@ class AdminDeployController extends Controller
         $commandKey = $request->input('command');
         $commandArgs = $this->allowedCommands[$commandKey];
 
+        // Ensure 'php' uses current PHP_BINARY for max compatibility
+        if (isset($commandArgs[0]) && $commandArgs[0] === 'php') {
+            $commandArgs[0] = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
+        }
+
         $startTime = microtime(true);
 
         try {
@@ -73,7 +89,18 @@ class AdminDeployController extends Controller
 
             $duration = round((microtime(true) - $startTime) * 1000);
             $success = $process->isSuccessful();
-            $output = $process->getOutput() ?: $process->getErrorOutput();
+            
+            // Combine stdout and stderr outputs for complete console output
+            $stdout = trim($process->getOutput());
+            $stderr = trim($process->getErrorOutput());
+            
+            $output = $stdout;
+            if (!empty($stderr)) {
+                $output = $output ? ($output . "\n\n[STDERR / INFO]:\n" . $stderr) : $stderr;
+            }
+            if (!$success && (str_contains($output, 'SQLSTATE[HY000]') || str_contains($output, '2002') || str_contains($output, 'Connection refused'))) {
+                $output .= "\n\n💡 [DIAGNOSTIC TIP]: Database connection failed. Please ensure MySQL service (XAMPP / MariaDB) is active on host '127.0.0.1:3306' and DB credentials in .env are correct.";
+            }
 
             // Log activity
             Log::info("Deploy command executed by Admin (ID: {$request->user()?->id})", [

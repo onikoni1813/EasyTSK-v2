@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\User;
 use App\Models\UserTask;
 use App\Models\Withdrawal;
+use App\Services\SiteContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -13,10 +14,15 @@ use Inertia\Inertia;
 class HomeController extends Controller
 {
     /**
-     * Public homepage — redirect authenticated users to dashboard.
+     * Public homepage — redirect authenticated users to dashboard on main platform,
+     * or delegate to ExternalSiteController on external domains.
      */
-    public function index()
+    public function index(Request $request)
     {
+        if (SiteContext::isExternal()) {
+            return app(ExternalSiteController::class)->index($request);
+        }
+
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
@@ -31,40 +37,60 @@ class HomeController extends Controller
     /**
      * About Us page.
      */
-    public function about()
+    public function about(Request $request)
     {
+        if (SiteContext::isExternal()) {
+            return app(ExternalSiteController::class)->page($request, 'about');
+        }
+
         return Inertia::render('Legal/About');
     }
 
     /**
      * Contact Us page.
      */
-    public function contact()
+    public function contact(Request $request)
     {
+        if (SiteContext::isExternal()) {
+            return app(ExternalSiteController::class)->page($request, 'contact');
+        }
+
         return Inertia::render('Legal/Contact');
     }
 
     /**
      * Terms of Service page.
      */
-    public function terms()
+    public function terms(Request $request)
     {
+        if (SiteContext::isExternal()) {
+            return app(ExternalSiteController::class)->page($request, 'terms');
+        }
+
         return Inertia::render('Legal/Terms');
     }
 
     /**
      * Privacy Policy page.
      */
-    public function privacy()
+    public function privacy(Request $request)
     {
+        if (SiteContext::isExternal()) {
+            return app(ExternalSiteController::class)->page($request, 'privacy');
+        }
+
         return Inertia::render('Legal/Privacy');
     }
 
     /**
      * Cookie Policy page.
      */
-    public function cookiePolicy()
+    public function cookiePolicy(Request $request)
     {
+        if (SiteContext::isExternal()) {
+            return app(ExternalSiteController::class)->page($request, 'cookie-policy');
+        }
+
         return Inertia::render('Legal/CookiePolicy');
     }
 

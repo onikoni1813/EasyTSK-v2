@@ -407,38 +407,7 @@
             </div>
           </div>
 
-          <!-- Google OAuth Authentication -->
-          <div class="glass-card p-6 rounded-3xl border border-slate-800/60 bg-slate-900/40 relative overflow-hidden group lg:col-span-2">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-rose-500/20"></div>
-            <div class="flex items-center gap-3 mb-6 relative">
-              <div class="p-2.5 bg-rose-500/20 rounded-xl text-rose-400">
-                <LockIcon class="w-5 h-5" />
-              </div>
-              <div>
-                <h2 class="text-lg font-bold text-white">Google OAuth Authentication Settings</h2>
-                <p class="text-xs text-slate-400">Configure Google Client ID & Secret dynamically for 1-click social login.</p>
-              </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
-              <div>
-                <label class="block text-sm font-semibold text-slate-300 mb-1.5">Google Client ID</label>
-                <input v-model="settingsForm.google_client_id" type="text" placeholder="xxxxxx.apps.googleusercontent.com" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white transition-all placeholder-slate-600" />
-              </div>
-              <div>
-                <label class="block text-sm font-semibold text-slate-300 mb-1.5">Google Client Secret</label>
-                <input v-model="settingsForm.google_client_secret" type="password" placeholder="GOCSPX-xxxxxxxxxxxxxx" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white transition-all placeholder-slate-600" />
-              </div>
-            </div>
-
-            <div class="mt-4 p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400 flex flex-col md:flex-row md:items-center justify-between gap-2">
-              <div>
-                <span class="font-bold text-slate-300">Authorized Redirect URI for Google Console:</span>
-                <code class="ml-2 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-amber-400 font-mono select-all">/auth/google/callback</code>
-              </div>
-              <span class="text-slate-500 text-[11px]">System automatically detects domain & port!</span>
-            </div>
-          </div>
 
           <!-- Telegram Bot Notifications -->
           <div class="glass-card p-6 rounded-3xl border border-slate-800/60 bg-slate-900/40 relative overflow-hidden group lg:col-span-2">
@@ -575,8 +544,7 @@ const props = defineProps({
   companyAddress: String,
   siteLogo: String,
   siteFavicon: String,
-  googleClientId: String,
-  googleClientSecret: String,
+
   telegramAdminBotEnabled: Boolean,
   telegramAdminBotToken: String,
   telegramAdminChatId: String,
@@ -624,8 +592,7 @@ const settingsForm = useForm({
   site_favicon_url: props.siteFavicon || '/favicon.ico',
   site_logo_file: null,
   site_favicon_file: null,
-  google_client_id: props.googleClientId || '',
-  google_client_secret: props.googleClientSecret || '',
+
   telegram_admin_bot_enabled: props.telegramAdminBotEnabled || false,
   telegram_admin_bot_token: props.telegramAdminBotToken || '',
   telegram_admin_chat_id: props.telegramAdminChatId || '',

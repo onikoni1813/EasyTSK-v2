@@ -18,7 +18,7 @@ class AdminPasswordTicketController extends Controller
         $status = $request->input('status', 'all');
 
         $tickets = PasswordResetTicket::query()
-            ->with(['user:id,name,email,phone,created_at,risk_score,is_banned'])
+            ->with(['user:id,name,email,phone,created_at,risk_score,is_banned,role,main_balance,pending_balance,level,device_hash,health'])
             ->when($search, function ($query, $search) {
                 $query->where('phone', 'like', "%{$search}%")
                       ->orWhere('ticket_code', 'like', "%{$search}%")
@@ -96,5 +96,16 @@ class AdminPasswordTicketController extends Controller
         ]);
 
         return back()->with('success', "Ticket {$ticket->ticket_code} rejected.");
+    }
+
+    /**
+     * Delete a password reset ticket.
+     */
+    public function destroy(PasswordResetTicket $ticket)
+    {
+        $ticketCode = $ticket->ticket_code;
+        $ticket->delete();
+
+        return back()->with('success', "Ticket {$ticketCode} deleted successfully.");
     }
 }

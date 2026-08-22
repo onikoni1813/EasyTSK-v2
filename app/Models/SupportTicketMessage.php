@@ -14,6 +14,7 @@ class SupportTicketMessage extends Model
         'sender_id',
         'is_admin',
         'message',
+        'attachment',
     ];
 
     protected $casts = [

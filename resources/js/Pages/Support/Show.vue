@@ -37,7 +37,7 @@
           v-for="msg in ticket.messages"
           :key="msg.id"
           :class="[
-            'glass-card p-5 rounded-3xl border transition-all space-y-2',
+            'glass-card p-5 rounded-3xl border transition-all space-y-3',
             msg.is_admin ? 'border-amber-500/30 bg-amber-950/10 ml-4 sm:ml-8' : 'border-slate-800 bg-slate-900/60 mr-4 sm:mr-8'
           ]"
         >
@@ -62,6 +62,21 @@
           <p class="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap pt-1">
             {{ msg.message }}
           </p>
+
+          <!-- Attached Image -->
+          <div v-if="msg.attachment" class="pt-2">
+            <div class="inline-block rounded-2xl overflow-hidden border border-slate-700 bg-slate-950 p-1">
+              <img
+                :src="msg.attachment"
+                alt="Attachment"
+                @click="openImageModal(msg.attachment)"
+                class="max-h-48 max-w-xs object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+              />
+              <p class="text-[10px] text-slate-400 mt-1 px-1 flex items-center gap-1">
+                <span>📎 Image Attachment (Click to expand)</span>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -77,7 +92,18 @@
             class="input-dark text-xs py-2.5"
           ></textarea>
 
+          <div>
+            <label class="text-xs font-semibold text-slate-400 block mb-1">Attach Screenshot (Optional)</label>
+            <input
+              type="file"
+              @change="handleFileChange"
+              accept="image/*"
+              class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700"
+            />
+          </div>
+
           <div v-if="replyForm.errors.message" class="text-xs text-rose-400">{{ replyForm.errors.message }}</div>
+          <div v-if="replyForm.errors.attachment" class="text-xs text-rose-400">{{ replyForm.errors.attachment }}</div>
 
           <div class="flex justify-end">
             <button
@@ -92,10 +118,21 @@
         </form>
       </div>
     </div>
+
+    <!-- Image Lightbox Modal -->
+    <Teleport to="body">
+      <div v-if="activeImageModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" @click="activeImageModal = null">
+        <div class="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-700" @click.stop>
+          <img :src="activeImageModal" class="w-full h-auto max-h-[85vh] object-contain" />
+          <button @click="activeImageModal = null" class="absolute top-3 right-3 bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">✕</button>
+        </div>
+      </div>
+    </Teleport>
   </AppLayout>
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { useForm, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
@@ -103,16 +140,30 @@ const props = defineProps({
   ticket: Object,
 });
 
+const activeImageModal = ref(null);
+
 const replyForm = useForm({
   message: '',
+  attachment: null,
 });
+
+const handleFileChange = (e) => {
+  if (e.target.files && e.target.files[0]) {
+    replyForm.attachment = e.target.files[0];
+  }
+};
 
 const submitReply = () => {
   replyForm.post(`/support/${props.ticket.id}/reply`, {
+    forceFormData: true,
     onSuccess: () => {
       replyForm.reset();
     },
   });
+};
+
+const openImageModal = (url) => {
+  activeImageModal.value = url;
 };
 
 const formatDate = (dateStr) => {

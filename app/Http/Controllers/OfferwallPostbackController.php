@@ -21,7 +21,12 @@ class OfferwallPostbackController extends Controller
 
     public function handlePostback(Request $request, string $provider)
     {
-        $offerwall = \App\Models\Offerwall::where('name', $provider)->first();
+        $normalizedProvider = strtolower(str_replace([' ', '-', '_'], '', $provider));
+        $offerwall = \App\Models\Offerwall::where(function ($query) use ($provider, $normalizedProvider) {
+            $query->where('name', $provider)
+                ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(name, ' ', ''), '-', ''), '_', '')) = ?", [$normalizedProvider]);
+        })->first();
+
         if (!$offerwall) {
             return response('Provider not found', 404);
         }
@@ -33,16 +38,33 @@ class OfferwallPostbackController extends Controller
         $paramSecret = $offerwall->param_secret_key ?: 'secure';
         $chargebackValue = strtolower($offerwall->status_chargeback_value ?: 'reversed');
 
-        $subId = $request->input($paramUserId) ?? $request->input('subId') ?? $request->input('uid');
-        $transId = $request->input($paramTransId) ?? $request->input('tx_id') ?? $request->input('transId');
-        $reward = (float) ($request->input($paramAmount) ?? $request->input('reward') ?? $request->input('payout') ?? 0);
-        $status = strtolower($request->input($paramStatus, '1'));
+        $subId = $request->input($paramUserId) ?? $request->input('subId') ?? $request->input('uid') ?? $request->input('userID');
+        $transId = $request->input($paramTransId) ?? $request->input('tx_id') ?? $request->input('transId') ?? $request->input('transactionID');
+        
+        $type = strtolower((string) $request->input('type', ''));
+        $status = strtolower((string) $request->input($paramStatus, $type ?: '1'));
 
-        if (!$subId || (!$transId && $status !== $chargebackValue)) {
+        // Handle TimeWall lifecycle stages: 'hold' and 'hold_cancelled' (do NOT credit/debit, return 200 OK)
+        if ($type === 'hold' || $type === 'hold_cancelled') {
+            return response('1', 200);
+        }
+
+        $rawRevenue = (string) ($request->input('revenue') ?? '');
+        $rawReward = (string) ($request->input($paramAmount) ?? $request->input('currencyAmount') ?? $request->input('reward') ?? $request->input('payout') ?? $rawRevenue);
+        
+        $rewardNum = (float) $rawReward;
+        $revenueNum = (float) $rawRevenue;
+
+        // Check if request is a chargeback (explicit status/type or negative amounts)
+        $isChargeback = ($status === $chargebackValue || $status === '2' || $status === 'chargeback' || $type === 'chargeback' || $rewardNum < 0 || $revenueNum < 0);
+
+        $reward = abs($rewardNum != 0 ? $rewardNum : $revenueNum);
+
+        if (!$subId || (!$transId && !$isChargeback)) {
             return response('Missing parameters', 400);
         }
 
-        if ($reward <= 0 && $status !== $chargebackValue) {
+        if ($reward <= 0 && !$isChargeback) {
             return response('Invalid reward amount', 400);
         }
 
@@ -56,7 +78,14 @@ class OfferwallPostbackController extends Controller
         
         // Validate Provider Secret Key (if configured)
         if (!empty($offerwall->secret_key)) {
-            $providedSecret = $request->input($paramSecret) ?? $request->input('secret') ?? $request->input('secure') ?? $request->header('X-Secret-Key') ?? $request->header($paramSecret);
+            $providedSecret = $request->input($paramSecret) 
+                ?? $request->input('hash') 
+                ?? $request->input('signature') 
+                ?? $request->input('hash_signature') 
+                ?? $request->input('secret') 
+                ?? $request->input('secure') 
+                ?? $request->header('X-Secret-Key') 
+                ?? $request->header($paramSecret);
 
             $isValidSecret = false;
 
@@ -71,16 +100,40 @@ class OfferwallPostbackController extends Controller
                     $isValidSecret = true;
                 }
 
-                // 3. SHA1 Dynamic Hash verification for providers like Notik
+                // 3. Dynamic SHA1 & SHA256 Hash verification for providers like TimeWall & Notik
                 if (!$isValidSecret) {
                     $pubId = $request->input('pub_id', '');
                     $possibleHashes = [
+                        // TimeWall standard: hash("sha256", userID . revenue . SecretKey)
+                        hash('sha256', $subId . $rawRevenue . $offerwall->secret_key),
+                        hash('sha256', $subId . $rawReward . $offerwall->secret_key),
+                        hash('sha256', $subId . $reward . $offerwall->secret_key),
+
+                        // SHA1 hashes
                         sha1($subId . $reward . $offerwall->secret_key),
+                        sha1($subId . $rawReward . $offerwall->secret_key),
                         sha1($pubId . $subId . $reward . $offerwall->secret_key),
+                        sha1($pubId . $subId . $rawReward . $offerwall->secret_key),
                         sha1($subId . $transId . $reward . $offerwall->secret_key),
+                        sha1($subId . $transId . $rawReward . $offerwall->secret_key),
                         sha1($transId . $offerwall->secret_key),
                         sha1($offerwall->secret_key . $subId . $reward),
+                        sha1($offerwall->secret_key . $subId . $rawReward),
                         sha1($offerwall->secret_key),
+
+                        // SHA256 hashes (Notik v1 & others)
+                        hash('sha256', $pubId . $subId . $reward . $offerwall->secret_key),
+                        hash('sha256', $pubId . $subId . $rawReward . $offerwall->secret_key),
+                        hash('sha256', $subId . $transId . $reward . $offerwall->secret_key),
+                        hash('sha256', $subId . $transId . $rawReward . $offerwall->secret_key),
+                        hash('sha256', $transId . $offerwall->secret_key),
+                        hash('sha256', $offerwall->secret_key . $subId . $reward),
+                        hash('sha256', $offerwall->secret_key . $subId . $rawReward),
+                        hash('sha256', $offerwall->secret_key),
+                        hash_hmac('sha256', $subId . $reward, $offerwall->secret_key),
+                        hash_hmac('sha256', $subId . $rawReward, $offerwall->secret_key),
+                        hash_hmac('sha256', $subId . $transId . $reward, $offerwall->secret_key),
+                        hash_hmac('sha256', $subId . $transId . $rawReward, $offerwall->secret_key),
                     ];
 
                     if (in_array(strtolower($providedSecret), array_map('strtolower', $possibleHashes))) {
@@ -102,7 +155,7 @@ class OfferwallPostbackController extends Controller
         $existingLog = OfferwallLog::where('transaction_id', $transId)->first();
         $reason = $request->input('reason') ?? $request->input('chargeback_reason') ?? 'Reversed by provider';
 
-        if ($status === $chargebackValue || $status === '2' || $status === 'chargeback') {
+        if ($isChargeback) {
             if ($existingLog && $existingLog->status !== 'reversed') {
                 DB::transaction(function () use ($user, $existingLog, $reason) {
                     // Lock the row to prevent double chargebacks from concurrent requests

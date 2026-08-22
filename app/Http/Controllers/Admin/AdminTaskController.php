@@ -26,11 +26,15 @@ class AdminTaskController extends Controller
             'cooldown_hours'     => (int) $t->cooldown_hours,
             'status'             => $t->status,
             'submissions_count'  => $t->userTasks()->count(),
+            'image_url'          => $t->image_url,
             'created_at'         => $t->created_at->diffForHumans(),
         ]);
 
+        $pendingReviewsCount = \App\Models\UserTask::where('status', 'pending')->count();
+
         return Inertia::render('Admin/Tasks/Index', [
             'tasks' => $tasks,
+            'pendingReviewsCount' => $pendingReviewsCount,
         ]);
     }
 

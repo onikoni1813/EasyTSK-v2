@@ -57,10 +57,13 @@
         <Link :href="`${adminPath}/support-tickets`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/support-tickets`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>💬 User Support Tickets</span>
         </Link>
-        <Link :href="`${adminPath}/reviews`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/reviews`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
+        <Link :href="`${adminPath}/notifications`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/notifications`) ? 'bg-indigo-600 text-white' : 'text-indigo-400/90 hover:bg-slate-900'">
+          <span>🔔 Notifications Broadcast</span>
+        </Link>
+        <Link :href="`${adminPath}/tasks/reviews`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/tasks/reviews`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>📸 Proof Review Hub</span>
         </Link>
-        <Link :href="`${adminPath}/tasks`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/tasks`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
+        <Link :href="`${adminPath}/tasks`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/tasks`) && !$page.url.startsWith(`${adminPath}/tasks/reviews`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>🧩 Task Manager</span>
         </Link>
         <Link :href="`${adminPath}/withdrawals`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/withdrawals`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
@@ -69,7 +72,7 @@
         <Link :href="`${adminPath}/offerwalls`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/offerwalls`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>💰 Offerwalls Manager</span>
         </Link>
-        <Link :href="`${adminPath}/campaigns`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/campaigns`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
+        <Link :href="`${adminPath}/campaigns`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/campaigns`) && !$page.url.startsWith(`${adminPath}/campaign-services`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>📢 Campaign Review</span>
         </Link>
         <Link :href="`${adminPath}/campaign-services`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/campaign-services`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">

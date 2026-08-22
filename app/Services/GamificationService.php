@@ -69,50 +69,107 @@ class GamificationService
     }
 
     /**
-     * Update daily streak for user (3 tasks per day = 1 streak count)
+     * Retrieve or evaluate the user's daily streak, ensuring date transitions and streak resets are calculated accurately.
      */
-    public function updateDailyStreak(User $user): void
+    public function getDailyStreak(User $user): DailyStreak
     {
         $today = Carbon::today();
 
-        $streak = DailyStreak::firstOrCreate(
+        $streak = DailyStreak::where('user_id', $user->id)->lockForUpdate()->firstOrCreate(
             ['user_id' => $user->id],
             [
-                'streak_count' => 0,
+                'streak_count'          => 0,
                 'tasks_completed_today' => 0,
-                'last_completed_date' => null,
+                'last_completed_date'   => null,
             ]
         );
 
         $lastDate = $streak->last_completed_date ? Carbon::parse($streak->last_completed_date) : null;
 
-        if ($lastDate && $lastDate->isToday()) {
-            // Cap at 3 — no need to count beyond the daily goal
-            if ($streak->tasks_completed_today < 3) {
-                $streak->tasks_completed_today += 1;
-                $streak->save();
-            } else {
-                return; // Already hit today's goal, nothing more to do
+        if (!$lastDate) {
+            // No previous streak activity at all
+            if ($streak->streak_count !== 0 || $streak->tasks_completed_today !== 0) {
+                $streak->update(['streak_count' => 0, 'tasks_completed_today' => 0]);
             }
-        } elseif ($lastDate && $lastDate->isYesterday()) {
-            $streak->tasks_completed_today = 1;
-            $streak->last_completed_date = $today;
-            $streak->save();
-        } else {
-            if ($lastDate && !$lastDate->isToday()) {
-                $streak->streak_count = 0;
-            }
-            $streak->tasks_completed_today = 1;
-            $streak->last_completed_date = $today;
-            $streak->save();
+            return $streak;
         }
 
-        if ($streak->tasks_completed_today === 3) {
-            $streak->streak_count += 1;
-            $streak->save();
-            
+        if ($lastDate->isToday()) {
+            // Data is for today, return as-is
+            return $streak;
+        }
+
+        if ($lastDate->isYesterday()) {
+            // Activity was yesterday
+            if ($streak->tasks_completed_today >= 3) {
+                // Yesterday's daily streak requirement (3 tasks) WAS met!
+                // Streak remains intact. Reset today's task count to 0 for the new day.
+                $streak->update([
+                    'tasks_completed_today' => 0,
+                    'last_completed_date'   => $today,
+                ]);
+            } else {
+                // Yesterday's requirement was NOT met (user completed < 3 tasks yesterday).
+                // Streak is broken! Reset streak_count and today's task count.
+                $streak->update([
+                    'streak_count'          => 0,
+                    'tasks_completed_today' => 0,
+                    'last_completed_date'   => $today,
+                ]);
+            }
+            return $streak;
+        }
+
+        // Activity was 2 or more days ago -> Streak is broken!
+        $streak->update([
+            'streak_count'          => 0,
+            'tasks_completed_today' => 0,
+            'last_completed_date'   => $today,
+        ]);
+
+        return $streak;
+    }
+
+    /**
+     * Update daily streak for user (3 tasks per day = 1 streak count)
+     */
+    public function updateDailyStreak(User $user): void
+    {
+        // Get fresh, validated streak record for today
+        $streak = $this->getDailyStreak($user);
+
+        $oldCount = (int) $streak->tasks_completed_today;
+        $newCount = $oldCount + 1;
+
+        $streak->tasks_completed_today = $newCount;
+        $streak->last_completed_date   = Carbon::today();
+        $streak->save();
+
+        // Check if the user reached the 3-task threshold today (only increment streak once when transitioning from <3 to >=3)
+        if ($oldCount < 3 && $newCount >= 3) {
+            $streak->increment('streak_count');
+            $streak->refresh();
+
+            // Notify user about streak milestone
+            \App\Models\Notification::send(
+                $user,
+                'Daily Streak Extended! 🔥',
+                "Awesome! You completed today's daily streak goal. Current streak: {$streak->streak_count} days!",
+                'success',
+                '/dashboard'
+            );
+
+            // Award Spin Wheel opportunity on every 7-day milestone
             if ($streak->streak_count > 0 && $streak->streak_count % 7 === 0) {
                 $user->update(['spin_available_at' => now()]);
+
+                \App\Models\Notification::send(
+                    $user,
+                    'Reward Spin Unlocked! 🎰',
+                    "Congratulations on your 7-day streak! You unlocked a free spin on the Daily Bonus Wheel!",
+                    'success',
+                    '/dashboard'
+                );
             }
         }
     }

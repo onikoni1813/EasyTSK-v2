@@ -29,7 +29,7 @@ class Task extends Model
     public function getImageUrlAttribute()
     {
         if ($this->image_path) {
-            return asset('storage/' . $this->image_path);
+            return '/storage/' . ltrim($this->image_path, '/');
         }
         return null;
     }

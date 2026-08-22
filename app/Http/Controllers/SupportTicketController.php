@@ -33,10 +33,11 @@ class SupportTicketController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'category' => 'required|in:withdrawal,task,account,general',
-            'subject'  => 'required|string|max:255',
-            'message'  => 'required|string|max:2000',
-            'priority' => 'nullable|in:low,medium,high',
+            'category'   => 'required|in:withdrawal,task,account,general',
+            'subject'    => 'required|string|max:255',
+            'message'    => 'required|string|max:2000',
+            'priority'   => 'nullable|in:low,medium,high',
+            'attachment' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
         $user = Auth::user();
@@ -51,11 +52,17 @@ class SupportTicketController extends Controller
             'last_reply_at' => now(),
         ]);
 
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = '/storage/' . $request->file('attachment')->store('support_attachments', 'public');
+        }
+
         SupportTicketMessage::create([
-            'ticket_id' => $ticket->id,
-            'sender_id' => $user->id,
-            'is_admin'  => false,
-            'message'   => trim($request->message),
+            'ticket_id'  => $ticket->id,
+            'sender_id'  => $user->id,
+            'is_admin'   => false,
+            'message'    => trim($request->message),
+            'attachment' => $attachmentPath,
         ]);
 
         return redirect()->route('support.show', $ticket->id)
@@ -91,14 +98,21 @@ class SupportTicketController extends Controller
         }
 
         $request->validate([
-            'message' => 'required|string|max:2000',
+            'message'    => 'required|string|max:2000',
+            'attachment' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = '/storage/' . $request->file('attachment')->store('support_attachments', 'public');
+        }
+
         SupportTicketMessage::create([
-            'ticket_id' => $ticket->id,
-            'sender_id' => Auth::id(),
-            'is_admin'  => false,
-            'message'   => trim($request->message),
+            'ticket_id'  => $ticket->id,
+            'sender_id'  => Auth::id(),
+            'is_admin'   => false,
+            'message'    => trim($request->message),
+            'attachment' => $attachmentPath,
         ]);
 
         // If ticket was closed or resolved, reopen it to 'open' status upon user reply

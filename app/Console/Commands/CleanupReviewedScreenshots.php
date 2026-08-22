@@ -15,6 +15,8 @@ class CleanupReviewedScreenshots extends Command
     {
         $deletedCount = $storageSaverService->cleanupReviewedScreenshots();
 
+        \App\Models\AppSetting::setByKey('cron_last_run_proofs:cleanup-screenshots', now()->toDateTimeString());
+
         $this->info("Deleted {$deletedCount} leftover reviewed screenshot file(s).");
 
         return self::SUCCESS;

@@ -76,19 +76,24 @@ class AdminUserController extends Controller
     {
         // 1. Task History
         $tasks = \App\Models\UserTask::where('user_id', $user->id)
-            ->with(['task:id,title,reward_coins'])
+            ->with(['task:id,title,reward_coins,type', 'screenshotHashes'])
             ->latest()
             ->limit(50)
             ->get()
             ->map(function ($ut) {
                 return [
-                    'id'              => $ut->id,
-                    'task_title'      => $ut->task ? $ut->task->title : 'Unknown Task',
-                    'reward_points'   => $ut->task ? (float) $ut->task->reward_coins : 0,
-                    'status'          => $ut->status,
-                    'submitted_data'  => $ut->submitted_data,
-                    'admin_note'      => $ut->admin_note,
-                    'created_at'      => $ut->created_at ? $ut->created_at->format('M d, Y H:i') : '',
+                    'id'                => $ut->id,
+                    'task_title'        => $ut->task ? $ut->task->title : 'Unknown Task',
+                    'task_type'         => $ut->task ? ($ut->task->type ?? 'general') : 'general',
+                    'reward_points'     => $ut->task ? (float) $ut->task->reward_coins : 0,
+                    'status'            => $ut->status,
+                    'submitted_data'    => $ut->submitted_data,
+                    'screenshot_hashes' => $ut->screenshotHashes->map(fn($sh) => [
+                        'id' => $sh->id,
+                        'file_path' => $sh->file_path,
+                    ]),
+                    'admin_note'        => $ut->admin_note,
+                    'created_at'        => $ut->created_at ? $ut->created_at->format('M d, Y H:i') : '',
                 ];
             });
 

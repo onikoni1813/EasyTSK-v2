@@ -24,9 +24,9 @@ class ReferralContestController extends Controller
     {
         $user = $request->user();
 
-        // Get currently active contest or latest contest
+        // Get currently active contest (running, upcoming, or processing payout)
         $activeContest = ReferralContest::where('status', 'active')
-            ->where('end_date', '>=', now())
+            ->orderBy('id', 'desc')
             ->first();
 
         $leaderboard = [];
