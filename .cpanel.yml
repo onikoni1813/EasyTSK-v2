@@ -1,8 +1,13 @@
 ---
 deployment:
   tasks:
+    - export COREPATH="/home/easytskc/easytsk v2"
     - export DEPLOYPATH=/home/easytskc/public_html
+    - /bin/cp -R app "$COREPATH/"
+    - /bin/cp -R routes "$COREPATH/"
+    - /bin/cp -R resources "$COREPATH/"
+    - /bin/cp -R database "$COREPATH/"
     - /bin/cp -R public/. $DEPLOYPATH/
-    - /bin/sed -i 's|/../vendor/|/../EasyTSK-v2/vendor/|g' $DEPLOYPATH/index.php
-    - /bin/sed -i 's|/../bootstrap/|/../EasyTSK-v2/bootstrap/|g' $DEPLOYPATH/index.php
-    - /bin/sed -i 's|/../storage/|/../EasyTSK-v2/storage/|g' $DEPLOYPATH/index.php
+    - /bin/sed -i 's|/../vendor/|/../easytsk v2/vendor/|g' $DEPLOYPATH/index.php
+    - /bin/sed -i 's|/../bootstrap/|/../easytsk v2/bootstrap/|g' $DEPLOYPATH/index.php
+    - /bin/sed -i 's|/../storage/|/../easytsk v2/storage/|g' $DEPLOYPATH/index.php
