@@ -64,6 +64,22 @@ class AdminDeployController extends Controller
         ]);
     }
 
+    private array $artisanCommands = [
+        'migrate'         => ['command' => 'migrate', 'params' => ['--force' => true]],
+        'migrate_fresh'   => ['command' => 'migrate:fresh', 'params' => ['--force' => true, '--seed' => true]],
+        'db_seed'         => ['command' => 'db:seed', 'params' => ['--force' => true]],
+        'cache_clear'     => ['command' => 'cache:clear', 'params' => []],
+        'config_cache'    => ['command' => 'config:cache', 'params' => []],
+        'route_cache'     => ['command' => 'route:cache', 'params' => []],
+        'view_cache'      => ['command' => 'view:cache', 'params' => []],
+        'optimize'        => ['command' => 'optimize', 'params' => []],
+        'optimize_clear'  => ['command' => 'optimize:clear', 'params' => []],
+        'queue_restart'   => ['command' => 'queue:restart', 'params' => []],
+        'storage_link'    => ['command' => 'storage:link', 'params' => []],
+        'down'            => ['command' => 'down', 'params' => []],
+        'up'              => ['command' => 'up', 'params' => []],
+    ];
+
     public function runCommand(Request $request)
     {
         $request->validate([
@@ -71,14 +87,51 @@ class AdminDeployController extends Controller
         ]);
 
         $commandKey = $request->input('command');
+        $startTime = microtime(true);
+
+        // If it's an artisan command, execute directly via Artisan::call() to bypass proc_open/terminal restrictions
+        if (isset($this->artisanCommands[$commandKey])) {
+            try {
+                $info = $this->artisanCommands[$commandKey];
+                Artisan::call($info['command'], $info['params']);
+                $output = trim(Artisan::output());
+                if (empty($output)) {
+                    $output = "Command 'artisan {$info['command']}' executed successfully.";
+                }
+
+                $duration = round((microtime(true) - $startTime) * 1000);
+
+                Log::info("Deploy Artisan command executed by Admin (ID: {$request->user()?->id})", [
+                    'command'  => 'artisan ' . $info['command'],
+                    'success'  => true,
+                    'duration' => $duration . 'ms',
+                ]);
+
+                return response()->json([
+                    'success'  => true,
+                    'output'   => $output,
+                    'command'  => 'php artisan ' . $info['command'],
+                    'duration' => $duration,
+                    'exitCode' => 0,
+                ]);
+            } catch (\Exception $e) {
+                $duration = round((microtime(true) - $startTime) * 1000);
+                return response()->json([
+                    'success'  => false,
+                    'output'   => 'Artisan Error: ' . $e->getMessage(),
+                    'command'  => 'php artisan ' . $commandKey,
+                    'duration' => $duration,
+                    'exitCode' => 1,
+                ], 500);
+            }
+        }
+
         $commandArgs = $this->allowedCommands[$commandKey];
 
         // Ensure 'php' uses current PHP_BINARY for max compatibility
         if (isset($commandArgs[0]) && $commandArgs[0] === 'php') {
             $commandArgs[0] = defined('PHP_BINARY') && PHP_BINARY ? PHP_BINARY : 'php';
         }
-
-        $startTime = microtime(true);
 
         try {
             $process = new Process($commandArgs, base_path(), [
@@ -98,12 +151,9 @@ class AdminDeployController extends Controller
             if (!empty($stderr)) {
                 $output = $output ? ($output . "\n\n[STDERR / INFO]:\n" . $stderr) : $stderr;
             }
-            if (!$success && (str_contains($output, 'SQLSTATE[HY000]') || str_contains($output, '2002') || str_contains($output, 'Connection refused'))) {
-                $output .= "\n\n💡 [DIAGNOSTIC TIP]: Database connection failed. Please ensure MySQL service (XAMPP / MariaDB) is active on host '127.0.0.1:3306' and DB credentials in .env are correct.";
-            }
 
             // Log activity
-            Log::info("Deploy command executed by Admin (ID: {$request->user()?->id})", [
+            Log::info("Deploy process command executed by Admin (ID: {$request->user()?->id})", [
                 'command'  => implode(' ', $commandArgs),
                 'success'  => $success,
                 'duration' => $duration . 'ms',
