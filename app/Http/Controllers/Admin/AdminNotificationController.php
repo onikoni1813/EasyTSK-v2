@@ -46,33 +46,38 @@ class AdminNotificationController extends Controller
         $actionUrl = $request->action_url ? trim($request->action_url) : null;
         $isPopup = $request->delivery_mode === 'popup';
 
-        if ($request->target_type === 'all') {
-            $count = Notification::sendToAll($title, $message, $type, $actionUrl, $isPopup);
-            return back()->with('success', "Broadcast successfully sent to all {$count} users! 🎉");
-        }
-
-        if ($request->target_type === 'level') {
-            $level = (int) $request->target_level;
-            $count = Notification::sendToLevel($level, $title, $message, $type, $actionUrl, $isPopup);
-            return back()->with('success', "Notification successfully sent to {$count} users in Level {$level}! ⚡");
-        }
-
-        if ($request->target_type === 'user') {
-            $query = trim($request->user_query);
-            $user = User::where('id', $query)
-                ->orWhere('email', $query)
-                ->orWhere('name', 'LIKE', "%{$query}%")
-                ->first();
-
-            if (!$user) {
-                return back()->with('error', "User not found with ID/Email: {$query}");
+        try {
+            if ($request->target_type === 'all') {
+                $count = Notification::sendToAll($title, $message, $type, $actionUrl, $isPopup);
+                return back()->with('success', "Broadcast successfully sent to all {$count} users! 🎉");
             }
 
-            Notification::send($user, $title, $message, $type, $actionUrl, $isPopup);
-            return back()->with('success', "Notification successfully sent to {$user->name} ({$user->email})! 📩");
-        }
+            if ($request->target_type === 'level') {
+                $level = (int) $request->target_level;
+                $count = Notification::sendToLevel($level, $title, $message, $type, $actionUrl, $isPopup);
+                return back()->with('success', "Notification successfully sent to {$count} users in Level {$level}! ⚡");
+            }
 
-        return back()->with('error', 'Invalid target type.');
+            if ($request->target_type === 'user') {
+                $query = trim($request->user_query);
+                $user = User::where('id', $query)
+                    ->orWhere('email', $query)
+                    ->orWhere('name', 'LIKE', "%{$query}%")
+                    ->first();
+
+                if (!$user) {
+                    return back()->with('error', "User not found with ID/Email: {$query}");
+                }
+
+                Notification::send($user, $title, $message, $type, $actionUrl, $isPopup);
+                return back()->with('success', "Notification successfully sent to {$user->name} ({$user->email})! 📩");
+            }
+
+            return back()->with('error', 'Invalid target type.');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Notification broadcast error: ' . $e->getMessage());
+            return back()->with('error', 'Notification Error: ' . $e->getMessage());
+        }
     }
 
     public function destroy(Notification $notification)

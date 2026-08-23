@@ -34,33 +34,42 @@ class Notification extends Model
     {
         $userId = $user instanceof User ? $user->id : $user;
 
-        return self::create([
+        $payload = [
             'user_id' => $userId,
             'title' => $title,
             'message' => $message,
             'type' => $type,
-            'is_popup' => $isPopup,
             'action_url' => $actionUrl,
-        ]);
+        ];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('notifications', 'is_popup')) {
+            $payload['is_popup'] = $isPopup;
+        }
+
+        return self::create($payload);
     }
 
     public static function sendToAll(string $title, string $message, string $type = 'info', ?string $actionUrl = null, bool $isPopup = false): int
     {
+        $hasPopupCol = \Illuminate\Support\Facades\Schema::hasColumn('notifications', 'is_popup');
         $count = 0;
-        User::select('id')->chunk(500, function ($users) use ($title, $message, $type, $actionUrl, $isPopup, &$count) {
+        User::select('id')->chunk(500, function ($users) use ($title, $message, $type, $actionUrl, $isPopup, $hasPopupCol, &$count) {
             $now = now();
             $data = [];
             foreach ($users as $u) {
-                $data[] = [
+                $row = [
                     'user_id' => $u->id,
                     'title' => $title,
                     'message' => $message,
                     'type' => $type,
-                    'is_popup' => $isPopup ? 1 : 0,
                     'action_url' => $actionUrl,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
+                if ($hasPopupCol) {
+                    $row['is_popup'] = $isPopup ? 1 : 0;
+                }
+                $data[] = $row;
             }
             self::insert($data);
             $count += count($data);
@@ -71,21 +80,25 @@ class Notification extends Model
 
     public static function sendToLevel(int $level, string $title, string $message, string $type = 'info', ?string $actionUrl = null, bool $isPopup = false): int
     {
+        $hasPopupCol = \Illuminate\Support\Facades\Schema::hasColumn('notifications', 'is_popup');
         $count = 0;
-        User::where('level', $level)->select('id')->chunk(500, function ($users) use ($title, $message, $type, $actionUrl, $isPopup, &$count) {
+        User::where('level', $level)->select('id')->chunk(500, function ($users) use ($title, $message, $type, $actionUrl, $isPopup, $hasPopupCol, &$count) {
             $now = now();
             $data = [];
             foreach ($users as $u) {
-                $data[] = [
+                $row = [
                     'user_id' => $u->id,
                     'title' => $title,
                     'message' => $message,
                     'type' => $type,
-                    'is_popup' => $isPopup ? 1 : 0,
                     'action_url' => $actionUrl,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
+                if ($hasPopupCol) {
+                    $row['is_popup'] = $isPopup ? 1 : 0;
+                }
+                $data[] = $row;
             }
             self::insert($data);
             $count += count($data);
