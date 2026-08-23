@@ -24,7 +24,8 @@ class DomainRoutingMiddleware
         $mainHost = $mainHost ? strtolower($mainHost) : null;
 
         // If the current host is the primary application host, keep main platform context
-        if ($mainHost && ($host === $mainHost || $host === 'www.' . $mainHost)) {
+        $isLocalLoopback = in_array($host, ['localhost', '127.0.0.1', '::1']) && (in_array($mainHost, ['localhost', '127.0.0.1', '::1']) || app()->environment('local', 'testing'));
+        if (($mainHost && ($host === $mainHost || $host === 'www.' . $mainHost)) || $isLocalLoopback) {
             return $next($request);
         }
 

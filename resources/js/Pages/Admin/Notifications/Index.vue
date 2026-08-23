@@ -364,8 +364,11 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useForm, Link, router } from '@inertiajs/vue3';
+import { useForm, Link, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const props = defineProps({
   notifications: Object,
@@ -385,7 +388,7 @@ const form = useForm({
 });
 
 const submitBroadcast = () => {
-  form.post('/secret-panel/notifications/send', {
+  form.post(`${adminPath.value}/notifications/send`, {
     preserveScroll: true,
     onSuccess: () => {
       form.reset('title', 'message', 'action_url');
@@ -395,7 +398,7 @@ const submitBroadcast = () => {
 
 const deleteNotification = (id) => {
   if (confirm('Are you sure you want to delete this notification record?')) {
-    router.delete(`/secret-panel/notifications/${id}`, {
+    router.delete(`${adminPath.value}/notifications/${id}`, {
       preserveScroll: true
     });
   }
