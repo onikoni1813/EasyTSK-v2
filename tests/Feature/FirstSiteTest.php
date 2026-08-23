@@ -70,7 +70,7 @@ class FirstSiteTest extends TestCase
 
     public function test_first_site_isolates_internal_routes_with_404(): void
     {
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
         $user = User::factory()->create();
         $site = Site::where('subdomain', 'tools')->firstOrFail();
         app()->instance('current_site', $site);

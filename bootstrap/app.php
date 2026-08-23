@@ -19,6 +19,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'postback/*',
+            'api/deploy-webhook',
+            'deploy-webhook',
+            'deploy_hook.php',
         ]);
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,

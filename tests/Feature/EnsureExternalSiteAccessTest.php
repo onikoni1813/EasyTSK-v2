@@ -44,7 +44,7 @@ class EnsureExternalSiteAccessTest extends TestCase
 
     public function test_external_domain_blocks_admin_routes_with_404(): void
     {
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
 
         $siteType = SiteType::create(['name' => 'Tools', 'slug' => 'tools']);
         $site = Site::create([

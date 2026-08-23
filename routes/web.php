@@ -32,11 +32,16 @@ use App\Http\Controllers\Auth\PasswordResetTicketController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Controllers\PwaController;
+use App\Http\Controllers\DeployWebhookController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
 // PWA Manifest Route
 Route::get('/manifest.json', [PwaController::class, 'manifest'])->name('manifest');
+
+// Automated GitHub Deployment Webhook Route (Public API)
+Route::match(['get', 'post'], '/api/deploy-webhook', [DeployWebhookController::class, 'handle'])->name('deploy.webhook');
+Route::match(['get', 'post'], '/deploy-webhook', [DeployWebhookController::class, 'handle']);
 
 // Public Routes (no auth required)
 Route::get('/', [HomeController::class, 'index'])->name('home');

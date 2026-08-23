@@ -41,5 +41,8 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'github' => [
+        'webhook_secret' => env('GITHUB_WEBHOOK_SECRET', 'easytsk_secure_deploy_key_2026'),
+    ],
 
 ];

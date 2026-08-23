@@ -15,7 +15,7 @@ class AdEngineIntegrationTest extends TestCase
 
     public function test_admin_can_create_and_manage_ad_placements(): void
     {
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
         $admin = User::factory()->create(['role' => 'admin']);
         $siteType = SiteType::create(['name' => 'Tools', 'slug' => 'tools']);
         $site = Site::create([

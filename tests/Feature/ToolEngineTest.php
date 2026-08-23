@@ -16,7 +16,7 @@ class ToolEngineTest extends TestCase
 
     public function test_admin_can_create_tool_category_and_tool(): void
     {
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
         $admin = User::factory()->create(['role' => 'admin']);
 
         // Create Tool Category
@@ -44,7 +44,7 @@ class ToolEngineTest extends TestCase
 
     public function test_admin_can_attach_and_detach_tool_to_site(): void
     {
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
         $admin = User::factory()->create(['role' => 'admin']);
         $siteType = SiteType::create(['name' => 'Tools', 'slug' => 'tools']);
         $site = Site::create([

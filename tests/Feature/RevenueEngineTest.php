@@ -16,7 +16,7 @@ class RevenueEngineTest extends TestCase
 
     public function test_admin_can_manage_publisher_accounts(): void
     {
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
         $admin = User::factory()->create(['role' => 'admin']);
 
         // View Publisher Accounts Page
@@ -41,7 +41,7 @@ class RevenueEngineTest extends TestCase
 
     public function test_admin_can_log_daily_site_revenue_and_compute_cpm(): void
     {
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
         $admin = User::factory()->create(['role' => 'admin']);
         $siteType = SiteType::create(['name' => 'Tools', 'slug' => 'tools']);
         $site = Site::create([
@@ -86,7 +86,7 @@ class RevenueEngineTest extends TestCase
 
     public function test_ecosystem_revenue_dashboard_aggregation(): void
     {
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
         $admin = User::factory()->create(['role' => 'admin']);
         $siteType = SiteType::create(['name' => 'Tools', 'slug' => 'tools']);
         $site = Site::create([

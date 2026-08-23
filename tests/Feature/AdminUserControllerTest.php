@@ -28,7 +28,7 @@ class AdminUserControllerTest extends TestCase
     public function test_admin_can_view_users_index_page()
     {
         $admin = $this->getAdminUser();
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
 
         User::factory()->count(5)->sequence(fn ($sq) => ['phone' => '0170000001' . $sq->index])->create();
 
@@ -41,7 +41,7 @@ class AdminUserControllerTest extends TestCase
     public function test_admin_can_search_users()
     {
         $admin = $this->getAdminUser();
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
 
         $targetUser = User::factory()->create([
             'name' => 'Special Search Target',
@@ -64,7 +64,7 @@ class AdminUserControllerTest extends TestCase
     public function test_admin_can_update_user_details()
     {
         $admin = $this->getAdminUser();
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
 
         $targetUser = User::factory()->create([
             'name' => 'Old Name',
@@ -105,7 +105,7 @@ class AdminUserControllerTest extends TestCase
     public function test_admin_can_fetch_user_activity_history()
     {
         $admin = $this->getAdminUser();
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
 
         $user = User::factory()->create([
             'name' => 'Test History User',
@@ -165,7 +165,7 @@ class AdminUserControllerTest extends TestCase
     public function test_admin_can_ban_and_unban_user()
     {
         $admin = $this->getAdminUser();
-        $adminPath = env('ADMIN_PATH', 'admin');
+        $adminPath = config('app.admin_path', 'secret-panel');
 
         $user = User::factory()->create([
             'is_banned' => false,
