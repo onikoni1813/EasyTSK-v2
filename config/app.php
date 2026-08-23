@@ -15,7 +15,7 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
-    'admin_path' => env('ADMIN_PATH', 'secret-panel'),
+    'admin_path' => trim(env('ADMIN_PATH', 'secret-panel') ?: 'secret-panel', '/'),
 
     /*
     |--------------------------------------------------------------------------

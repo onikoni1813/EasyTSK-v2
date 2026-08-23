@@ -20,6 +20,14 @@ class DomainRoutingMiddleware
         $rawHost = $request->header('Host') ?: $request->getHost();
         $host = strtolower(explode(':', $rawHost)[0]);
 
+        $mainHost = parse_url(config('app.url'), PHP_URL_HOST);
+        $mainHost = $mainHost ? strtolower($mainHost) : null;
+
+        // If the current host is the primary application host, keep main platform context
+        if ($mainHost && ($host === $mainHost || $host === 'www.' . $mainHost)) {
+            return $next($request);
+        }
+
         $siteDomain = SiteDomain::where('domain_name', $host)
             ->where('is_verified', true)
             ->with('site.siteType')

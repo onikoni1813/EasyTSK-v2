@@ -17,7 +17,7 @@ class CheckMaintenanceMode
 
         if ($isMaintenance) {
             // Always allow admin control panel routes
-            $adminPrefix = env('ADMIN_PATH', 'admin');
+            $adminPrefix = config('app.admin_path', 'secret-panel');
             if ($request->is($adminPrefix . '*')) {
                 return $next($request);
             }

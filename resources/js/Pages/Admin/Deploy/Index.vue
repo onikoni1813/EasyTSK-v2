@@ -306,6 +306,12 @@ const scrollTerminal = async () => {
 };
 
 const getDeployRunUrl = () => {
+  if (typeof window !== 'undefined' && window.location?.pathname) {
+    const currentPath = window.location.pathname.replace(/\/+$/, '');
+    if (currentPath.endsWith('/deploy')) {
+      return `${currentPath}/run`;
+    }
+  }
   try {
     return route('admin.deploy.run');
   } catch (e) {

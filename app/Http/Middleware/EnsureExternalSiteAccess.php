@@ -12,7 +12,7 @@ class EnsureExternalSiteAccess
     public function handle(Request $request, Closure $next): Response
     {
         if (SiteContext::isExternal()) {
-            $adminPath = env('ADMIN_PATH', 'admin');
+            $adminPath = config('app.admin_path', 'secret-panel');
             $path = trim($request->getPathInfo(), '/');
 
             $internalRoutes = [
