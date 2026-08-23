@@ -9,10 +9,10 @@ deployment:
     - /bin/cp -R routes "$COREPATH/"
     - /bin/cp -R resources "$COREPATH/"
     - /bin/cp -R database "$COREPATH/"
-    - /bin/cp -R public "$COREPATH/"
+    - /bin/cp -R public/. "$COREPATH/public/"
     - /bin/cp -R public/. $DEPLOYPATH/
     - /bin/sed -i 's|/../vendor/|/../easytsk v2/vendor/|g' $DEPLOYPATH/index.php
     - /bin/sed -i 's|/../bootstrap/|/../easytsk v2/bootstrap/|g' $DEPLOYPATH/index.php
     - /bin/sed -i 's|/../storage/|/../easytsk v2/storage/|g' $DEPLOYPATH/index.php
-    - /bin/rm -f "$COREPATH/bootstrap/cache/config.php" "$COREPATH/bootstrap/cache/routes-v7.php" "$COREPATH/bootstrap/cache/packages.php" "$COREPATH/bootstrap/cache/services.php"
+    - /bin/rm -f "$COREPATH/bootstrap/cache/config.php" "$COREPATH/bootstrap/cache/routes-v7.php"
 
