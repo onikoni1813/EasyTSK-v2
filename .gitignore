@@ -24,4 +24,7 @@ Thumbs.db
 /scratch
 *.sql
 public/build.zip
+deploy.config.bat
+deploy.config.ps1
+.deploy_history.json
 
