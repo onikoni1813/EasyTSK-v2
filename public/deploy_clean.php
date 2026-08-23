@@ -36,6 +36,59 @@ if (!$coreBase) {
 } else {
     echo "<p>📁 Located Project Base: <strong>{$coreBase}</strong></p>";
 
+    // Find git clone repository directory if separate
+    $repoCandidates = [
+        '/home/easytskc/repositories/EasyTSK-v2',
+        '/home/easytskc/repositories/easytsk-v2',
+        '/home/easytskc/repositories/easytsk v2',
+        dirname($coreBase) . '/repositories/EasyTSK-v2',
+        dirname($coreBase) . '/repositories/easytsk-v2',
+    ];
+
+    $repoDir = null;
+    foreach ($repoCandidates as $rc) {
+        if (is_dir($rc) && file_exists($rc . '/.cpanel.yml')) {
+            $repoDir = realpath($rc);
+            break;
+        }
+    }
+
+    if ($repoDir) {
+        echo "<p style=\"color: #a78bfa;\">📦 Found Git Repository at: <strong>{$repoDir}</strong></p>";
+        $syncDirs = ['app', 'bootstrap', 'config', 'routes', 'resources', 'database', 'public'];
+        
+        $copyRecursive = function ($src, $dst) use (&$copyRecursive) {
+            $dir = opendir($src);
+            @mkdir($dst, 0755, true);
+            while (false !== ($file = readdir($dir))) {
+                if (($file != '.') && ($file != '..')) {
+                    if (is_dir($src . '/' . $file)) {
+                        $copyRecursive($src . '/' . $file, $dst . '/' . $file);
+                    } else {
+                        copy($src . '/' . $file, $dst . '/' . $file);
+                    }
+                }
+            }
+            closedir($dir);
+        };
+
+        foreach ($syncDirs as $sd) {
+            $srcPath = $repoDir . '/' . $sd;
+            $dstPath = $coreBase . '/' . $sd;
+            if (is_dir($srcPath)) {
+                $copyRecursive($srcPath, $dstPath);
+                echo "<p style=\"color: #38bdf8;\">✓ Synced {$sd} to core</p>";
+            }
+        }
+
+        // Sync public build to public_html
+        $publicHtml = '/home/easytskc/public_html';
+        if (is_dir($publicHtml) && is_dir($repoDir . '/public')) {
+            $copyRecursive($repoDir . '/public', $publicHtml);
+            echo "<p style=\"color: #38bdf8;\">✓ Synced public assets to public_html</p>";
+        }
+    }
+
     // 1. Manually delete bootstrap cache files
     $cacheDir = $coreBase . '/bootstrap/cache';
     if (is_dir($cacheDir)) {
@@ -64,7 +117,7 @@ if (!$coreBase) {
         $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
         echo "<pre style=\"background: #1e293b; padding: 12px; border-radius: 8px;\">" . htmlspecialchars($migrateOutput) . "</pre>";
 
-        echo '<h3 style="color: #34d399;">✅ All Route & Config Caches cleared, and database migrations applied successfully!</h3>';
+        echo '<h3 style="color: #34d399;">✅ Everything updated, all caches cleared, and database migrations applied successfully!</h3>';
         echo '<p>You can now go back to <a href="/secret-panel/notifications" style="color: #818cf8;">Admin Notifications</a> and send updates.</p>';
     } catch (\Throwable $e) {
         echo '<p style="color: #ef4444;">❌ Error running Artisan: ' . htmlspecialchars($e->getMessage()) . '</p>';
