@@ -37,19 +37,32 @@ if (!$coreBase) {
     echo "<p>📁 Located Project Base: <strong>{$coreBase}</strong></p>";
 
     // Find git clone repository directory if separate
-    $repoCandidates = [
-        '/home/easytskc/repositories/EasyTSK-v2',
-        '/home/easytskc/repositories/easytsk-v2',
-        '/home/easytskc/repositories/easytsk v2',
-        dirname($coreBase) . '/repositories/EasyTSK-v2',
-        dirname($coreBase) . '/repositories/easytsk-v2',
-    ];
-
     $repoDir = null;
-    foreach ($repoCandidates as $rc) {
-        if (is_dir($rc) && file_exists($rc . '/.cpanel.yml')) {
-            $repoDir = realpath($rc);
-            break;
+    $repoBaseParent = is_dir('/home/easytskc/repositories') ? '/home/easytskc/repositories' : (is_dir(dirname($coreBase) . '/repositories') ? dirname($coreBase) . '/repositories' : null);
+    
+    if ($repoBaseParent) {
+        $dirs = glob($repoBaseParent . '/*', GLOB_ONLYDIR);
+        foreach ($dirs as $d) {
+            if (file_exists($d . '/.cpanel.yml') || file_exists($d . '/artisan')) {
+                $repoDir = realpath($d);
+                break;
+            }
+        }
+    }
+
+    if (!$repoDir) {
+        $repoCandidates = [
+            '/home/easytskc/repositories/EasyTSK-v2',
+            '/home/easytskc/repositories/easytsk-v2',
+            '/home/easytskc/repositories/easytsk v2',
+            dirname($coreBase) . '/repositories/EasyTSK-v2',
+            dirname($coreBase) . '/repositories/easytsk-v2',
+        ];
+        foreach ($repoCandidates as $rc) {
+            if (is_dir($rc) && (file_exists($rc . '/.cpanel.yml') || file_exists($rc . '/artisan'))) {
+                $repoDir = realpath($rc);
+                break;
+            }
         }
     }
 
