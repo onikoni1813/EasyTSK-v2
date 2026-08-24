@@ -65,24 +65,6 @@ class DashboardController extends Controller
         $nextLevelXp = $nextLevel ? (int) $nextLevel->xp_required : ($currentLevelXp > 0 ? $currentLevelXp + 500 : 500);
         $nextLevelNumber = $nextLevel ? (int) $nextLevel->level_number : ($user->level + 1);
 
-        // Recent task submissions (latest 5)
-        $recentTaskSubmissions = UserTask::where('user_id', $user->id)
-            ->with(['task:id,title,reward_coins', 'campaign:id,title,cost_per_click'])
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(fn($ut) => [
-                'id'            => $ut->id,
-                'title'         => $ut->campaign_id 
-                    ? ($ut->campaign?->title ?? 'Campaign #' . $ut->campaign_id) 
-                    : ($ut->task ? $ut->task->title : 'Task #' . $ut->task_id),
-                'reward_points' => (float) ($ut->campaign_id 
-                    ? ($ut->campaign?->cost_per_click ?? 0) 
-                    : ($ut->task ? $ut->task->reward_coins : 0)),
-                'status'        => $ut->status,
-                'submitted_at'  => $ut->created_at ? $ut->created_at->diffForHumans() : '',
-            ]);
-
         return Inertia::render('Dashboard', [
             'user' => [
                 'id'                        => $user->id,
@@ -112,7 +94,6 @@ class DashboardController extends Controller
             'pendingTasksCount'     => $pendingTasksCount,
             'rejectedTasksCount'    => $rejectedTasksCount,
             'totalActiveTasks'      => $totalActiveTasks,
-            'recentTaskSubmissions' => $recentTaskSubmissions,
             'canSpin'               => $user->canSpin(),
         ]);
     }

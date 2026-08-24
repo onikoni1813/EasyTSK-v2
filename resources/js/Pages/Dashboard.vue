@@ -299,46 +299,6 @@
         </div>
       </div>
 
-      <!-- ── Recent Task Submissions Widget ───────────────────────────── -->
-      <div v-if="recentTaskSubmissions && recentTaskSubmissions.length > 0" class="glass-card p-5 rounded-2xl border border-indigo-500/15">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">📋</span>
-            <h2 class="text-sm font-bold text-white">Recent Submissions</h2>
-          </div>
-          <Link href="/tasks-history" class="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
-            View All History →
-          </Link>
-        </div>
-
-        <div class="space-y-2.5">
-          <div
-            v-for="sub in recentTaskSubmissions"
-            :key="sub.id"
-            class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-indigo-500/20 transition-all gap-3"
-          >
-            <div class="min-w-0 flex-1">
-              <div class="text-xs font-semibold text-white truncate">{{ sub.title }}</div>
-              <div class="text-[10px] text-slate-400 mt-0.5">{{ sub.submitted_at }}</div>
-            </div>
-
-            <div class="flex items-center gap-3 shrink-0">
-              <span class="text-xs font-bold text-violet-300">+{{ sub.reward_points }} pts</span>
-              <span
-                class="px-2 py-0.5 rounded text-[9px] font-bold uppercase"
-                :class="{
-                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': sub.status === 'approved',
-                  'bg-amber-500/20 text-amber-400 border border-amber-500/30': sub.status === 'pending',
-                  'bg-rose-500/20 text-rose-400 border border-rose-500/30': sub.status === 'rejected',
-                }"
-              >
-                {{ sub.status }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- ── Referral Card ────────────────────────────────────────────── -->
       <div class="glass-card p-5 rounded-2xl border border-indigo-500/15 relative overflow-hidden">
         <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none"></div>
@@ -515,15 +475,14 @@ import axios from 'axios';
 const page = usePage();
 
 const props = defineProps({
-  user:                  Object,
-  streakCount:           Number,
-  tasksCompletedToday:   Number,
-  completedTasksCount:   Number,
-  pendingTasksCount:     Number,
-  rejectedTasksCount:    Number,
-  totalActiveTasks:      Number,
-  recentTaskSubmissions: Array,
-  canSpin:               Boolean,
+  user:                Object,
+  streakCount:         Number,
+  tasksCompletedToday: Number,
+  completedTasksCount: Number,
+  pendingTasksCount:   Number,
+  rejectedTasksCount:  Number,
+  totalActiveTasks:    Number,
+  canSpin:             Boolean,
 });
 
 const referrals = ref([]);
