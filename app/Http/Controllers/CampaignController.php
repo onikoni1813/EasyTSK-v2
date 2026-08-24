@@ -16,32 +16,39 @@ class CampaignController extends Controller
     public function index()
     {
         /** @var \App\Models\User $user */
-        $user      = Auth::user();
-        $campaigns = Campaign::with('service')
-            ->withCount(['userTasks as submissions_count'])
+        $user = Auth::user();
+
+        $hasCampaignId = \Illuminate\Support\Facades\Schema::hasColumn('user_tasks', 'campaign_id');
+
+        $query = Campaign::with('service')
             ->where('user_id', $user->id)
             ->latest()
-            ->take(10)
-            ->get()
+            ->take(10);
+
+        if ($hasCampaignId) {
+            $query->withCount(['userTasks as submissions_count']);
+        }
+
+        $campaigns = $query->get()
             ->map(fn(Campaign $c) => [
                 'id'                => $c->id,
                 'title'             => $c->title,
-                'description'       => $c->description,
+                'description'       => $c->description ?? '',
                 'target_url'        => $c->target_url,
                 'type'              => $c->type ?: ($c->service->platform ?? 'other'),
                 'action'            => $c->action ?: ($c->service->action ?? ''),
-                'proof_type'        => $c->proof_type ?: 'screenshot',
-                'proof_instruction' => $c->proof_instruction,
-                'secret_code'       => $c->secret_code,
-                'budget_points'     => (float) $c->budget_points,
-                'cost_per_click'    => (float) $c->cost_per_click,
-                'total_clicks'      => $c->total_clicks,
-                'target_clicks'     => $c->target_clicks,
-                'submissions_count' => $c->submissions_count,
-                'status'            => $c->status,
-                'admin_note'        => $c->admin_note,
-                'progress'          => $c->progressPercent(),
-                'created_at'        => $c->created_at->diffForHumans(),
+                'proof_type'        => $c->proof_type ?? 'screenshot',
+                'proof_instruction' => $c->proof_instruction ?? '',
+                'secret_code'       => $c->secret_code ?? '',
+                'budget_points'     => (float) ($c->budget_points ?? 0),
+                'cost_per_click'    => (float) ($c->cost_per_click ?? 0),
+                'total_clicks'      => (int) ($c->total_clicks ?? 0),
+                'target_clicks'     => (int) ($c->target_clicks ?? 0),
+                'submissions_count' => (int) ($c->submissions_count ?? 0),
+                'status'            => $c->status ?? 'pending',
+                'admin_note'        => $c->admin_note ?? '',
+                'progress'          => method_exists($c, 'progressPercent') ? $c->progressPercent() : 0,
+                'created_at'        => $c->created_at ? $c->created_at->diffForHumans() : '',
             ]);
 
         $services = CampaignService::where('is_active', true)->get();
@@ -53,9 +60,9 @@ class CampaignController extends Controller
                 'email'           => $user->email,
                 'main_balance'    => (float) $user->main_balance,
                 'pending_balance' => (float) $user->pending_balance,
-                'level'           => (int) $user->level,
-                'xp_points'       => (int) $user->xp_points,
-                'health'          => (int) $user->health,
+                'level'           => (int) ($user->level ?? 1),
+                'xp_points'       => (int) ($user->xp_points ?? 0),
+                'health'          => (int) ($user->health ?? 100),
             ],
             'myCampaigns'     => $campaigns,
             'services'        => $services,
@@ -272,29 +279,35 @@ class CampaignController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        $campaigns = Campaign::with('service')
-            ->withCount(['userTasks as submissions_count'])
+        $hasCampaignId = \Illuminate\Support\Facades\Schema::hasColumn('user_tasks', 'campaign_id');
+
+        $query = Campaign::with('service')
             ->where('user_id', $user->id)
-            ->latest()
-            ->paginate(15)
+            ->latest();
+
+        if ($hasCampaignId) {
+            $query->withCount(['userTasks as submissions_count']);
+        }
+
+        $campaigns = $query->paginate(15)
             ->through(fn(Campaign $c) => [
                 'id'                => $c->id,
                 'title'             => $c->title,
-                'description'       => $c->description,
+                'description'       => $c->description ?? '',
                 'target_url'        => $c->target_url,
                 'type'              => $c->type ?: ($c->service->platform ?? 'other'),
                 'action'            => $c->action ?: ($c->service->action ?? ''),
-                'proof_type'        => $c->proof_type ?: 'screenshot',
-                'proof_instruction' => $c->proof_instruction,
-                'budget_points'     => (float) $c->budget_points,
-                'cost_per_click'    => (float) $c->cost_per_click,
-                'total_clicks'      => $c->total_clicks,
-                'target_clicks'     => $c->target_clicks,
-                'submissions_count' => $c->submissions_count,
-                'status'            => $c->status,
-                'admin_note'        => $c->admin_note,
-                'progress'          => $c->progressPercent(),
-                'created_at'        => $c->created_at->diffForHumans(),
+                'proof_type'        => $c->proof_type ?? 'screenshot',
+                'proof_instruction' => $c->proof_instruction ?? '',
+                'budget_points'     => (float) ($c->budget_points ?? 0),
+                'cost_per_click'    => (float) ($c->cost_per_click ?? 0),
+                'total_clicks'      => (int) ($c->total_clicks ?? 0),
+                'target_clicks'     => (int) ($c->target_clicks ?? 0),
+                'submissions_count' => (int) ($c->submissions_count ?? 0),
+                'status'            => $c->status ?? 'pending',
+                'admin_note'        => $c->admin_note ?? '',
+                'progress'          => method_exists($c, 'progressPercent') ? $c->progressPercent() : 0,
+                'created_at'        => $c->created_at ? $c->created_at->diffForHumans() : '',
             ]);
 
         return Inertia::render('Campaigns/History', [
