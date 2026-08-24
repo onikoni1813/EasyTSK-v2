@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Models\PaymentMethod;
 use App\Models\Withdrawal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -45,16 +46,34 @@ class WithdrawalController extends Controller
 
         $minWithdrawCoins = $isFirstWithdrawal ? $firstWithdrawLimit : $nextWithdrawLimit;
 
-        $withdrawalChargePercent = (float) AppSetting::getByKey('withdrawal_charge_percent', 0);
-        $mobileRechargeMinLimit = (int) AppSetting::getByKey('mobile_recharge_min_limit', 500);
-        $mobileRechargeFixedCharge = (float) AppSetting::getByKey('mobile_recharge_fixed_charge', 10);
+        // Fetch active payment methods configured by Admin
+        $paymentMethods = PaymentMethod::active()->orderBy('order')->orderBy('id')->get()->map(function(PaymentMethod $m) use ($isFirstWithdrawal, $firstWithdrawLimit, $nextWithdrawLimit, $conversionRate) {
+            $defaultMin = $isFirstWithdrawal ? $firstWithdrawLimit : $nextWithdrawLimit;
+            return [
+                'id'                  => $m->id,
+                'name'                => $m->name,
+                'code'                => $m->code,
+                'type'                => $m->type,
+                'currency'            => $m->currency ?? 'BDT',
+                'currency_symbol'     => $m->currency_symbol ?? '৳',
+                'conversion_rate'     => $m->conversion_rate !== null && $m->conversion_rate > 0 ? (float) $m->conversion_rate : (float) $conversionRate,
+                'min_points'          => $m->min_points !== null ? (int) $m->min_points : (int) $defaultMin,
+                'fixed_charge'        => (float) $m->fixed_charge,
+                'charge_percent'      => (float) $m->charge_percent,
+                'account_placeholder' => $m->account_placeholder,
+                'instructions'        => $m->instructions,
+                'icon'                => $m->icon,
+            ];
+        });
 
         $withdrawals = Withdrawal::where('user_id', $user->id)->latest()->take(5)->get();
 
         $userStats = [
-            'totalWithdrawnBdt' => (float) Withdrawal::where('user_id', $user->id)->where('status', 'paid')->sum('amount_bdt'),
-            'pendingWithdrawnBdt' => (float) Withdrawal::where('user_id', $user->id)->where('status', 'pending')->sum('amount_bdt'),
-            'totalCount' => Withdrawal::where('user_id', $user->id)->count(),
+            'totalWithdrawnCoins'   => (float) Withdrawal::where('user_id', $user->id)->where('status', 'paid')->sum('amount_coins'),
+            'totalWithdrawnBdt'     => (float) Withdrawal::where('user_id', $user->id)->where('status', 'paid')->sum('amount_bdt'),
+            'pendingWithdrawnCoins' => (float) Withdrawal::where('user_id', $user->id)->where('status', 'pending')->sum('amount_coins'),
+            'pendingWithdrawnBdt'   => (float) Withdrawal::where('user_id', $user->id)->where('status', 'pending')->sum('amount_bdt'),
+            'totalCount'            => Withdrawal::where('user_id', $user->id)->count(),
         ];
 
         return Inertia::render('Withdraw/Index', [
@@ -66,9 +85,7 @@ class WithdrawalController extends Controller
             'remainingSeconds' => $remainingSeconds,
             'conversionRate' => $conversionRate,
             'minWithdrawCoins' => $minWithdrawCoins,
-            'withdrawalChargePercent' => $withdrawalChargePercent,
-            'mobileRechargeMinLimit' => $mobileRechargeMinLimit,
-            'mobileRechargeFixedCharge' => $mobileRechargeFixedCharge,
+            'paymentMethods' => $paymentMethods,
             'savedMethod' => $user->payment_method,
             'savedNumber' => $user->payment_number,
             'hasRecoveryPin' => !empty($user->recovery_pin),
@@ -81,11 +98,23 @@ class WithdrawalController extends Controller
     {
         $request->validate([
             'amount_coins' => 'required|numeric|min:1',
-            'payment_method' => 'required|string|in:bKash,Nagad,Rocket,Mobile Recharge',
+            'payment_method' => 'required|string',
             'account_details' => 'required|string',
         ]);
 
         $coins = (float) $request->amount_coins;
+
+        // Find active payment method
+        $method = PaymentMethod::active()
+            ->where(function($q) use ($request) {
+                $q->where('code', $request->payment_method)
+                  ->orWhere('name', $request->payment_method);
+            })
+            ->first();
+
+        if (!$method) {
+            return back()->withErrors(['payment_method' => 'The selected payment method is invalid or currently disabled by admin.']);
+        }
 
         try {
             DB::beginTransaction();
@@ -115,17 +144,24 @@ class WithdrawalController extends Controller
             $firstWithdrawLimit = (int) AppSetting::getByKey('first_withdraw_limit', 1000);
             $nextWithdrawLimit = (int) AppSetting::getByKey('next_withdraw_limit', 500);
 
-            if ($request->payment_method === 'Mobile Recharge') {
-                $minWithdrawCoins = (int) AppSetting::getByKey('mobile_recharge_min_limit', 500);
-                $chargeCoins = (float) AppSetting::getByKey('mobile_recharge_fixed_charge', 10);
+            // Dynamic per-method limit override or global limits
+            if ($method->min_points !== null && $method->min_points > 0) {
+                $minWithdrawCoins = (int) $method->min_points;
             } else {
                 $minWithdrawCoins = $isFirstWithdrawal ? $firstWithdrawLimit : $nextWithdrawLimit;
-                $chargePercent = (float) AppSetting::getByKey('withdrawal_charge_percent', 0);
-                $chargeCoins = ($coins * $chargePercent) / 100;
+            }
+
+            // Dynamic per-method charges calculation
+            $chargeCoins = 0;
+            if ($method->fixed_charge > 0) {
+                $chargeCoins += (float) $method->fixed_charge;
+            }
+            if ($method->charge_percent > 0) {
+                $chargeCoins += ($coins * (float) $method->charge_percent) / 100;
             }
 
             if ($coins < $minWithdrawCoins) {
-                throw new \Exception("Minimum payout for this method is {$minWithdrawCoins} points.");
+                throw new \Exception("Minimum payout for {$method->name} is {$minWithdrawCoins} points.");
             }
 
             if ($lockedUser->main_balance < $coins) {
@@ -137,25 +173,32 @@ class WithdrawalController extends Controller
                 throw new \Exception('Withdrawal amount is too low to cover the charge.');
             }
 
-            $rate = (float) AppSetting::getByKey('conversion_rate', 100);
-            $bdtAmount = round($netCoins / $rate, 2);
+            $rate = $method->conversion_rate !== null && $method->conversion_rate > 0 
+                ? (float) $method->conversion_rate 
+                : (float) AppSetting::getByKey('conversion_rate', 100);
+
+            $payoutAmount = round($netCoins / $rate, 2);
+            $currency = $method->currency ?? 'BDT';
+            $currencySymbol = $method->currency_symbol ?? '৳';
 
             $lockedUser->setAttribute('main_balance', $lockedUser->main_balance - $coins);
             $lockedUser->last_withdrawal_at = \Illuminate\Support\Carbon::now();
             $lockedUser->save();
 
             $withdrawal = Withdrawal::create([
-                'user_id' => $lockedUser->id,
-                'amount_coins' => $netCoins, // Store the net coins they will receive in value
-                'charge_coins' => $chargeCoins,
-                'amount_bdt' => $bdtAmount,
-                'payment_method' => $request->payment_method,
+                'user_id'         => $lockedUser->id,
+                'amount_coins'    => $netCoins, // Store the net coins they will receive in value
+                'charge_coins'    => $chargeCoins,
+                'amount_bdt'      => $payoutAmount,
+                'currency'        => $currency,
+                'currency_symbol' => $currencySymbol,
+                'payment_method'  => $method->name,
                 'account_details' => $request->account_details,
-                'status' => 'pending',
+                'status'          => 'pending',
             ]);
 
-            \App\Models\Transaction::log($lockedUser, 'debit', $coins, "Withdrawal Request (#{$withdrawal->id}) via {$request->payment_method}", 'withdrawal', (string)$withdrawal->id);
-            \App\Models\Notification::send($lockedUser, 'Withdrawal Request Submitted ⏳', "Your payout request of {$bdtAmount} BDT via {$request->payment_method} is under review.", 'info', '/withdraw-history');
+            \App\Models\Transaction::log($lockedUser, 'debit', $coins, "Withdrawal Request (#{$withdrawal->id}) via {$method->name}", 'withdrawal', (string)$withdrawal->id);
+            \App\Models\Notification::send($lockedUser, 'Withdrawal Request Submitted ⏳', "Your payout request of {$currencySymbol}{$payoutAmount} {$currency} via {$method->name} is under review.", 'info', '/withdraw-history');
 
             DB::commit();
 
@@ -180,14 +223,32 @@ class WithdrawalController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
+        // Validate active payment method
+        $validMethod = PaymentMethod::active()
+            ->where(function($q) use ($request) {
+                $q->where('code', $request->payment_method)
+                  ->orWhere('name', $request->payment_method);
+            })
+            ->first();
+
+        if (!$validMethod) {
+            return back()->withErrors(['payment_method' => 'Selected payment method is currently disabled.']);
+        }
+
         if ($user->recovery_pin && $user->recovery_pin !== $request->recovery_pin) {
             return back()->withErrors(['recovery_pin' => 'Invalid 4-digit PIN. Payment details protected.']);
         }
 
-        $user->update([
-            'payment_method' => $request->payment_method,
+        $updateData = [
+            'payment_method' => $validMethod->name,
             'payment_number' => $request->payment_number,
-        ]);
+        ];
+
+        if (empty($user->recovery_pin)) {
+            $updateData['recovery_pin'] = $request->recovery_pin;
+        }
+
+        $user->update($updateData);
 
         return back()->with('success', 'Payment wallet details updated successfully.');
     }

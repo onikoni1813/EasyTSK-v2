@@ -14,6 +14,9 @@ class Campaign extends Model
         'target_url',
         'type',
         'action',
+        'proof_type',
+        'proof_instruction',
+        'secret_code',
         'budget_points',
         'cost_per_click',
         'total_clicks',
@@ -45,6 +48,16 @@ class Campaign extends Model
     public function clicks()
     {
         return $this->hasMany(CampaignClick::class);
+    }
+
+    public function userTasks()
+    {
+        return $this->hasMany(UserTask::class);
+    }
+
+    public function submissions()
+    {
+        return $this->hasMany(UserTask::class);
     }
 
     public function progressPercent(): float

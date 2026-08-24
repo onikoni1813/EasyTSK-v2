@@ -201,5 +201,47 @@ class AdminUserController extends Controller
             'withdrawals' => $withdrawals,
         ]);
     }
+
+    /**
+     * Impersonate (Log in as) the specified user.
+     */
+    public function impersonate(Request $request, User $user)
+    {
+        $currentAdmin = Auth::user();
+
+        // Prevent self-impersonation
+        if ($currentAdmin && $currentAdmin->id === $user->id) {
+            return back()->with('error', 'You are already logged into this admin account.');
+        }
+
+        // Store original admin ID in session
+        $request->session()->put('impersonated_by_admin_id', $currentAdmin->id);
+
+        // Login as target user
+        Auth::login($user);
+
+        // Trigger full page reload to ensure fresh CSRF token and session cookies in browser
+        return Inertia::location(route('dashboard'));
+    }
+
+    /**
+     * Leave impersonation and switch back to the original admin account.
+     */
+    public function leaveImpersonate(Request $request)
+    {
+        $adminId = $request->session()->pull('impersonated_by_admin_id');
+
+        if ($adminId) {
+            $admin = User::find($adminId);
+
+            if ($admin && $admin->isAdmin()) {
+                Auth::login($admin);
+                // Trigger full page reload back to admin panel
+                return Inertia::location(route('admin.users.index'));
+            }
+        }
+
+        return Inertia::location(route('dashboard'));
+    }
 }
 

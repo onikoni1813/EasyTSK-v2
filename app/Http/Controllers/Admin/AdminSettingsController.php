@@ -29,9 +29,6 @@ class AdminSettingsController extends Controller
         $referralBonus = AppSetting::getByKey('referral_bonus', '500');
         $referralTarget = AppSetting::getByKey('referral_target', '1000');
         $offerwallPendingHours = AppSetting::getByKey('offerwall_pending_hours', '24');
-        $withdrawalChargePercent = AppSetting::getByKey('withdrawal_charge_percent', '0');
-        $mobileRechargeMinLimit = AppSetting::getByKey('mobile_recharge_min_limit', '500');
-        $mobileRechargeFixedCharge = AppSetting::getByKey('mobile_recharge_fixed_charge', '10');
         $minWithdrawalHealth = AppSetting::getByKey('min_withdrawal_health', '40');
 
         $demoUsers = AppSetting::getByKey('demo_users', '1200');
@@ -67,9 +64,6 @@ class AdminSettingsController extends Controller
             'referralBonus' => (float) $referralBonus,
             'referralTarget' => (float) $referralTarget,
             'offerwallPendingHours' => (int) $offerwallPendingHours,
-            'withdrawalChargePercent' => (float) $withdrawalChargePercent,
-            'mobileRechargeMinLimit' => (int) $mobileRechargeMinLimit,
-            'mobileRechargeFixedCharge' => (float) $mobileRechargeFixedCharge,
             'minWithdrawalHealth' => (int) $minWithdrawalHealth,
             'demoUsers' => (int) $demoUsers,
             'demoTasks' => (int) $demoTasks,
@@ -103,9 +97,6 @@ class AdminSettingsController extends Controller
             'referral_bonus' => 'required|numeric|min:1',
             'referral_target' => 'required|numeric|min:1',
             'offerwall_pending_hours' => 'required|integer|min:0',
-            'withdrawal_charge_percent' => 'required|numeric|min:0|max:100',
-            'mobile_recharge_min_limit' => 'required|numeric|min:1',
-            'mobile_recharge_fixed_charge' => 'required|numeric|min:0',
             'min_withdrawal_health' => 'required|integer|min:0|max:100',
             'demo_users' => 'required|numeric|min:0',
             'demo_tasks' => 'required|numeric|min:0',
@@ -145,9 +136,6 @@ class AdminSettingsController extends Controller
         AppSetting::setByKey('referral_bonus', $request->referral_bonus);
         AppSetting::setByKey('referral_target', $request->referral_target);
         AppSetting::setByKey('offerwall_pending_hours', $request->offerwall_pending_hours);
-        AppSetting::setByKey('withdrawal_charge_percent', $request->withdrawal_charge_percent);
-        AppSetting::setByKey('mobile_recharge_min_limit', $request->mobile_recharge_min_limit);
-        AppSetting::setByKey('mobile_recharge_fixed_charge', $request->mobile_recharge_fixed_charge);
         AppSetting::setByKey('min_withdrawal_health', $request->min_withdrawal_health);
         AppSetting::setByKey('demo_users', $request->demo_users);
         AppSetting::setByKey('demo_tasks', $request->demo_tasks);

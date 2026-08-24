@@ -66,8 +66,8 @@ class HandleInertiaRequests extends Middleware
         }
 
         $flash = [
-            'success' => fn () => $request->session()->get('success'),
-            'error'   => fn () => $request->session()->get('error'),
+            'success' => fn () => $request->hasSession() ? $request->session()->get('success') : null,
+            'error'   => fn () => $request->hasSession() ? $request->session()->get('error') : null,
         ];
 
         return array_merge($parentProps, [
@@ -75,6 +75,10 @@ class HandleInertiaRequests extends Middleware
             'admin_path' => config('app.admin_path', 'secret-panel'),
             'currentSite' => null,
             'flash' => $flash,
+            'impersonating' => [
+                'is_active' => $request->hasSession() && $request->session()->has('impersonated_by_admin_id'),
+                'admin_id'  => $request->hasSession() ? $request->session()->get('impersonated_by_admin_id') : null,
+            ],
             'auth' => [
                 'user' => $user ? [
                     'id' => $user->id,

@@ -16,7 +16,7 @@
               </div>
               <div>
                 <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight">Withdrawal & Payout Hub</h1>
-                <p class="text-xs text-slate-400">Convert your earned points to real BDT cash ({{ conversionRate || 100 }} Pts = 1 BDT)</p>
+                <p class="text-xs text-slate-400">Convert your earned points to real cash or crypto (BDT / USDT / USD)</p>
               </div>
             </div>
 
@@ -46,8 +46,13 @@
               <div class="text-lg sm:text-xl font-black text-emerald-300">
                 <AnimatedNumber :value="mainBalance" :decimals="0" /> <span class="text-xs font-normal text-slate-400">Pts</span>
               </div>
-              <div class="text-[10px] text-slate-500">
-                ≈ ৳{{ (mainBalance / (conversionRate || 100)).toFixed(2) }} BDT
+              <div class="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap font-mono">
+                <span v-if="savedMethodConfig">
+                  ≈ {{ savedMethodConfig.currency_symbol }}{{ (mainBalance / (savedMethodConfig.conversion_rate || conversionRate || 100)).toFixed(savedMethodConfig.currency === 'USDT' || savedMethodConfig.currency === 'USD' ? 4 : 2) }} {{ savedMethodConfig.currency }}
+                </span>
+                <span v-else>
+                  ≈ ৳{{ (mainBalance / (conversionRate || 100)).toFixed(2) }} BDT • ${{ (mainBalance / ((conversionRate || 100) * 120)).toFixed(2) }} USD
+                </span>
               </div>
             </div>
 
@@ -58,10 +63,15 @@
                 <span class="text-xs">✅</span>
               </div>
               <div class="text-lg sm:text-xl font-black text-white">
-                ৳{{ userStats?.totalWithdrawnBdt || 0 }}
+                <AnimatedNumber :value="userStats?.totalWithdrawnCoins || 0" :decimals="0" /> <span class="text-xs font-normal text-slate-400">Pts</span>
               </div>
-              <div class="text-[10px] text-slate-500">
-                Completed requests
+              <div class="text-[10px] text-slate-500 font-mono">
+                <span v-if="savedMethodConfig">
+                  ≈ {{ savedMethodConfig.currency_symbol }}{{ ((userStats?.totalWithdrawnCoins || 0) / (savedMethodConfig.conversion_rate || conversionRate || 100)).toFixed(savedMethodConfig.currency === 'USDT' || savedMethodConfig.currency === 'USD' ? 4 : 2) }} {{ savedMethodConfig.currency }}
+                </span>
+                <span v-else>
+                  ≈ ৳{{ userStats?.totalWithdrawnBdt || 0 }} BDT
+                </span>
               </div>
             </div>
 
@@ -71,8 +81,16 @@
                 <span>Pending Payout</span>
                 <span class="text-xs">⏳</span>
               </div>
-              <div class="text-lg sm:text-xl font-black text-amber-300">
-                ৳{{ userStats?.pendingWithdrawnBdt || 0 }}
+              <div class="text-lg sm:text-xl font-black text-amber-300 font-mono">
+                <span v-if="savedMethodConfig && (userStats?.pendingWithdrawnCoins > 0)">
+                  {{ savedMethodConfig.currency_symbol }}{{ ((userStats?.pendingWithdrawnCoins || 0) / (savedMethodConfig.conversion_rate || conversionRate || 100)).toFixed(savedMethodConfig.currency === 'USDT' || savedMethodConfig.currency === 'USD' ? 4 : 2) }}
+                </span>
+                <span v-else-if="userStats?.pendingWithdrawnBdt > 0">
+                  ৳{{ userStats.pendingWithdrawnBdt }}
+                </span>
+                <span v-else>
+                  {{ savedMethodConfig?.currency_symbol || '৳' }}0
+                </span>
               </div>
               <div class="text-[10px] text-slate-500">
                 Under review
@@ -162,22 +180,25 @@
             </div>
 
             <!-- Saved Info Box -->
-            <div v-if="savedNumber" class="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2">
+            <div v-if="savedNumber" class="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2.5">
               <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Default Payment Gateway</div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                  <span v-if="savedMethod === 'bKash'">📱 bKash</span>
-                  <span v-else-if="savedMethod === 'Nagad'">🔶 Nagad</span>
-                  <span v-else-if="savedMethod === 'Rocket'">🚀 Rocket</span>
-                  <span v-else>📲 {{ savedMethod }}</span>
-                </span>
-                <span class="text-xs font-mono font-bold text-white">{{ savedNumber }}</span>
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-base shrink-0">
+                    {{ savedMethodConfig?.icon || '💳' }}
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-white truncate">{{ savedMethodConfig?.name || savedMethod }}</div>
+                    <div class="text-[10px] text-indigo-300 font-mono">{{ savedMethodConfig?.currency || 'BDT' }} ({{ savedMethodConfig?.currency_symbol || '৳' }})</div>
+                  </div>
+                </div>
+                <span class="text-xs font-mono font-bold text-white bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 shrink-0 truncate max-w-[140px]">{{ savedNumber }}</span>
               </div>
               <p class="text-[10px] text-slate-500">Auto-filled in your payout request forms.</p>
             </div>
             <div v-else class="p-4 bg-slate-950/40 rounded-2xl border border-dashed border-slate-800 text-center space-y-1">
               <p class="text-xs text-slate-400 font-medium">No saved payout wallet</p>
-              <p class="text-[10px] text-slate-500">Save your default bKash/Nagad/Rocket details for 1-click withdrawals.</p>
+              <p class="text-[10px] text-slate-500">Save your default bKash/Nagad/USDT details for 1-click withdrawals.</p>
             </div>
 
             <!-- Toggle Form Button -->
@@ -196,23 +217,27 @@
                 
                 <div>
                   <label class="block text-[11px] font-semibold text-slate-300 mb-1">Preferred Gateway</label>
-                  <select v-model="walletForm.payment_method" class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs">
-                    <option value="bKash">bKash Personal</option>
-                    <option value="Nagad">Nagad Personal</option>
-                    <option value="Rocket">Rocket Personal</option>
-                    <option value="Mobile Recharge">Mobile Recharge</option>
+                  <select v-model="walletForm.payment_method" class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500">
+                    <option v-for="m in paymentMethods" :key="m.id" :value="m.name">
+                      {{ m.icon ? m.icon + ' ' : '' }}{{ m.name }}
+                    </option>
                   </select>
                 </div>
 
                 <div>
-                  <label class="block text-[11px] font-semibold text-slate-300 mb-1">Wallet Phone Number</label>
+                  <label class="block text-[11px] font-semibold text-slate-300 mb-1">
+                    {{ selectedWalletMethodConfig?.type === 'crypto' ? 'Wallet Address / Binance Pay ID' : (selectedWalletMethodConfig?.type === 'bank' ? 'Bank Account Details' : 'Wallet Phone / Account Number') }} *
+                  </label>
                   <input 
                     v-model="walletForm.payment_number" 
                     type="text" 
                     required 
-                    placeholder="017XXXXXXXX"
-                    class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500" 
+                    :placeholder="selectedWalletMethodConfig?.account_placeholder || '017XXXXXXXX'"
+                    class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-indigo-500 font-mono" 
                   />
+                  <span v-if="selectedWalletMethodConfig?.instructions" class="text-[10px] text-indigo-300/80 mt-1 block">
+                    ℹ️ {{ selectedWalletMethodConfig.instructions }}
+                  </span>
                   <span v-if="walletForm.errors.payment_number" class="text-[10px] text-rose-400 mt-0.5 block">{{ walletForm.errors.payment_number }}</span>
                 </div>
 
@@ -303,10 +328,9 @@
                   :disabled="!canWithdraw" 
                   class="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-emerald-500"
                 >
-                  <option value="bKash">bKash Personal</option>
-                  <option value="Nagad">Nagad Personal</option>
-                  <option value="Rocket">Rocket Personal</option>
-                  <option value="Mobile Recharge">Mobile Recharge</option>
+                  <option v-for="m in paymentMethods" :key="m.id" :value="m.name">
+                    {{ m.icon ? m.icon + ' ' : '' }}{{ m.name }}
+                  </option>
                 </select>
                 <span class="text-[10px] text-slate-500 mt-1 block">
                   Select payment gateway for receiving cash.
@@ -317,14 +341,14 @@
             <!-- Wallet Number -->
             <div>
               <div class="flex items-center justify-between mb-1">
-                <label class="text-xs font-semibold text-slate-300">Account Details / Mobile Number</label>
+                <label class="text-xs font-semibold text-slate-300">Account Details / Wallet Address</label>
                 <button 
                   v-if="savedNumber && form.account_details !== savedNumber" 
                   type="button" 
                   @click="form.account_details = savedNumber"
                   class="text-[10px] text-indigo-400 hover:underline font-semibold"
                 >
-                  Use Saved Number ({{ savedNumber }})
+                  Use Saved ({{ savedNumber }})
                 </button>
               </div>
               <input 
@@ -333,8 +357,11 @@
                 required 
                 :disabled="!canWithdraw"
                 class="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-emerald-500" 
-                placeholder="017XXXXXXXX"
+                :placeholder="selectedMethodConfig?.account_placeholder || '017XXXXXXXX'"
               />
+              <span v-if="selectedMethodConfig?.instructions" class="text-[10px] text-indigo-300/80 mt-1.5 block">
+                ℹ️ {{ selectedMethodConfig.instructions }}
+              </span>
               <span v-if="form.errors.account_details" class="text-xs text-rose-400 mt-1 block">{{ form.errors.account_details }}</span>
             </div>
 
@@ -345,13 +372,15 @@
                 <span class="font-mono font-bold text-white">{{ form.amount_coins || 0 }} Pts</span>
               </div>
               <div class="flex justify-between text-slate-400" v-if="estimatedChargeCoins > 0">
-                <span v-if="form.payment_method === 'Mobile Recharge'">Fixed Processing Fee:</span>
-                <span v-else>Gateway Service Fee ({{ withdrawalChargePercent }}%):</span>
+                <span v-if="selectedMethodConfig?.fixed_charge > 0">Fixed Processing Fee:</span>
+                <span v-else>Gateway Service Fee ({{ selectedMethodConfig?.charge_percent || 0 }}%):</span>
                 <span class="text-rose-400 font-bold font-mono">-{{ estimatedChargeCoins }} Pts</span>
               </div>
               <div class="flex justify-between items-center pt-2 border-t border-slate-800">
                 <span class="font-bold text-slate-200">Net Amount Received:</span>
-                <span class="text-base font-black text-emerald-400">৳ {{ estimatedBDT }} BDT</span>
+                <span class="text-base font-black text-emerald-400 font-mono">
+                  {{ selectedMethodConfig?.currency_symbol || '৳' }} {{ estimatedPayout }} {{ selectedMethodConfig?.currency || 'BDT' }}
+                </span>
               </div>
             </div>
 
@@ -390,15 +419,8 @@
             class="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-emerald-500/20 transition-all group"
           >
             <!-- Method Icon -->
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
-              :class="{
-                'bg-pink-500/15 border border-pink-500/20': w.payment_method === 'bKash',
-                'bg-orange-500/15 border border-orange-500/20': w.payment_method === 'Nagad',
-                'bg-violet-500/15 border border-violet-500/20': w.payment_method === 'Rocket',
-                'bg-emerald-500/15 border border-emerald-500/20': w.payment_method === 'Mobile Recharge',
-              }"
-            >
-              {{ w.payment_method === 'bKash' ? '📱' : w.payment_method === 'Nagad' ? '🔶' : w.payment_method === 'Rocket' ? '🚀' : '📲' }}
+            <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl shrink-0">
+              {{ getMethodIcon(w.payment_method) }}
             </div>
 
             <!-- Details -->
@@ -414,7 +436,7 @@
 
             <!-- Amount -->
             <div class="text-right shrink-0">
-              <div class="text-sm font-black text-emerald-400">৳{{ w.amount_bdt }}</div>
+              <div class="text-sm font-black text-emerald-400 font-mono">{{ w.currency_symbol || '৳' }}{{ w.amount_bdt }} <span class="text-[10px] text-slate-400">{{ w.currency || 'BDT' }}</span></div>
               <div class="text-[10px] text-slate-500 font-mono">{{ w.amount_coins }} Pts</div>
             </div>
 
@@ -469,26 +491,50 @@ const props = defineProps({
   userStats: Object,
   withdrawals: Array,
   withdrawalChargePercent: Number,
-  mobileRechargeMinLimit: Number,
-  mobileRechargeFixedCharge: Number,
+  paymentMethods: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const showWalletModal = ref(false);
 const cooldownSeconds = ref(props.remainingSeconds || 0);
 let timerInterval = null;
 
+const initialMethod = computed(() => {
+  if (props.savedMethod) {
+    const found = props.paymentMethods.find(m => m.name === props.savedMethod || m.code === props.savedMethod);
+    if (found) return found.name;
+  }
+  return props.paymentMethods.length > 0 ? props.paymentMethods[0].name : 'bKash Personal';
+});
+
 // Payout Form State
 const form = useForm({
   amount_coins: props.minWithdrawCoins || 1000,
-  payment_method: props.savedMethod || 'bKash',
+  payment_method: initialMethod.value,
   account_details: props.savedNumber || '',
 });
 
 // Wallet Settings Form State
 const walletForm = useForm({
-  payment_method: props.savedMethod || 'bKash',
+  payment_method: initialMethod.value,
   payment_number: props.savedNumber || '',
   recovery_pin: '',
+});
+
+const savedMethodConfig = computed(() => {
+  return (props.paymentMethods || []).find(m => m.name === props.savedMethod || m.code === props.savedMethod);
+});
+
+const selectedWalletMethodConfig = computed(() => {
+  return (props.paymentMethods || []).find(m => m.name === walletForm.payment_method || m.code === walletForm.payment_method)
+    || (props.paymentMethods && props.paymentMethods.length > 0 ? props.paymentMethods[0] : null);
+});
+
+const selectedMethodConfig = computed(() => {
+  return (props.paymentMethods || []).find(m => m.name === form.payment_method || m.code === form.payment_method)
+    || (props.paymentMethods && props.paymentMethods.length > 0 ? props.paymentMethods[0] : null);
 });
 
 const handleMethodChange = () => {
@@ -498,34 +544,38 @@ const handleMethodChange = () => {
 };
 
 const activeMinLimit = computed(() => {
-  if (form.payment_method === 'Mobile Recharge') {
-    return props.mobileRechargeMinLimit || 500;
+  if (selectedMethodConfig.value && selectedMethodConfig.value.min_points) {
+    return selectedMethodConfig.value.min_points;
   }
   return props.minWithdrawCoins || 1000;
 });
 
 const estimatedChargeCoins = computed(() => {
   const coins = Number(form.amount_coins) || 0;
-  if (form.payment_method === 'Mobile Recharge') {
-    return props.mobileRechargeFixedCharge || 10;
+  if (!selectedMethodConfig.value) return 0;
+  let charge = 0;
+  if (selectedMethodConfig.value.fixed_charge > 0) {
+    charge += selectedMethodConfig.value.fixed_charge;
   }
-  const chargePercent = props.withdrawalChargePercent || 0;
-  return ((coins * chargePercent) / 100).toFixed(0);
+  if (selectedMethodConfig.value.charge_percent > 0) {
+    charge += (coins * selectedMethodConfig.value.charge_percent) / 100;
+  }
+  return Math.round(charge);
 });
 
-const estimatedBDT = computed(() => {
+const estimatedPayout = computed(() => {
   const coins = Number(form.amount_coins) || 0;
-  let chargeCoins = 0;
-  if (form.payment_method === 'Mobile Recharge') {
-    chargeCoins = props.mobileRechargeFixedCharge || 10;
-  } else {
-    const chargePercent = props.withdrawalChargePercent || 0;
-    chargeCoins = (coins * chargePercent) / 100;
-  }
-  const netCoins = coins - chargeCoins;
-  const rate = props.conversionRate || 100;
-  return Math.max(0, netCoins / rate).toFixed(2);
+  const charge = Number(estimatedChargeCoins.value) || 0;
+  const netCoins = coins - charge;
+  const rate = selectedMethodConfig.value?.conversion_rate || props.conversionRate || 100;
+  const decimals = selectedMethodConfig.value?.currency === 'USDT' || selectedMethodConfig.value?.currency === 'USD' ? 4 : 2;
+  return Math.max(0, netCoins / rate).toFixed(decimals);
 });
+
+const getMethodIcon = (methodName) => {
+  const found = (props.paymentMethods || []).find(m => m.name === methodName || m.code === methodName);
+  return found?.icon || '💳';
+};
 
 const formatTimer = (seconds) => {
   const h = Math.floor(seconds / 3600);

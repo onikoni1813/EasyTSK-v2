@@ -14,6 +14,8 @@ class Withdrawal extends Model
         'amount_coins',
         'charge_coins',
         'amount_bdt',
+        'currency',
+        'currency_symbol',
         'payment_method',
         'account_details',
         'status',

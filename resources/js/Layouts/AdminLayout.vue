@@ -69,6 +69,9 @@
         <Link :href="`${adminPath}/withdrawals`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/withdrawals`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>💸 Withdrawals Payout</span>
         </Link>
+        <Link :href="`${adminPath}/payment-methods`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/payment-methods`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
+          <span>💳 Payment Methods</span>
+        </Link>
         <Link :href="`${adminPath}/offerwalls`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/offerwalls`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>💰 Offerwalls Manager</span>
         </Link>

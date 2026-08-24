@@ -38,6 +38,8 @@ class AdminTaskReviewController extends Controller
                 ]);
             },
             'task',
+            'campaign.service',
+            'campaign.user',
             'screenshotHashes',
         ])
             ->where('status', 'pending')
@@ -57,7 +59,7 @@ class AdminTaskReviewController extends Controller
 
         $this->approveUserTask($userTask);
 
-        return back()->with('success', 'Task approved! Reward credited and proof image deleted from server disk.');
+        return back()->with('success', 'Task approved! Reward credited successfully.');
     }
 
     public function bulkApprove(Request $request)
@@ -68,7 +70,7 @@ class AdminTaskReviewController extends Controller
         ]);
 
         /** @var \Illuminate\Database\Eloquent\Collection<int, UserTask> $userTasks */
-        $userTasks = UserTask::with(['user', 'task'])
+        $userTasks = UserTask::with(['user', 'task', 'campaign'])
             ->whereIn('id', $request->ids)
             ->where('status', 'pending')
             ->get();
@@ -87,7 +89,9 @@ class AdminTaskReviewController extends Controller
      */
     private function approveUserTask(UserTask $userTask): void
     {
-        $success = DB::transaction(function () use ($userTask) {
+        $isCampaign = false;
+
+        $success = DB::transaction(function () use ($userTask, &$isCampaign) {
             $lockedTask = UserTask::where('id', $userTask->id)->lockForUpdate()->first();
             
             // Double check inside lock to prevent race conditions
@@ -96,24 +100,45 @@ class AdminTaskReviewController extends Controller
             }
 
             $lockedTask->update(['status' => 'approved']);
-
             $user = $lockedTask->user;
-            $task = $lockedTask->task;
 
-            $reward = (float) $task->reward_coins * AppSetting::rewardMultiplier();
-            $user->addMainBalance($reward);
-            \App\Models\Transaction::log($user, 'credit', $reward, "Reward for Task #{$task->id}: {$task->title}", 'task', (string)$task->id);
-            \App\Models\Notification::send($user, 'Task Approved! 🎉', "Your submission for '{$task->title}' was approved! +{$reward} coins credited.", 'success', '/tasks-history');
+            if ($lockedTask->campaign_id) {
+                $isCampaign = true;
+                $campaign = \App\Models\Campaign::where('id', $lockedTask->campaign_id)->lockForUpdate()->first();
+                if ($campaign) {
+                    $reward = (float) $campaign->cost_per_click;
+                    $user->addMainBalance($reward);
+                    \App\Models\Transaction::log($user, 'credit', $reward, "Reward for Campaign Task #{$campaign->id}: {$campaign->title}", 'campaign_task', (string)$campaign->id);
+                    \App\Models\Notification::send($user, 'Campaign Task Approved! 🎉', "Your submission for '{$campaign->title}' was approved! +{$reward} points credited.", 'success', '/tasks-history');
 
-            $this->gamificationService->awardXp($user, $task->reward_xp);
-            $this->referralService->recordReferredUserEarning($user, $reward);
-            $user->addHealth(1);
+                    $this->gamificationService->awardXp($user, 1);
+                    $this->referralService->recordReferredUserEarning($user, $reward);
+                    $user->addHealth(1);
+
+                    $campaign->increment('total_clicks');
+                    if ($campaign->fresh()->total_clicks >= $campaign->target_clicks) {
+                        $campaign->update(['status' => 'completed']);
+                    }
+                }
+            } else {
+                $task = $lockedTask->task;
+                if ($task) {
+                    $reward = (float) $task->reward_coins * AppSetting::rewardMultiplier();
+                    $user->addMainBalance($reward);
+                    \App\Models\Transaction::log($user, 'credit', $reward, "Reward for Task #{$task->id}: {$task->title}", 'task', (string)$task->id);
+                    \App\Models\Notification::send($user, 'Task Approved! 🎉', "Your submission for '{$task->title}' was approved! +{$reward} coins credited.", 'success', '/tasks-history');
+
+                    $this->gamificationService->awardXp($user, $task->reward_xp);
+                    $this->referralService->recordReferredUserEarning($user, $reward);
+                    $user->addHealth(1);
+                }
+            }
             
             return true;
         });
 
-        // Delete proof images on approval ONLY if transaction succeeded
-        if ($success) {
+        // Delete proof images on approval ONLY for standard admin tasks (keep for campaign creator inspection)
+        if ($success && !$isCampaign) {
             $this->storageSaverService->deleteUserTaskScreenshots($userTask);
         }
     }
@@ -128,7 +153,9 @@ class AdminTaskReviewController extends Controller
             return back()->withErrors(['message' => 'Task review has already been processed.']);
         }
 
-        $success = DB::transaction(function () use ($userTask, $request) {
+        $isCampaign = false;
+
+        $success = DB::transaction(function () use ($userTask, $request, &$isCampaign) {
             $lockedTask = UserTask::where('id', $userTask->id)->lockForUpdate()->first();
 
             // Double check inside lock to prevent race conditions
@@ -144,8 +171,12 @@ class AdminTaskReviewController extends Controller
             // Deduct health since the task was rejected
             if ($lockedTask->user) {
                 $lockedTask->user->deductHealth(10);
-                $taskTitle = $lockedTask->task ? $lockedTask->task->title : 'Micro Task';
+                $taskTitle = $lockedTask->campaign ? $lockedTask->campaign->title : ($lockedTask->task ? $lockedTask->task->title : 'Micro Task');
                 \App\Models\Notification::send($lockedTask->user, 'Task Rejected ❌', "Your submission for '{$taskTitle}' was rejected. Reason: {$request->admin_note}", 'danger', '/tasks-history');
+            }
+
+            if ($lockedTask->campaign_id) {
+                $isCampaign = true;
             }
             
             return true;
@@ -155,9 +186,11 @@ class AdminTaskReviewController extends Controller
             return back()->withErrors(['message' => 'Task review has already been processed concurrently.']);
         }
 
-        // Delete proof images on rejection ONLY if transaction succeeded
-        $this->storageSaverService->deleteUserTaskScreenshots($userTask);
+        // Delete proof images on rejection for standard admin tasks
+        if (!$isCampaign) {
+            $this->storageSaverService->deleteUserTaskScreenshots($userTask);
+        }
 
-        return back()->with('success', 'Task rejected. User health decreased by 10 and proof image deleted.');
+        return back()->with('success', 'Task rejected. User health decreased by 10.');
     }
 }

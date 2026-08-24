@@ -2,6 +2,33 @@
   <div class="min-h-screen flex flex-col pb-24 md:pb-0 overflow-x-hidden" style="background-color: #02040a;">
     <AntiAdblock />
 
+    <!-- ── Impersonation Alert Banner ──────────────────────────────────── -->
+    <div
+      v-if="$page.props.impersonating?.is_active"
+      class="sticky top-0 z-50 bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 border-b border-amber-400/40 text-white shadow-[0_4px_25px_rgba(245,158,11,0.4)]"
+    >
+      <div class="max-w-5xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="p-1 rounded-md bg-black/25 text-amber-200 animate-pulse text-xs shrink-0">⚠️</span>
+          <div class="truncate text-[11px] sm:text-xs">
+            <span class="font-bold uppercase tracking-wider bg-black/20 px-1.5 py-0.5 rounded text-[10px] text-amber-100 mr-1.5 hidden xs:inline">Admin Mode</span>
+            <span class="text-amber-100">Logged in as: <strong class="text-white underline">{{ user?.name }}</strong></span>
+            <span class="text-amber-200/80 text-[10px] ml-1.5 hidden sm:inline">(#{{ user?.id }} - {{ user?.phone }})</span>
+          </div>
+        </div>
+        <button
+          @click="leaveImpersonation"
+          :disabled="isLeavingImpersonation"
+          type="button"
+          class="shrink-0 px-3 py-1.5 bg-slate-950/85 hover:bg-slate-950 text-amber-300 hover:text-amber-100 font-black rounded-xl border border-amber-400/50 shadow-md text-[11px] sm:text-xs flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+        >
+          <span v-if="isLeavingImpersonation" class="animate-spin">⏳</span>
+          <span v-else>←</span>
+          <span>Switch Back to Admin</span>
+        </button>
+      </div>
+    </div>
+
     <!-- ── Top Header ─────────────────────────────────────────────────── -->
     <header class="sticky top-0 z-40 glass-card border-b border-white/5">
       <div class="max-w-5xl w-full mx-auto px-2.5 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-1.5 sm:gap-3">
@@ -38,9 +65,9 @@
           </div>
           <!-- Level Badge Button -->
           <Link
-            href="/dashboard"
+            href="/levels"
             class="px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-lg sm:rounded-xl bg-gradient-to-r from-violet-950/80 via-purple-900/60 to-indigo-950/80 border border-violet-500/40 hover:border-violet-400/80 shadow-[0_0_10px_rgba(139,92,246,0.25)] hover:shadow-[0_0_16px_rgba(139,92,246,0.4)] transition-all flex items-center gap-1 sm:gap-1.5 shrink-0 whitespace-nowrap active:scale-95 group cursor-pointer"
-            title="Your Level"
+            title="Level Hub & Perks"
           >
             <!-- Glowing Lightning SVG Icon -->
             <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 fill-amber-400/30 group-hover:scale-110 transition-transform drop-shadow-[0_0_6px_rgba(251,191,36,0.8)] shrink-0" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
@@ -204,6 +231,16 @@ const navClass = (path) => {
 };
 
 const logout = () => router.post('/logout');
+
+const isLeavingImpersonation = ref(false);
+const leaveImpersonation = () => {
+  isLeavingImpersonation.value = true;
+  router.post('/impersonate/leave', {}, {
+    onFinish: () => {
+      isLeavingImpersonation.value = false;
+    }
+  });
+};
 </script>
 
 <style scoped>

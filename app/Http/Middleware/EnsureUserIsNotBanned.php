@@ -16,6 +16,11 @@ class EnsureUserIsNotBanned
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // If an admin is impersonating a banned user, allow the admin to inspect the account without terminating the session
+        if (Auth::check() && $request->session()->has('impersonated_by_admin_id')) {
+            return $next($request);
+        }
+
         if (Auth::check() && Auth::user()->is_banned) {
             Auth::logout();
             $request->session()->invalidate();

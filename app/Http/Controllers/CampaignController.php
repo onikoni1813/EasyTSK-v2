@@ -18,44 +18,31 @@ class CampaignController extends Controller
         /** @var \App\Models\User $user */
         $user      = Auth::user();
         $campaigns = Campaign::with('service')
+            ->withCount(['userTasks as submissions_count'])
             ->where('user_id', $user->id)
             ->latest()
-            ->take(5)
+            ->take(10)
             ->get()
             ->map(fn(Campaign $c) => [
-                'id'             => $c->id,
-                'title'          => $c->title,
-                'description'    => $c->description,
-                'target_url'     => $c->target_url,
-                'type'           => $c->type ?: ($c->service->platform ?? 'other'),
-                'action'         => $c->action ?: ($c->service->action ?? ''),
-                'budget_points'  => (float) $c->budget_points,
-                'cost_per_click' => (float) $c->cost_per_click,
-                'total_clicks'   => $c->total_clicks,
-                'target_clicks'  => $c->target_clicks,
-                'status'         => $c->status,
-                'admin_note'     => $c->admin_note,
-                'progress'       => $c->progressPercent(),
-                'created_at'     => $c->created_at->diffForHumans(),
+                'id'                => $c->id,
+                'title'             => $c->title,
+                'description'       => $c->description,
+                'target_url'        => $c->target_url,
+                'type'              => $c->type ?: ($c->service->platform ?? 'other'),
+                'action'            => $c->action ?: ($c->service->action ?? ''),
+                'proof_type'        => $c->proof_type ?: 'screenshot',
+                'proof_instruction' => $c->proof_instruction,
+                'secret_code'       => $c->secret_code,
+                'budget_points'     => (float) $c->budget_points,
+                'cost_per_click'    => (float) $c->cost_per_click,
+                'total_clicks'      => $c->total_clicks,
+                'target_clicks'     => $c->target_clicks,
+                'submissions_count' => $c->submissions_count,
+                'status'            => $c->status,
+                'admin_note'        => $c->admin_note,
+                'progress'          => $c->progressPercent(),
+                'created_at'        => $c->created_at->diffForHumans(),
             ]);
-
-        // Active campaigns from OTHER users that this user can click
-        $activeCampaigns = Campaign::with('service')
-            ->where('status', 'active')
-            ->where('user_id', '!=', $user->id)
-            ->whereRaw('total_clicks < target_clicks')
-            ->whereDoesntHave('clicks', fn($q) => $q->where('user_id', $user->id))
-            ->get()
-            ->map(function ($campaign) {
-                return [
-                    'id'             => $campaign->id,
-                    'title'          => $campaign->title,
-                    'type'           => $campaign->type ?: ($campaign->service->platform ?? 'other'),
-                    'action'         => $campaign->action ?: ($campaign->service->action ?? ''),
-                    'cost_per_click' => (float) $campaign->cost_per_click,
-                    'target_url'     => $campaign->target_url,
-                ];
-            });
 
         $services = CampaignService::where('is_active', true)->get();
 
@@ -71,7 +58,6 @@ class CampaignController extends Controller
                 'health'          => (int) $user->health,
             ],
             'myCampaigns'     => $campaigns,
-            'activeCampaigns' => $activeCampaigns,
             'services'        => $services,
             'settings'        => [
                 'min_budget'      => 100,
@@ -82,20 +68,37 @@ class CampaignController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title'               => 'required|string|max:100',
-            'description'         => 'nullable|string|max:1000',
-            'target_url'          => 'required|url|max:2048',
             'campaign_service_id' => 'required|exists:campaign_services,id',
-            'target_clicks'       => 'required|integer|min:50|max:100000',
         ]);
 
         /** @var \App\Models\User $user */
-        $user          = Auth::user();
-        $service       = CampaignService::findOrFail($request->campaign_service_id);
+        $user    = Auth::user();
+        $service = CampaignService::findOrFail($request->campaign_service_id);
 
         if (!$service->is_active) {
             return back()->withErrors(['campaign_service_id' => 'The selected campaign service is not active.']);
         }
+
+        $minClicks = (int) ($service->min_clicks ?: 50);
+        $maxClicks = (int) ($service->max_clicks ?: 5000);
+
+        $proofType = $request->input('proof_type', 'screenshot');
+        $needsSecretCode = in_array($proofType, ['secret_code', 'screenshot_code', 'username_code', 'all']);
+
+        $request->validate([
+            'title'               => 'required|string|max:100',
+            'description'         => 'nullable|string|max:1000',
+            'target_url'          => 'required|url|max:2048',
+            'campaign_service_id' => 'required|exists:campaign_services,id',
+            'proof_type'          => 'required|in:screenshot,username_link,secret_code,screenshot_username,screenshot_code,username_code,all',
+            'proof_instruction'   => 'nullable|string|max:1000',
+            'secret_code'         => $needsSecretCode ? 'required|string|min:1|max:255' : 'nullable|string|max:255',
+            'target_clicks'       => "required|integer|min:{$minClicks}|max:{$maxClicks}",
+        ], [
+            'target_clicks.min'    => "Minimum clicks required for {$service->platform} is {$minClicks}.",
+            'target_clicks.max'    => "Maximum clicks allowed for {$service->platform} is {$maxClicks}.",
+            'secret_code.required' => 'Expected Secret Code is required when Secret Code verification is selected.',
+        ]);
         
         $costPerClick  = (float) $service->clicker_reward;
         $costPerClickForCreator = (float) $service->creator_cost;
@@ -115,14 +118,18 @@ class CampaignController extends Controller
             $lockedUser->decrement('main_balance', $totalBudget);
 
             // Create campaign
+            $instruction = $request->proof_instruction ?: $request->description;
             $newCampaign = Campaign::create([
                 'user_id'             => $lockedUser->id,
                 'title'               => $request->title,
-                'description'         => $request->description,
+                'description'         => $instruction,
                 'target_url'          => $request->target_url,
                 'campaign_service_id' => $service->id,
-                'type'                => strtolower($service->platform), // fallback for old UI logic
-                'action'              => $service->action, // fallback for old UI logic
+                'type'                => strtolower($service->platform),
+                'action'              => $service->action,
+                'proof_type'          => $request->proof_type,
+                'proof_instruction'   => $instruction,
+                'secret_code'         => $request->secret_code,
                 'target_clicks'       => $request->target_clicks,
                 'cost_per_click'      => $costPerClick,
                 'budget_points'       => $totalBudget,
@@ -137,7 +144,49 @@ class CampaignController extends Controller
             return back()->withErrors(['error' => 'Could not create campaign.']);
         }
 
-        return back()->with('success', 'Campaign submitted for review! It will go live once approved.');
+        return back()->with('success', 'Campaign submitted for review! It will go live in the Tasks section once approved.');
+    }
+
+    /**
+     * Get submissions & proofs for a campaign (for the campaign owner)
+     */
+    public function submissions(Campaign $campaign)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($campaign->user_id !== $user->id && !$user->isAdmin()) {
+            return response()->json(['error' => 'Unauthorized access.'], 403);
+        }
+
+        $submissions = \App\Models\UserTask::with(['user:id,name,phone', 'screenshotHashes'])
+            ->where('campaign_id', $campaign->id)
+            ->latest()
+            ->get()
+            ->map(function ($ut) {
+                return [
+                    'id'              => $ut->id,
+                    'user_name'       => $ut->user ? $ut->user->name : 'Worker',
+                    'user_phone'      => $ut->user ? (substr($ut->user->phone, 0, 3) . '***' . substr($ut->user->phone, -3)) : '',
+                    'status'          => $ut->status,
+                    'submitted_data'  => $ut->submitted_data,
+                    'screenshot_path' => $ut->submitted_data['screenshot_path'] ?? ($ut->screenshotHashes->first()?->file_path ?? null),
+                    'admin_note'      => $ut->admin_note,
+                    'submitted_at'    => $ut->created_at ? $ut->created_at->format('M d, Y · H:i') : '',
+                ];
+            });
+
+        return response()->json([
+            'campaign' => [
+                'id'                => $campaign->id,
+                'title'             => $campaign->title,
+                'total_clicks'      => $campaign->total_clicks,
+                'target_clicks'     => $campaign->target_clicks,
+                'proof_type'        => $campaign->proof_type,
+                'proof_instruction' => $campaign->proof_instruction,
+            ],
+            'submissions' => $submissions,
+        ]);
     }
 
     /**
@@ -224,24 +273,28 @@ class CampaignController extends Controller
         $user = Auth::user();
         
         $campaigns = Campaign::with('service')
+            ->withCount(['userTasks as submissions_count'])
             ->where('user_id', $user->id)
             ->latest()
-            ->get()
-            ->map(fn(Campaign $c) => [
-                'id'             => $c->id,
-                'title'          => $c->title,
-                'description'    => $c->description,
-                'target_url'     => $c->target_url,
-                'type'           => $c->type ?: ($c->service->platform ?? 'other'),
-                'action'         => $c->action ?: ($c->service->action ?? ''),
-                'budget_points'  => (float) $c->budget_points,
-                'cost_per_click' => (float) $c->cost_per_click,
-                'total_clicks'   => $c->total_clicks,
-                'target_clicks'  => $c->target_clicks,
-                'status'         => $c->status,
-                'admin_note'     => $c->admin_note,
-                'progress'       => $c->progressPercent(),
-                'created_at'     => $c->created_at->diffForHumans(),
+            ->paginate(15)
+            ->through(fn(Campaign $c) => [
+                'id'                => $c->id,
+                'title'             => $c->title,
+                'description'       => $c->description,
+                'target_url'        => $c->target_url,
+                'type'              => $c->type ?: ($c->service->platform ?? 'other'),
+                'action'            => $c->action ?: ($c->service->action ?? ''),
+                'proof_type'        => $c->proof_type ?: 'screenshot',
+                'proof_instruction' => $c->proof_instruction,
+                'budget_points'     => (float) $c->budget_points,
+                'cost_per_click'    => (float) $c->cost_per_click,
+                'total_clicks'      => $c->total_clicks,
+                'target_clicks'     => $c->target_clicks,
+                'submissions_count' => $c->submissions_count,
+                'status'            => $c->status,
+                'admin_note'        => $c->admin_note,
+                'progress'          => $c->progressPercent(),
+                'created_at'        => $c->created_at->diffForHumans(),
             ]);
 
         return Inertia::render('Campaigns/History', [

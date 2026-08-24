@@ -12,6 +12,7 @@ class UserTask extends Model
     protected $fillable = [
         'user_id',
         'task_id',
+        'campaign_id',
         'status',
         'submitted_data',
         'ip_address',
@@ -30,6 +31,11 @@ class UserTask extends Model
     public function task()
     {
         return $this->belongsTo(Task::class);
+    }
+
+    public function campaign()
+    {
+        return $this->belongsTo(Campaign::class);
     }
 
     public function screenshotHashes()

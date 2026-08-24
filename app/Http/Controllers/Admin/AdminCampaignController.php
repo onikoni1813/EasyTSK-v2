@@ -28,21 +28,24 @@ class AdminCampaignController extends Controller
                     'title'          => $c->title,
                     'description'    => $c->description,
                     'target_url'     => $c->target_url,
-                    'type'           => $c->type ?? ($c->service->platform ?? 'other'),
-                    'action'         => $c->action ?? ($c->service->action ?? ''),
-                    'budget_points'  => (float) $c->budget_points,
-                    'cost_per_click' => (float) $c->cost_per_click,
-                    'total_clicks'   => (int) $c->total_clicks,
-                    'target_clicks'  => (int) $c->target_clicks,
-                    'status'         => $c->status,
-                    'admin_note'     => $c->admin_note,
-                    'progress'       => $c->progressPercent(),
-                    'user'           => [
+                    'type'              => $c->type ?? ($c->service->platform ?? 'other'),
+                    'action'            => $c->action ?? ($c->service->action ?? ''),
+                    'proof_type'        => $c->proof_type ?? 'screenshot',
+                    'proof_instruction' => $c->proof_instruction,
+                    'secret_code'       => $c->secret_code,
+                    'budget_points'     => (float) $c->budget_points,
+                    'cost_per_click'    => (float) $c->cost_per_click,
+                    'total_clicks'      => (int) $c->total_clicks,
+                    'target_clicks'     => (int) $c->target_clicks,
+                    'status'            => $c->status,
+                    'admin_note'        => $c->admin_note,
+                    'progress'          => $c->progressPercent(),
+                    'user'              => [
                         'id'    => $c->user->id ?? 0,
                         'name'  => $c->user->name ?? 'Unknown',
                         'email' => $c->user->email ?? 'N/A',
                     ],
-                    'created_at'     => $c->created_at ? $c->created_at->diffForHumans() : '',
+                    'created_at'        => $c->created_at ? $c->created_at->diffForHumans() : '',
                 ];
             });
 
@@ -205,10 +208,14 @@ class AdminCampaignController extends Controller
             'action'         => 'required|string|max:255',
             'creator_cost'   => 'required|numeric|min:0.01|gte:clicker_reward',
             'clicker_reward' => 'required|numeric|min:0.01',
+            'min_clicks'     => 'required|integer|min:1|lte:max_clicks',
+            'max_clicks'     => 'required|integer|min:1|gte:min_clicks',
             'requires_proof' => 'boolean',
             'is_active'      => 'boolean',
         ], [
             'creator_cost.gte' => 'Creator Cost must be greater than or equal to User Reward to maintain a positive margin.',
+            'min_clicks.lte'   => 'Minimum Clicks must be less than or equal to Maximum Clicks.',
+            'max_clicks.gte'   => 'Maximum Clicks must be greater than or equal to Minimum Clicks.',
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
@@ -229,10 +236,14 @@ class AdminCampaignController extends Controller
             'action'         => 'required|string|max:255',
             'creator_cost'   => 'required|numeric|min:0.01|gte:clicker_reward',
             'clicker_reward' => 'required|numeric|min:0.01',
+            'min_clicks'     => 'required|integer|min:1|lte:max_clicks',
+            'max_clicks'     => 'required|integer|min:1|gte:min_clicks',
             'requires_proof' => 'boolean',
             'is_active'      => 'boolean',
         ], [
             'creator_cost.gte' => 'Creator Cost must be greater than or equal to User Reward to maintain a positive margin.',
+            'min_clicks.lte'   => 'Minimum Clicks must be less than or equal to Maximum Clicks.',
+            'max_clicks.gte'   => 'Maximum Clicks must be greater than or equal to Minimum Clicks.',
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);

@@ -95,16 +95,21 @@
 
           <!-- Dynamic XP Progress Bar -->
           <div class="mt-5 space-y-1.5">
-            <div class="flex justify-between text-[11px] font-semibold">
+            <div class="flex items-center justify-between text-[11px] font-semibold">
               <span class="text-slate-400">Level {{ user.level }} Progress ({{ user.xp_points }} / {{ user.next_level_xp }} XP)</span>
-              <span class="text-indigo-400">{{ xpPercent }}% → Level {{ user.next_level_number }}</span>
+              <Link href="/levels" class="text-indigo-400 hover:text-indigo-300 hover:underline flex items-center gap-1 font-bold">
+                <span>{{ xpPercent }}% → Level {{ user.next_level_number }}</span>
+                <span class="text-xs">➔</span>
+              </Link>
             </div>
-            <div class="progress-track">
-              <div
-                class="progress-fill bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400"
-                :style="{ width: xpPercent + '%' }"
-              ></div>
-            </div>
+            <Link href="/levels" class="block group cursor-pointer" title="View Level Roadmap & Perks">
+              <div class="progress-track group-hover:ring-1 group-hover:ring-indigo-500/50 transition-all">
+                <div
+                  class="progress-fill bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400"
+                  :style="{ width: xpPercent + '%' }"
+                ></div>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

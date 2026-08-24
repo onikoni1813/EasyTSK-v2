@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Models\Campaign;
+use App\Models\Notification;
 use App\Models\OfferwallLog;
 use App\Models\Task;
+use App\Models\Transaction;
 use App\Models\UserTask;
 use App\Services\GamificationService;
 use App\Services\ReferralService;
@@ -83,15 +86,21 @@ class TaskController extends Controller
         $isLocked = $pendingTasksCount > 0;
 
         $taskHistory = UserTask::where('user_id', $user->id)
-            ->with('task:id,title,reward_coins,type')
+            ->with(['task:id,title,reward_coins,type', 'campaign:id,title,cost_per_click,type'])
             ->latest()
             ->take(5)
             ->get()
             ->map(fn(UserTask $ut) => [
                 'id'          => $ut->id,
-                'task_title'  => $ut->task?->title ?? 'Deleted Task',
-                'task_type'   => $ut->task?->type ?? 'shortlink',
-                'reward_coins'=> (float) ($ut->task?->reward_coins ?? 0),
+                'task_title'  => $ut->campaign_id 
+                    ? ($ut->campaign?->title ?? 'Deleted Campaign') 
+                    : ($ut->task?->title ?? 'Deleted Task'),
+                'task_type'   => $ut->campaign_id 
+                    ? 'community' 
+                    : ($ut->task?->type ?? 'shortlink'),
+                'reward_coins'=> (float) ($ut->campaign_id 
+                    ? ($ut->campaign?->cost_per_click ?? 0) 
+                    : ($ut->task?->reward_coins ?? 0)),
                 'status'      => $ut->status,
                 'admin_note'  => $ut->admin_note,
                 'submitted_at'=> $ut->created_at->format('M d, Y · H:i'),
@@ -118,20 +127,74 @@ class TaskController extends Controller
             'completed_count' => OfferwallLog::where('user_id', $user->id)->whereIn('status', ['approved', 'pending'])->count(),
         ];
 
+        // Active Community Campaigns (rendered in background when locked or live)
+        $communityCampaigns = \App\Models\Campaign::with(['service', 'user:id,name'])
+            ->where('status', 'active')
+            ->whereRaw('total_clicks < target_clicks')
+            ->latest()
+            ->get()
+            ->map(function (\App\Models\Campaign $campaign) use ($user) {
+                $isOwn = (int) $campaign->user_id === (int) $user->id;
+                $userSubmission = UserTask::where('user_id', $user->id)
+                    ->where('campaign_id', $campaign->id)
+                    ->latest()
+                    ->first();
+
+                return [
+                    'id'                => $campaign->id,
+                    'is_own'            => $isOwn,
+                    'title'             => $campaign->title,
+                    'description'       => $campaign->description,
+                    'target_url'        => $campaign->target_url,
+                    'platform'          => $campaign->type ?: ($campaign->service->platform ?? 'other'),
+                    'action'            => $campaign->action ?: ($campaign->service->action ?? ''),
+                    'proof_type'        => $campaign->proof_type ?: 'screenshot',
+                    'proof_instruction' => $campaign->proof_instruction,
+                    'cost_per_click'    => (float) $campaign->cost_per_click,
+                    'total_clicks'      => $campaign->total_clicks,
+                    'target_clicks'     => $campaign->target_clicks,
+                    'creator_name'      => $isOwn ? 'You' : ($campaign->user?->name ?? 'Community Advertiser'),
+                    'user_status'       => $userSubmission ? $userSubmission->status : null,
+                    'admin_note'        => $userSubmission ? $userSubmission->admin_note : null,
+                ];
+            })
+            ->values();
+
+        // ── Progression Tier Calculations ──
+        // Tier 1: System Tasks remaining
+        $pendingSystemTasksCount = $tasks->filter(function($t) {
+            return !in_array($t->user_status, ['pending', 'approved']);
+        })->count();
+
+        // Tier 2: Community Campaigns remaining & locked state (excluding user's own campaigns)
+        $communityLocked = $pendingSystemTasksCount > 0;
+        $pendingCommunityCount = $communityCampaigns
+            ->filter(fn($c) => !$c['is_own'])
+            ->filter(fn($c) => !in_array($c['user_status'], ['pending', 'approved']))
+            ->count();
+
+        // Tier 3: Offerwall locked state (Unlocks after System Tasks + Community Campaigns)
+        $isOfferwallLocked = $pendingSystemTasksCount > 0 || $pendingCommunityCount > 0;
+        $totalPendingForOfferwall = $pendingSystemTasksCount + $pendingCommunityCount;
+
         return Inertia::render('Tasks/Index', [
-            'tasks' => $tasks,
-            'userLevel' => $user->level,
-            'offerwalls' => $offerwalls,
-            'is_locked' => $isLocked,
-            'pending_tasks_count' => $pendingTasksCount,
-            'health_gate_active' => $user->isHealthGateActive(),
-            'health_gate_expires_at' => $user->isHealthGateActive()
+            'tasks'                      => $tasks,
+            'communityCampaigns'         => $communityCampaigns,
+            'community_locked'           => $communityLocked,
+            'pending_system_tasks_count' => $pendingSystemTasksCount,
+            'community_pending_count'    => $pendingCommunityCount,
+            'userLevel'                  => $user->level,
+            'offerwalls'                 => $offerwalls,
+            'is_locked'                  => $isOfferwallLocked,
+            'pending_tasks_count'        => $totalPendingForOfferwall,
+            'health_gate_active'         => $user->isHealthGateActive(),
+            'health_gate_expires_at'     => $user->isHealthGateActive()
                 ? $user->health_depleted_at->addHours(24)->toIso8601String()
                 : null,
-            'taskHistory' => $taskHistory,
-            'offerwallPendingHours' => AppSetting::offerwallPendingHours(),
-            'offerwallLogs' => $offerwallLogs,
-            'offerwallStats' => $offerwallStats,
+            'taskHistory'                => $taskHistory,
+            'offerwallPendingHours'      => AppSetting::offerwallPendingHours(),
+            'offerwallLogs'              => $offerwallLogs,
+            'offerwallStats'             => $offerwallStats,
         ]);
     }
 
@@ -432,14 +495,20 @@ class TaskController extends Controller
         $user = Auth::user();
         
         $taskHistory = UserTask::where('user_id', $user->id)
-            ->with('task:id,title,reward_coins,type')
+            ->with(['task:id,title,reward_coins,type', 'campaign:id,title,cost_per_click,type'])
             ->latest()
             ->paginate(15)
             ->through(fn(UserTask $ut) => [
                 'id'          => $ut->id,
-                'task_title'  => $ut->task?->title ?? 'Deleted Task',
-                'task_type'   => $ut->task?->type ?? 'shortlink',
-                'reward_coins'=> (float) ($ut->task?->reward_coins ?? 0),
+                'task_title'  => $ut->campaign_id 
+                    ? ($ut->campaign?->title ?? 'Deleted Campaign') 
+                    : ($ut->task?->title ?? 'Deleted Task'),
+                'task_type'   => $ut->campaign_id 
+                    ? 'community' 
+                    : ($ut->task?->type ?? 'shortlink'),
+                'reward_coins'=> (float) ($ut->campaign_id 
+                    ? ($ut->campaign?->cost_per_click ?? 0) 
+                    : ($ut->task?->reward_coins ?? 0)),
                 'status'      => $ut->status,
                 'admin_note'  => $ut->admin_note,
                 'submitted_at'=> $ut->created_at->format('M d, Y · H:i'),
@@ -448,5 +517,204 @@ class TaskController extends Controller
         return Inertia::render('Tasks/History', [
             'taskHistory' => $taskHistory,
         ]);
+    }
+
+    /**
+     * Submit Proof for a Community Campaign Task
+     */
+    public function submitCampaignProof(Request $request, \App\Models\Campaign $campaign)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if ($user->isHealthGateActive()) {
+            return back()->withErrors(['message' => 'Your Health has hit 0 due to recent rejections. Submissions are locked for 24 hours.']);
+        }
+
+        if ($campaign->status !== 'active') {
+            return back()->withErrors(['message' => 'This campaign is no longer active.']);
+        }
+
+        if ($campaign->user_id === $user->id) {
+            return back()->withErrors(['message' => 'You cannot complete your own campaign task.']);
+        }
+
+        if ($campaign->total_clicks >= $campaign->target_clicks) {
+            return back()->withErrors(['message' => 'This campaign has already reached its target limit.']);
+        }
+
+        // Enforce progression tier: Must complete all active official tasks first
+        $activeSystemTasks = Task::where('status', 'active')->get();
+        foreach ($activeSystemTasks as $st) {
+            $lastCompletion = UserTask::where('task_id', $st->id)
+                ->where(function($q) use ($user, $request) {
+                    $q->where('user_id', $user->id)
+                      ->orWhere('ip_address', $request->ip());
+                })
+                ->whereIn('status', ['pending', 'approved'])
+                ->latest()
+                ->first();
+
+            // If task has already been completed and is in cooldown (or one-time completed), it is not pending
+            if ($st->cooldown_hours == 0 && $lastCompletion) {
+                continue;
+            }
+            if ($st->cooldown_hours > 0 && $lastCompletion) {
+                $hoursSince = $lastCompletion->created_at->diffInHours(now());
+                if ($hoursSince < $st->cooldown_hours) {
+                    continue;
+                }
+            }
+
+            $done = UserTask::where('user_id', $user->id)
+                ->where('task_id', $st->id)
+                ->whereIn('status', ['pending', 'approved'])
+                ->exists();
+            if (!$done) {
+                return back()->withErrors(['message' => 'Please complete all official Task Engine tasks first to unlock Community Campaigns.']);
+            }
+        }
+
+        // Prevent duplicate active submission
+        $existing = UserTask::where('campaign_id', $campaign->id)
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->first();
+
+        if ($existing) {
+            return back()->withErrors(['message' => 'You have already submitted proof for this campaign.']);
+        }
+
+        // Validate proofs based on campaign proof_type
+        $proofType = $campaign->proof_type ?: 'screenshot';
+        $rules = [];
+
+        if (in_array($proofType, ['screenshot', 'screenshot_username', 'screenshot_code', 'all'])) {
+            $rules['screenshot'] = 'required|image|max:5120';
+        }
+        if (in_array($proofType, ['username_link', 'screenshot_username', 'username_code', 'all'])) {
+            $rules['username_link'] = 'required|string|max:500';
+        }
+        if (in_array($proofType, ['secret_code', 'screenshot_code', 'username_code', 'all'])) {
+            $rules['secret_code'] = 'required|string|max:255';
+        }
+
+        $validated = $request->validate($rules);
+
+        // Concurrency lock per user & campaign
+        $lock = \Illuminate\Support\Facades\Cache::lock("campaign_submit_{$user->id}_{$campaign->id}", 15);
+        if (!$lock->get()) {
+            return back()->withErrors(['message' => 'Please wait a moment before submitting again.']);
+        }
+
+        try {
+            $submittedData = [
+                'proof_type'    => $proofType,
+                'username_link' => $request->input('username_link'),
+                'secret_code'   => $request->input('secret_code'),
+            ];
+
+            // ── Verify Secret Code if required ──
+            if (in_array($proofType, ['secret_code', 'screenshot_code', 'username_code', 'all']) && !empty($campaign->secret_code)) {
+                $submittedCode = trim((string) $request->input('secret_code'));
+                $expectedCode  = trim((string) $campaign->secret_code);
+
+                if (strcasecmp($submittedCode, $expectedCode) !== 0) {
+                    // Incorrect secret code -> Deduct 10 HP and log rejected attempt for creator
+                    $user->deductHealth(10);
+
+                    UserTask::create([
+                        'user_id'        => $user->id,
+                        'campaign_id'    => $campaign->id,
+                        'task_id'        => null,
+                        'status'         => 'rejected',
+                        'admin_note'     => 'Incorrect secret code entered (-10 Health points deducted)',
+                        'ip_address'     => $request->ip(),
+                        'submitted_data' => $submittedData,
+                    ]);
+
+                    return back()->withErrors(['message' => 'Incorrect secret code! 10 Health points deducted.']);
+                }
+            }
+
+            // ── Auto-Approve pure Secret Code / Username + Code tasks ──
+            if (in_array($proofType, ['secret_code', 'username_code'])) {
+                DB::transaction(function () use ($user, $campaign, $submittedData, $request) {
+                    UserTask::create([
+                        'user_id'        => $user->id,
+                        'campaign_id'    => $campaign->id,
+                        'task_id'        => null,
+                        'status'         => 'approved',
+                        'admin_note'     => 'Auto-approved (Secret code verified)',
+                        'ip_address'     => $request->ip(),
+                        'submitted_data' => $submittedData,
+                    ]);
+
+                    $reward = (float) $campaign->cost_per_click * AppSetting::rewardMultiplier();
+                    $user->addMainBalance($reward);
+                    $this->gamificationService->awardXp($user, 10);
+                    $this->referralService->recordReferredUserEarning($user, $reward);
+                    $user->addHealth(1);
+
+                    // Increment campaign clicks & complete if target reached
+                    $lockedCampaign = Campaign::where('id', $campaign->id)->lockForUpdate()->first();
+                    $lockedCampaign->increment('total_clicks');
+                    if ($lockedCampaign->total_clicks >= $lockedCampaign->target_clicks) {
+                        $lockedCampaign->update(['status' => 'completed']);
+                    }
+
+                    Transaction::log(
+                        $user,
+                        'credit',
+                        $reward,
+                        "Earned from Community Campaign: {$campaign->title}",
+                        'campaign_earn',
+                        (string) $campaign->id
+                    );
+
+                    Notification::send(
+                        $user->id,
+                        '🎉 Campaign Task Auto-Approved!',
+                        "Secret code matched! +{$reward} coins added to your main balance.",
+                        'success',
+                        '/tasks'
+                    );
+                });
+
+                return back()->with('success', 'Secret code verified! Task approved automatically and reward credited.');
+            }
+
+            // ── Tasks with Screenshot -> Pending Admin Review ──
+            $userTask = UserTask::create([
+                'user_id'        => $user->id,
+                'campaign_id'    => $campaign->id,
+                'task_id'        => null,
+                'status'         => 'pending',
+                'ip_address'     => $request->ip(),
+                'submitted_data' => $submittedData,
+            ]);
+
+            if ($request->hasFile('screenshot')) {
+                $result = $this->storageSaverService->processAndVerifyScreenshot(
+                    $request->file('screenshot'),
+                    $user->id,
+                    $userTask->id
+                );
+
+                if (!$result['success']) {
+                    $userTask->delete();
+                    return back()->withErrors(['screenshot' => $result['message']]);
+                }
+
+                $submittedData['screenshot_hash'] = $result['hash'];
+                $submittedData['screenshot_path'] = $result['path'];
+                $userTask->update(['submitted_data' => $submittedData]);
+            }
+
+            return back()->with('success', 'Campaign task submitted successfully! It is now pending admin review.');
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['message' => 'Could not submit task proof. Please try again.']);
+        }
     }
 }

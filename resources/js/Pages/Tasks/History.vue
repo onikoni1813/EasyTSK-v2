@@ -34,6 +34,7 @@
             <!-- Type Icon -->
             <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
               :class="{
+                'bg-violet-500/15 border border-violet-500/20 text-violet-300': item.task_type === 'community',
                 'bg-indigo-500/15 border border-indigo-500/20': item.task_type === 'shortlink',
                 'bg-amber-500/15 border border-amber-500/20': item.task_type === 'secret_code',
                 'bg-emerald-500/15 border border-emerald-500/20': item.task_type === 'social',
@@ -45,6 +46,7 @@
             <!-- Task Info -->
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+                <span v-if="item.task_type === 'community'" class="px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 text-[10px] font-bold">📢 Community</span>
                 <span class="text-sm font-bold text-white truncate">{{ item.task_title }}</span>
                 <!-- Status Badge -->
                 <span class="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase"
@@ -57,7 +59,7 @@
                   {{ item.status === 'pending' ? '⏳ Review' : item.status === 'approved' ? '✅ Approved' : '❌ Rejected' }}
                 </span>
               </div>
-              <div class="text-xs text-slate-500">{{ item.submitted_at }}</div>
+              <div class="text-xs text-slate-500">{{ item.created_at || item.submitted_at }}</div>
               <!-- Admin Note for Rejected -->
               <div v-if="item.status === 'rejected' && item.admin_note"
                 class="mt-1.5 text-[11px] text-rose-400 bg-rose-500/10 px-2.5 py-1.5 rounded-lg border border-rose-500/15 inline-block"
@@ -107,6 +109,7 @@ const props = defineProps({
 
 const taskIcon = (type) => {
   switch (type) {
+    case 'community': return '📢';
     case 'shortlink': return '🔗';
     case 'secret_code': return '🔑';
     case 'social': return '📱';

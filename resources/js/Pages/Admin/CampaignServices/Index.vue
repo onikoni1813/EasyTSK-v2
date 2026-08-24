@@ -92,8 +92,16 @@
                       </div>
                     </div>
 
+                    <!-- Clicks Limit Indicator -->
+                    <div class="mt-2 bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-1.5 flex justify-between items-center">
+                      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Clicks Range:</span>
+                      <span class="text-xs font-bold text-amber-300 font-mono">
+                        {{ service.min_clicks ?? 50 }} – {{ Number(service.max_clicks ?? 5000).toLocaleString() }} <span class="text-[9px] font-normal text-slate-500">clicks</span>
+                      </span>
+                    </div>
+
                     <!-- Profit Margin Indicator -->
-                    <div class="mt-2.5 bg-indigo-950/40 border border-indigo-800/40 rounded-xl px-3 py-1.5 flex justify-between items-center">
+                    <div class="mt-2 bg-indigo-950/40 border border-indigo-800/40 rounded-xl px-3 py-1.5 flex justify-between items-center">
                       <span class="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">System Margin</span>
                       <span class="text-xs font-extrabold" :class="(parseFloat(service.creator_cost) - parseFloat(service.clicker_reward)) >= 0 ? 'text-cyan-300' : 'text-rose-400'">
                         {{ (parseFloat(service.creator_cost) - parseFloat(service.clicker_reward)) >= 0 ? '+' : '' }}{{ (parseFloat(service.creator_cost) - parseFloat(service.clicker_reward)).toFixed(2) }} <span class="text-[9px] font-normal text-indigo-400">pts/click</span>
@@ -114,7 +122,7 @@
               <h2 class="text-lg font-bold text-white flex items-center gap-2">
                 <span class="text-xl">✨</span> Add New Service
               </h2>
-              <p class="text-xs text-slate-400 mt-1">Configure pricing for a new platform action</p>
+              <p class="text-xs text-slate-400 mt-1">Configure pricing & click limits for a new platform action</p>
             </div>
             
             <form @submit.prevent="createService" class="space-y-4">
@@ -142,7 +150,7 @@
                 <p v-if="serviceForm.errors.action" class="text-xs text-rose-400 mt-1 font-medium">{{ serviceForm.errors.action }}</p>
               </div>
               
-              <div class="grid grid-cols-2 gap-4 pt-2">
+              <div class="grid grid-cols-2 gap-4 pt-1">
                 <div class="space-y-1">
                   <label class="block text-[11px] font-bold text-rose-400 uppercase tracking-wider pl-1" title="Cost charged to the campaign creator">Creator Cost</label>
                   <div class="relative">
@@ -165,6 +173,33 @@
                            class="w-full pl-8 pr-2 py-2.5 bg-slate-950/50 border border-emerald-900/30 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-sm text-white font-mono transition-all shadow-inner" />
                   </div>
                   <p v-if="serviceForm.errors.clicker_reward" class="text-xs text-rose-400 mt-1 font-medium">{{ serviceForm.errors.clicker_reward }}</p>
+                </div>
+              </div>
+
+              <!-- Min / Max Clicks Limit -->
+              <div class="grid grid-cols-2 gap-4 pt-1">
+                <div class="space-y-1">
+                  <label class="block text-[11px] font-bold text-amber-400 uppercase tracking-wider pl-1" title="Minimum clicks required per campaign">Min Clicks</label>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span class="text-slate-500 text-xs">🎯</span>
+                    </div>
+                    <input v-model="serviceForm.min_clicks" type="number" min="1" step="1" required 
+                           class="w-full pl-8 pr-2 py-2.5 bg-slate-950/50 border border-amber-900/30 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl text-sm text-white font-mono transition-all shadow-inner" />
+                  </div>
+                  <p v-if="serviceForm.errors.min_clicks" class="text-xs text-rose-400 mt-1 font-medium">{{ serviceForm.errors.min_clicks }}</p>
+                </div>
+                
+                <div class="space-y-1">
+                  <label class="block text-[11px] font-bold text-indigo-400 uppercase tracking-wider pl-1" title="Maximum clicks allowed per campaign">Max Clicks</label>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span class="text-slate-500 text-xs">🚀</span>
+                    </div>
+                    <input v-model="serviceForm.max_clicks" type="number" min="1" step="1" required 
+                           class="w-full pl-8 pr-2 py-2.5 bg-slate-950/50 border border-indigo-900/30 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white font-mono transition-all shadow-inner" />
+                  </div>
+                  <p v-if="serviceForm.errors.max_clicks" class="text-xs text-rose-400 mt-1 font-medium">{{ serviceForm.errors.max_clicks }}</p>
                 </div>
               </div>
 
@@ -244,6 +279,23 @@
               <input v-model="editForm.clicker_reward" type="number" step="0.1" required 
                      class="w-full px-3 py-2 bg-slate-950/60 border border-emerald-900/40 focus:border-emerald-500 rounded-xl text-sm text-white font-mono" />
               <p v-if="editForm.errors.clicker_reward" class="text-xs text-rose-400 mt-1 font-medium">{{ editForm.errors.clicker_reward }}</p>
+            </div>
+          </div>
+
+          <!-- Min / Max Clicks Limit in Edit Modal -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="block text-[11px] font-bold text-amber-400 uppercase tracking-wider pl-1">Min Clicks</label>
+              <input v-model="editForm.min_clicks" type="number" min="1" step="1" required 
+                     class="w-full px-3 py-2 bg-slate-950/60 border border-amber-900/40 focus:border-amber-500 rounded-xl text-sm text-white font-mono" />
+              <p v-if="editForm.errors.min_clicks" class="text-xs text-rose-400 mt-1 font-medium">{{ editForm.errors.min_clicks }}</p>
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-[11px] font-bold text-indigo-400 uppercase tracking-wider pl-1">Max Clicks</label>
+              <input v-model="editForm.max_clicks" type="number" min="1" step="1" required 
+                     class="w-full px-3 py-2 bg-slate-950/60 border border-indigo-900/40 focus:border-indigo-500 rounded-xl text-sm text-white font-mono" />
+              <p v-if="editForm.errors.max_clicks" class="text-xs text-rose-400 mt-1 font-medium">{{ editForm.errors.max_clicks }}</p>
             </div>
           </div>
 
@@ -333,6 +385,8 @@ const serviceForm = useForm({
   action: '',
   creator_cost: 5.0,
   clicker_reward: 2.0,
+  min_clicks: 1,
+  max_clicks: 5000,
   requires_proof: false,
   is_active: true,
 });
@@ -343,6 +397,8 @@ const editForm = useForm({
   action: '',
   creator_cost: 5.0,
   clicker_reward: 2.0,
+  min_clicks: 1,
+  max_clicks: 5000,
   requires_proof: false,
   is_active: true,
 });
@@ -366,6 +422,8 @@ const openEditModal = (service) => {
   editForm.action = service.action;
   editForm.creator_cost = service.creator_cost;
   editForm.clicker_reward = service.clicker_reward;
+  editForm.min_clicks = service.min_clicks ?? 1;
+  editForm.max_clicks = service.max_clicks ?? 5000;
   editForm.requires_proof = Boolean(service.requires_proof);
   editForm.is_active = Boolean(service.is_active);
   showEditModal.value = true;

@@ -67,14 +67,18 @@ class DashboardController extends Controller
 
         // Recent task submissions (latest 5)
         $recentTaskSubmissions = UserTask::where('user_id', $user->id)
-            ->with('task:id,title,reward_coins')
+            ->with(['task:id,title,reward_coins', 'campaign:id,title,cost_per_click'])
             ->latest()
             ->take(5)
             ->get()
             ->map(fn($ut) => [
                 'id'            => $ut->id,
-                'title'         => $ut->task ? $ut->task->title : 'Task #' . $ut->task_id,
-                'reward_points' => $ut->task ? (float) $ut->task->reward_coins : 0,
+                'title'         => $ut->campaign_id 
+                    ? ($ut->campaign?->title ?? 'Campaign #' . $ut->campaign_id) 
+                    : ($ut->task ? $ut->task->title : 'Task #' . $ut->task_id),
+                'reward_points' => (float) ($ut->campaign_id 
+                    ? ($ut->campaign?->cost_per_click ?? 0) 
+                    : ($ut->task ? $ut->task->reward_coins : 0)),
                 'status'        => $ut->status,
                 'submitted_at'  => $ut->created_at ? $ut->created_at->diffForHumans() : '',
             ]);

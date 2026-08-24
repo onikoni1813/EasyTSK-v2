@@ -57,12 +57,16 @@
                   </div>
                 </td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                  <div class="flex items-center justify-end space-x-2">
-                    <button type="button" @click.stop="openHistoryModal(user)" class="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-lg text-[11px] transition-all flex items-center space-x-1">
+                  <div class="flex items-center justify-end space-x-1.5">
+                    <button type="button" @click.stop="openHistoryModal(user)" class="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-lg text-[11px] transition-all flex items-center space-x-1" title="View user history">
                       <span>📜</span>
                       <span>History</span>
                     </button>
-                    <button type="button" @click.stop="openEditModal(user)" class="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg text-[11px] transition-all">
+                    <button v-if="user.id !== $page.props.auth?.user?.id" type="button" @click.stop="openImpersonateModal(user)" class="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-lg text-[11px] transition-all flex items-center space-x-1 shadow-sm hover:shadow-emerald-500/20" title="Log in to this user account">
+                      <span>🔑</span>
+                      <span>Log In</span>
+                    </button>
+                    <button type="button" @click.stop="openEditModal(user)" class="px-2.5 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg text-[11px] transition-all">
                       Edit
                     </button>
                   </div>
@@ -105,22 +109,32 @@
               </div>
             </div>
 
-            <div class="flex items-center space-x-2 pt-2 border-t border-slate-800/80">
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/80">
               <button 
                 type="button"
                 @click.stop="openHistoryModal(user)" 
-                class="flex-1 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all"
+                class="py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-[11px] flex items-center justify-center space-x-1 transition-all"
               >
                 <span>📜</span>
                 <span>History</span>
               </button>
               <button 
+                v-if="user.id !== $page.props.auth?.user?.id"
+                type="button"
+                @click.stop="openImpersonateModal(user)" 
+                class="py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-xl text-[11px] flex items-center justify-center space-x-1 transition-all"
+              >
+                <span>🔑</span>
+                <span>Log In</span>
+              </button>
+              <div v-else></div>
+              <button 
                 type="button"
                 @click.stop="openEditModal(user)" 
-                class="flex-1 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all"
+                class="py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-xl text-[11px] flex items-center justify-center space-x-1 transition-all"
               >
                 <span>✏️</span>
-                <span>Edit User</span>
+                <span>Edit</span>
               </button>
             </div>
           </div>
@@ -215,17 +229,93 @@
             </div>
           </div>
 
-          <div class="flex justify-end space-x-3 pt-6">
-            <button type="button" @click="editingUser = null" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm transition-colors">
-              Cancel
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t border-slate-800">
+            <button
+              v-if="editingUser && editingUser.id !== $page.props.auth?.user?.id"
+              type="button"
+              @click="openImpersonateModal(editingUser)"
+              class="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-xl text-xs transition-colors flex items-center justify-center space-x-1.5"
+            >
+              <span>🔑</span>
+              <span>Log In As User</span>
             </button>
-            <button type="submit" :disabled="form.processing" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-colors shadow-lg shadow-indigo-500/30">
-              {{ form.processing ? 'Saving...' : 'Save Changes' }}
-            </button>
+            <div class="flex items-center justify-end space-x-3 ml-auto">
+              <button type="button" @click="editingUser = null" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm transition-colors">
+                Cancel
+              </button>
+              <button type="submit" :disabled="form.processing" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-colors shadow-lg shadow-indigo-500/30">
+                {{ form.processing ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
           </div>
         </form>
       </div>
     </div>
+    </Transition>
+
+    <!-- Impersonation Confirmation Modal -->
+    <Transition name="modal">
+      <div v-if="impersonateTargetUser" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 w-full max-w-md shadow-[0_0_50px_-12px_rgba(16,185,129,0.3)] transform transition-all space-y-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl">
+              🔑
+            </div>
+            <div>
+              <h3 class="text-lg font-extrabold text-white">Log in as User</h3>
+              <p class="text-xs text-slate-400">Switch your active session to this user</p>
+            </div>
+          </div>
+
+          <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-3.5 space-y-2 text-xs">
+            <div class="flex justify-between">
+              <span class="text-slate-400">User Name:</span>
+              <span class="text-white font-bold">{{ impersonateTargetUser.name }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Phone:</span>
+              <span class="text-slate-300 font-mono">{{ impersonateTargetUser.phone }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">User ID:</span>
+              <span class="text-indigo-400 font-mono">#{{ impersonateTargetUser.id }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Role:</span>
+              <span :class="impersonateTargetUser.role === 'admin' ? 'text-indigo-400 font-bold' : 'text-slate-300'">{{ impersonateTargetUser.role }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Main Balance:</span>
+              <span class="text-emerald-400 font-bold">{{ impersonateTargetUser.main_balance }} pts</span>
+            </div>
+          </div>
+
+          <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300 flex items-start space-x-2">
+            <span class="text-base leading-none">⚠️</span>
+            <span>You will enter their dashboard. You can return to Admin anytime via the top banner.</span>
+          </div>
+
+          <div class="flex items-center justify-end space-x-3 pt-2">
+            <button
+              type="button"
+              @click="impersonateTargetUser = null"
+              :disabled="isImpersonating"
+              class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              @click="submitImpersonate"
+              :disabled="isImpersonating"
+              class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/30 flex items-center space-x-2 disabled:opacity-50"
+            >
+              <span v-if="isImpersonating" class="animate-spin text-sm">⏳</span>
+              <span>{{ isImpersonating ? 'Logging in...' : 'Yes, Log In' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </Transition>
 
     <!-- User History Modal -->
@@ -258,6 +348,27 @@ const quickAmount = ref('');
 
 const showHistoryModal = ref(false);
 const historyUser = ref(null);
+
+const impersonateTargetUser = ref(null);
+const isImpersonating = ref(false);
+
+const openImpersonateModal = (user) => {
+  if (editingUser.value) {
+    editingUser.value = null;
+  }
+  impersonateTargetUser.value = user;
+};
+
+const submitImpersonate = () => {
+  if (!impersonateTargetUser.value) return;
+  isImpersonating.value = true;
+  router.post(`${adminPath.value}/users/${impersonateTargetUser.value.id}/impersonate`, {}, {
+    onFinish: () => {
+      isImpersonating.value = false;
+      impersonateTargetUser.value = null;
+    }
+  });
+};
 
 const openHistoryModal = (user) => {
   historyUser.value = user;

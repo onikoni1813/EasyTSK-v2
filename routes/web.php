@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\AdminTaskController;
 use App\Http\Controllers\Admin\AdminTaskReviewController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminWithdrawalController;
+use App\Http\Controllers\Admin\AdminPaymentMethodController;
 use App\Http\Controllers\Admin\AdminCampaignController;
 use App\Http\Controllers\Admin\AdminDeployController;
 use App\Http\Controllers\Admin\AdminLevelController;
@@ -77,8 +78,10 @@ Route::any('/postback/{provider}', [OfferwallPostbackController::class, 'handleP
 // Authenticated User Routes
 Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/impersonate/leave', [AdminUserController::class, 'leaveImpersonate'])->name('impersonate.leave');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/levels', [\App\Http\Controllers\UserLevelController::class, 'index'])->name('user.levels');
 
     // Referral History API & Page
     Route::get('/referrals/history', [DashboardController::class, 'referralHistory'])->name('referrals.history');
@@ -90,6 +93,7 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks-history', [TaskController::class, 'history'])->name('tasks.history');
     Route::post('/tasks/{task}/social-proof', [TaskController::class, 'submitSocialProof'])->name('tasks.social-proof');
+    Route::post('/tasks/campaign/{campaign}/submit', [TaskController::class, 'submitCampaignProof'])->name('tasks.campaign.submit');
 
     // Withdrawals
     Route::get('/withdraw', [WithdrawalController::class, 'index'])->name('withdraw.index');
@@ -110,6 +114,7 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::get('/campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
     Route::get('/campaigns-history', [CampaignController::class, 'history'])->name('campaigns.history');
     Route::post('/campaigns', [CampaignController::class, 'store'])->name('campaigns.store');
+    Route::get('/campaigns/{campaign}/submissions', [CampaignController::class, 'submissions'])->name('campaigns.submissions');
     Route::post('/campaigns/{campaign}/click', [CampaignController::class, 'click'])->name('campaigns.click');
 
     // User Support Tickets
@@ -193,6 +198,13 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::post('/withdrawals/{withdrawal}/reject', [AdminWithdrawalController::class, 'reject'])->name('withdrawals.reject');
     Route::delete('/withdrawals/{withdrawal}', [AdminWithdrawalController::class, 'destroy'])->name('withdrawals.destroy');
 
+    // Payment Methods Management
+    Route::get('/payment-methods', [AdminPaymentMethodController::class, 'index'])->name('payment-methods.index');
+    Route::post('/payment-methods', [AdminPaymentMethodController::class, 'store'])->name('payment-methods.store');
+    Route::put('/payment-methods/{paymentMethod}', [AdminPaymentMethodController::class, 'update'])->name('payment-methods.update');
+    Route::post('/payment-methods/{paymentMethod}/toggle', [AdminPaymentMethodController::class, 'toggle'])->name('payment-methods.toggle');
+    Route::delete('/payment-methods/{paymentMethod}', [AdminPaymentMethodController::class, 'destroy'])->name('payment-methods.destroy');
+
     // Promo Codes Management
     Route::get('/promo-codes', [AdminDashboardController::class, 'promoCodes'])->name('promo-codes.index');
     Route::post('/promo-codes', [AdminDashboardController::class, 'storePromoCode'])->name('promo-codes.store');
@@ -203,6 +215,7 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     Route::get('/users/{user}/history', [AdminUserController::class, 'history'])->name('users.history');
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+    Route::post('/users/{user}/impersonate', [AdminUserController::class, 'impersonate'])->name('users.impersonate');
     Route::post('/users/{user}/ban', [AdminDashboardController::class, 'banUser'])->name('users.ban');
     Route::post('/users/{user}/risk-score', [AdminDashboardController::class, 'setRiskScore'])->name('users.risk-score');
     Route::post('/users/{user}/health', [AdminDashboardController::class, 'setHealth'])->name('users.health');

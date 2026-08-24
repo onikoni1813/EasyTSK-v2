@@ -68,8 +68,17 @@
                   </div>
                 </div>
               </label>
-              <div class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1.5 rounded-lg text-xs font-semibold sm:shrink-0 text-left sm:text-right w-full sm:w-auto truncate">
-                {{ review.task ? review.task.title : 'Deleted Task' }}
+              <div class="flex flex-col sm:items-end gap-1 sm:shrink-0 w-full sm:w-auto">
+                <div v-if="review.campaign" class="bg-violet-500/10 text-violet-300 border border-violet-500/30 px-3 py-1.5 rounded-lg text-xs font-bold truncate flex items-center gap-1.5">
+                  <span>📢 Community:</span>
+                  <span class="text-white">{{ review.campaign.title }}</span>
+                </div>
+                <div v-else class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1.5 rounded-lg text-xs font-semibold truncate">
+                  {{ review.task ? review.task.title : 'Deleted Task' }}
+                </div>
+                <span v-if="review.campaign?.user" class="text-[10px] text-slate-500">
+                  Creator: <span class="text-slate-400 font-medium">{{ review.campaign.user.name }}</span> (#{{ review.campaign.user_id }})
+                </span>
               </div>
             </div>
 
@@ -106,61 +115,77 @@
                 </span>
               </div>
               <div>
-                <span class="text-slate-500 block text-[10px] uppercase font-bold">Member Since</span>
-                <span class="text-slate-300 truncate block font-medium">
-                  📅 {{ formatDate(review.user.created_at) }}
+                <span class="text-slate-500 block text-[10px] uppercase font-bold">Reward</span>
+                <span class="text-emerald-400 font-bold block">
+                  ✨ +{{ review.campaign ? review.campaign.cost_per_click : (review.task?.reward_coins ?? 0) }} pts
                 </span>
               </div>
             </div>
           </div>
 
-          <!-- Dynamic Proofs -->
+          <!-- Dynamic & Campaign Proofs -->
           <div class="space-y-3 flex-grow">
-            <template v-if="isDynamicProof(review.submitted_data)">
-              <div v-for="(entry, reqId) in review.submitted_data" :key="reqId" class="bg-slate-950 border border-slate-800/50 p-4 rounded-2xl relative overflow-hidden group/proof">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-700 group-hover/proof:bg-indigo-500 transition-colors"></div>
-                <div class="text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider pl-1">{{ entry.label || reqId }}</div>
-                <div v-if="entry.type === 'text'" class="text-sm text-slate-200 whitespace-pre-wrap pl-1 font-medium">{{ entry.value || '—' }}</div>
-                <div v-else-if="entry.type === 'image'" class="pl-1">
-                  <template v-if="review.screenshot_hashes && review.screenshot_hashes.length > 0">
-                    <div class="flex flex-wrap gap-3">
-                      <div v-for="sh in review.screenshot_hashes" :key="sh.id" 
-                           class="relative group/thumb w-24 h-24 rounded-xl overflow-hidden border-2 border-slate-700 hover:border-indigo-500 cursor-pointer transition-colors shadow-lg"
-                           @click="openImage('/storage/' + sh.file_path)">
-                        <img :src="'/storage/' + sh.file_path" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" alt="Proof Thumbnail" />
-                        <div class="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px]">
-                          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                        </div>
+            <!-- Username / Profile Link Proof -->
+            <div v-if="review.submitted_data?.username_link" class="bg-slate-950 border border-slate-800/50 p-3.5 rounded-2xl relative overflow-hidden group/proof">
+              <div class="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 transition-colors"></div>
+              <div class="text-[10px] text-cyan-400 font-bold mb-1 uppercase tracking-wider pl-1 flex items-center gap-1">
+                <span>🔗</span>
+                <span>Username / Profile Link Proof</span>
+              </div>
+              <div class="text-sm text-white font-mono bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 break-all select-all">
+                {{ review.submitted_data.username_link }}
+              </div>
+            </div>
+
+            <!-- Secret Code Proof -->
+            <div v-if="review.submitted_data?.secret_code" class="bg-slate-950 border border-slate-800/50 p-3.5 rounded-2xl relative overflow-hidden group/proof">
+              <div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 transition-colors"></div>
+              <div class="text-[10px] text-amber-400 font-bold mb-1 uppercase tracking-wider pl-1 flex items-center gap-1">
+                <span>🔑</span>
+                <span>Submitted Secret Code</span>
+              </div>
+              <div class="text-sm text-amber-200 font-mono bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 break-all select-all flex items-center justify-between">
+                <span>{{ review.submitted_data.secret_code }}</span>
+                <span v-if="review.campaign?.secret_code" class="text-[10px] text-slate-500 font-normal">
+                  Target: <strong class="text-emerald-400">{{ review.campaign.secret_code }}</strong>
+                </span>
+              </div>
+            </div>
+
+            <!-- Text Proof -->
+            <div v-if="review.submitted_data?.text_proof" class="bg-slate-950 border border-slate-800/50 p-4 rounded-2xl relative overflow-hidden group/proof">
+              <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-700 group-hover/proof:bg-indigo-500 transition-colors"></div>
+              <div class="text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider pl-1">Text Proof</div>
+              <div class="text-sm text-slate-200 whitespace-pre-wrap pl-1 font-medium">{{ review.submitted_data.text_proof }}</div>
+            </div>
+
+            <!-- Screenshot Proof -->
+            <div v-if="(review.screenshot_hashes && review.screenshot_hashes.length > 0) || review.submitted_data?.screenshot_path" class="bg-slate-950 border border-slate-800/50 p-4 rounded-2xl relative overflow-hidden group/proof">
+              <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 transition-colors"></div>
+              <div class="text-[10px] text-emerald-400 font-bold mb-3 uppercase tracking-wider pl-1 flex items-center gap-1">
+                <span>📸</span>
+                <span>Screenshot Proof</span>
+              </div>
+              <div class="pl-1">
+                <template v-if="review.screenshot_hashes && review.screenshot_hashes.length > 0">
+                  <div class="flex flex-wrap gap-3">
+                    <div v-for="sh in review.screenshot_hashes" :key="sh.id" 
+                         class="relative group/thumb w-24 h-24 rounded-xl overflow-hidden border-2 border-slate-700 hover:border-indigo-500 cursor-pointer transition-colors shadow-lg"
+                         @click="openImage('/storage/' + sh.file_path)">
+                      <img :src="'/storage/' + sh.file_path" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" alt="Proof Thumbnail" />
+                      <div class="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px]">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                       </div>
                     </div>
-                  </template>
-                  <span v-else class="text-xs text-slate-500 italic bg-slate-900 px-3 py-1.5 rounded-lg">No image attached</span>
-                </div>
-              </div>
-            </template>
-
-            <!-- Legacy Proofs -->
-            <template v-else>
-              <div v-if="review.submitted_data?.text_proof" class="bg-slate-950 border border-slate-800/50 p-4 rounded-2xl relative overflow-hidden group/proof">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-700 group-hover/proof:bg-indigo-500 transition-colors"></div>
-                <div class="text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-wider pl-1">Text Proof</div>
-                <div class="text-sm text-slate-200 whitespace-pre-wrap pl-1 font-medium">{{ review.submitted_data.text_proof }}</div>
-              </div>
-
-              <div v-if="review.screenshot_hashes && review.screenshot_hashes.length > 0" class="bg-slate-950 border border-slate-800/50 p-4 rounded-2xl relative overflow-hidden group/proof">
-                <div class="absolute left-0 top-0 bottom-0 w-1 bg-slate-700 group-hover/proof:bg-indigo-500 transition-colors"></div>
-                <div class="text-[10px] text-slate-400 font-bold mb-3 uppercase tracking-wider pl-1">Screenshot Proof</div>
-                <div class="pl-1">
-                  <div class="relative group/thumb w-24 h-24 rounded-xl overflow-hidden border-2 border-slate-700 hover:border-indigo-500 cursor-pointer transition-colors shadow-lg inline-block"
-                       @click="openImage('/storage/' + review.screenshot_hashes[0].file_path)">
-                    <img :src="'/storage/' + review.screenshot_hashes[0].file_path" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" alt="Legacy Proof Thumbnail" />
-                    <div class="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px]">
-                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    </div>
                   </div>
+                </template>
+                <div v-else-if="review.submitted_data?.screenshot_path"
+                     class="relative group/thumb w-24 h-24 rounded-xl overflow-hidden border-2 border-slate-700 hover:border-indigo-500 cursor-pointer transition-colors shadow-lg"
+                     @click="openImage('/storage/' + review.submitted_data.screenshot_path)">
+                  <img :src="'/storage/' + review.submitted_data.screenshot_path" class="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-110" alt="Proof Thumbnail" />
                 </div>
               </div>
-            </template>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-3 pt-2">

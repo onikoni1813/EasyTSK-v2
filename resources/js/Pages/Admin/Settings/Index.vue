@@ -134,7 +134,10 @@
               <div class="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-400">
                 <CreditCardIcon class="w-5 h-5" />
               </div>
-              <h2 class="text-lg font-bold text-white">Withdrawal Rules</h2>
+              <div>
+                <h2 class="text-lg font-bold text-white">Withdrawal Rules</h2>
+                <p class="text-xs text-slate-400">Global limits & security health score</p>
+              </div>
             </div>
 
             <div class="space-y-5 relative">
@@ -148,16 +151,6 @@
                   <input v-model="settingsForm.next_withdraw_limit" type="number" required class="w-full px-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white transition-all" />
                 </div>
               </div>
-              
-              <div>
-                <label class="block text-sm font-semibold text-slate-300 mb-1.5">Withdrawal Charge (%)</label>
-                <div class="relative">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <PercentIcon class="w-4 h-4 text-slate-500" />
-                  </div>
-                  <input v-model="settingsForm.withdrawal_charge_percent" type="number" required min="0" max="100" class="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white transition-all" />
-                </div>
-              </div>
 
               <div>
                 <label class="block text-sm font-semibold text-slate-300 mb-1.5">Minimum Required Health Score (%)</label>
@@ -168,6 +161,14 @@
                   <input v-model="settingsForm.min_withdrawal_health" type="number" required min="0" max="100" class="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white transition-all" />
                 </div>
                 <p class="text-[11px] text-slate-400 mt-1.5">Users at or below this health % cannot submit withdrawal requests (Default: 40%)</p>
+              </div>
+
+              <div class="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-start gap-2.5">
+                <span class="text-sm shrink-0">💡</span>
+                <p class="text-xs text-indigo-300/90 leading-relaxed">
+                  Gateway-specific fees & limits (bKash, Nagad, Recharge, USDT, etc.) are managed individually under 
+                  <Link :href="`${adminPath}/payment-methods`" class="underline font-bold text-indigo-200 hover:text-white">Payment Methods</Link>.
+                </p>
               </div>
             </div>
           </div>
@@ -217,17 +218,6 @@
             </div>
 
             <div class="space-y-5 relative">
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-semibold text-slate-300 mb-1.5">Recharge Min Limit</label>
-                  <input v-model="settingsForm.mobile_recharge_min_limit" type="number" required min="1" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white transition-all" />
-                </div>
-                <div>
-                  <label class="block text-sm font-semibold text-slate-300 mb-1.5">Recharge Fixed Charge</label>
-                  <input v-model="settingsForm.mobile_recharge_fixed_charge" type="number" required min="0" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white transition-all" />
-                </div>
-              </div>
-
               <div>
                 <label class="block text-sm font-semibold text-slate-300 mb-1.5">Offerwall Pending Duration</label>
                 <div class="relative">
@@ -532,9 +522,6 @@ const props = defineProps({
   referralBonus: Number,
   referralTarget: Number,
   offerwallPendingHours: Number,
-  withdrawalChargePercent: Number,
-  mobileRechargeMinLimit: Number,
-  mobileRechargeFixedCharge: Number,
   minWithdrawalHealth: Number,
   demoUsers: Number,
   demoTasks: Number,
@@ -578,9 +565,6 @@ const settingsForm = useForm({
   referral_bonus: props.referralBonus || 500,
   referral_target: props.referralTarget || 1000,
   offerwall_pending_hours: props.offerwallPendingHours || 24,
-  withdrawal_charge_percent: props.withdrawalChargePercent || 0,
-  mobile_recharge_min_limit: props.mobileRechargeMinLimit || 500,
-  mobile_recharge_fixed_charge: props.mobileRechargeFixedCharge || 10,
   min_withdrawal_health: props.minWithdrawalHealth !== undefined ? props.minWithdrawalHealth : 40,
   demo_users: props.demoUsers !== undefined ? props.demoUsers : 1200,
   demo_tasks: props.demoTasks !== undefined ? props.demoTasks : 45000,
