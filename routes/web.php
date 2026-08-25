@@ -36,8 +36,19 @@ use App\Http\Controllers\PwaController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
-// PWA Manifest Route
+// PWA Manifest & Favicon Routes
 Route::get('/manifest.json', [PwaController::class, 'manifest'])->name('manifest');
+Route::get('/favicon.svg', function () {
+    $path = public_path('favicon.svg');
+    if (file_exists($path)) {
+        return response()->file($path, [
+            'Content-Type'  => 'image/svg+xml',
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+    abort(404);
+});
+Route::get('/fevicon.svg', fn () => redirect('/favicon.svg'));
 
 // Public Routes (no auth required)
 Route::get('/', [HomeController::class, 'index'])->name('home');

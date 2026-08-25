@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Exact Easytsk Brand Gradient: Indigo-600 -> Violet-600 -> Cyan-400 (Diagonal to top-right) -->
+    <linearGradient id="brandLogoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+
+    <!-- Subtle Drop Shadow -->
+    <filter id="logoShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#4f46e5" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Base (Rounded Tile) -->
+  <rect x="32" y="32" width="448" height="448" rx="128" ry="128" fill="url(#brandLogoGrad)" filter="url(#logoShadow)" />
+
+  <!-- Inner Gloss Highlight for Glassmorphism depth -->
+  <path d="M 32 160 C 32 88 88 32 160 32 L 352 32 C 424 32 480 88 480 160 C 480 100 420 48 352 48 L 160 48 C 92 48 32 100 32 160 Z" fill="#ffffff" opacity="0.16" />
+
+  <!-- Pure Vector 'E' Geometry (Zero Font Dependency, 100% Crisp at all sizes) -->
+  <path d="
+    M 144 146
+    C 144 136 152 128 162 128
+    L 350 128
+    C 360 128 368 136 368 146
+    L 368 166
+    C 368 176 360 184 350 184
+    L 214 184
+    L 214 230
+    L 322 230
+    C 332 230 340 238 340 248
+    L 340 264
+    C 340 274 332 282 322 282
+    L 214 282
+    L 214 328
+    L 350 328
+    C 360 328 368 336 368 346
+    L 368 366
+    C 368 376 360 384 350 384
+    L 162 384
+    C 152 384 144 376 144 366
+    Z
+  " fill="#ffffff" />
+</svg>
