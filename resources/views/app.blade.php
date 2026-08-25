@@ -13,9 +13,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="{{ \App\Models\AppSetting::getByKey('site_name', 'Easytsk V2') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ \App\Models\AppSetting::getByKey('site_favicon', '/favicon.svg') }}">
-    <link rel="alternate icon" href="/favicon.ico">
-    <link rel="apple-touch-icon" href="{{ \App\Models\AppSetting::getByKey('site_logo', '/favicon.svg') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ \App\Models\AppSetting::getByKey('site_favicon', '/favicon.svg') }}?v=2">
+    <link rel="shortcut icon" href="/favicon.svg?v=2">
+    <link rel="alternate icon" type="image/x-icon" href="/favicon.ico?v=2">
+    <link rel="apple-touch-icon" href="{{ \App\Models\AppSetting::getByKey('site_logo', '/favicon.svg') }}?v=2">
 
     <title>Easytsk V2 | Earn Money Online with EasyTSK & Offers</title>
     <meta name="description"
