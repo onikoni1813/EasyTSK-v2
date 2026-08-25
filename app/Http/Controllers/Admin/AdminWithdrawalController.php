@@ -75,7 +75,14 @@ class AdminWithdrawalController extends Controller
                     ]);
                     
                     if ($lockedWithdrawal->user) {
-                        \App\Models\Notification::send($lockedWithdrawal->user, 'Withdrawal Paid! ✅', "Your payout request of {$lockedWithdrawal->amount_bdt} BDT via {$lockedWithdrawal->payment_method} has been processed. Trx ID: {$request->transaction_id}", 'success', '/withdraw-history');
+                        \App\Models\Notification::send(
+                            $lockedWithdrawal->user,
+                            'Withdrawal Paid! ✅',
+                            "Your payout request of {$lockedWithdrawal->amount_bdt} BDT via {$lockedWithdrawal->payment_method} has been processed. Trx ID: {$request->transaction_id}",
+                            'success',
+                            '/withdraw-history',
+                            true
+                        );
                     }
                     
                     return true;
@@ -260,7 +267,7 @@ class AdminWithdrawalController extends Controller
     public function cleanup(Request $request)
     {
         $request->validate([
-            'status' => 'required|in:paid,rejected,all_completed',
+            'status' => 'required|in:paid,rejected,all_completed,all',
             'days' => 'nullable|integer|min:0',
         ]);
 
@@ -272,9 +279,11 @@ class AdminWithdrawalController extends Controller
             $query->where('status', 'rejected');
         } elseif ($request->status === 'all_completed') {
             $query->whereIn('status', ['paid', 'rejected']);
+        } elseif ($request->status === 'all') {
+            // Delete all statuses
         }
 
-        if ($request->days && $request->days > 0) {
+        if ($request->filled('days') && (int) $request->days > 0) {
             $query->where('created_at', '<', now()->subDays((int) $request->days));
         }
 

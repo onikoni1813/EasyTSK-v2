@@ -140,6 +140,11 @@ class TaskController extends Controller
                     ->latest()
                     ->first();
 
+                // If user has already submitted (pending review or approved), hide from actionable feed
+                if ($userSubmission && in_array($userSubmission->status, ['pending', 'approved'])) {
+                    return null;
+                }
+
                 return [
                     'id'                => $campaign->id,
                     'is_own'            => $isOwn,
@@ -158,6 +163,7 @@ class TaskController extends Controller
                     'admin_note'        => $userSubmission ? $userSubmission->admin_note : null,
                 ];
             })
+            ->filter()
             ->values();
 
         // ── Progression Tier Calculations ──
@@ -170,7 +176,6 @@ class TaskController extends Controller
         $communityLocked = $pendingSystemTasksCount > 0;
         $pendingCommunityCount = $communityCampaigns
             ->filter(fn($c) => !$c['is_own'])
-            ->filter(fn($c) => !in_array($c['user_status'], ['pending', 'approved']))
             ->count();
 
         // Tier 3: Offerwall locked state (Unlocks after System Tasks + Community Campaigns)

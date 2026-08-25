@@ -188,7 +188,8 @@ class ReferralContestService
                     'Contest Champion! 🏆',
                     "Congratulations! You secured Rank #{$rank} in the Top Referrer Contest '{$lockedContest->title}' and won {$rewardAmount} bonus points!",
                     'success',
-                    '/referral-contest'
+                    '/referral-contest',
+                    true
                 );
 
                 $winnersCreated[] = [

@@ -26,20 +26,6 @@
         </div>
       </div>
 
-      <!-- Flash Notifications / Error Alerts -->
-      <div v-if="$page.props.flash?.success" class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span>✅</span>
-          <span>{{ $page.props.flash.success }}</span>
-        </div>
-      </div>
-      <div v-if="$page.props.errors?.message" class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span>⚠️</span>
-          <span>{{ $page.props.errors.message }}</span>
-        </div>
-      </div>
-
       <!-- Quick Stats Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="glass-card p-4 rounded-2xl border border-slate-800 flex items-center justify-between">

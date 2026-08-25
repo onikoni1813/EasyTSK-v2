@@ -54,9 +54,16 @@ class PromoCodeController extends Controller
             $user->addXp(5);
             $user->refresh();
 
-            Notification::send($user, 'Promo Code Redeemed! 🎁', "You redeemed promo code '{$promo->code}' for +{$promo->reward_points} bonus points!", 'success');
+            Notification::send(
+                $user,
+                'Promo Code Redeemed! 🎁',
+                "You redeemed promo code '{$promo->code}' for +{$promo->reward_points} bonus points!",
+                'success',
+                null,
+                true
+            );
 
-            return back()->with('success', "Promo code redeemed! +{$promo->reward_points} points added to your balance.");
+            return back();
         });
     }
 }

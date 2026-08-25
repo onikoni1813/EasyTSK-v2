@@ -76,7 +76,7 @@ class AdminPaymentMethodController extends Controller
 
         PaymentMethod::create($validated);
 
-        return back()->with('success', "✅ Payment method '{$validated['name']}' created successfully!");
+        return back()->with('success', "Payment method '{$validated['name']}' created successfully!");
     }
 
     public function update(Request $request, PaymentMethod $paymentMethod)
@@ -108,7 +108,7 @@ class AdminPaymentMethodController extends Controller
 
         $paymentMethod->update($validated);
 
-        return back()->with('success', "✅ Payment method '{$paymentMethod->name}' updated successfully!");
+        return back()->with('success', "Payment method '{$paymentMethod->name}' updated successfully!");
     }
 
     public function toggle(PaymentMethod $paymentMethod)
@@ -117,7 +117,7 @@ class AdminPaymentMethodController extends Controller
             'is_active' => !$paymentMethod->is_active,
         ]);
 
-        $statusStr = $paymentMethod->is_active ? 'Enabled 🟢' : 'Disabled 🔴';
+        $statusStr = $paymentMethod->is_active ? 'Enabled' : 'Disabled';
         return back()->with('success', "Payment method '{$paymentMethod->name}' is now {$statusStr}.");
     }
 
@@ -135,6 +135,6 @@ class AdminPaymentMethodController extends Controller
         $name = $paymentMethod->name;
         $paymentMethod->delete();
 
-        return back()->with('success', "🗑️ Payment method '{$name}' deleted successfully.");
+        return back()->with('success', "Payment method '{$name}' deleted successfully.");
     }
 }

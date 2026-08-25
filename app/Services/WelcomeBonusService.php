@@ -77,7 +77,8 @@ class WelcomeBonusService
                     'Welcome Bonus Unlocked! 🚀',
                     "Congratulations! You completed your initial tasks and unlocked {$actualTransfer} bonus points to your main balance!",
                     'success',
-                    '/dashboard'
+                    '/dashboard',
+                    true
                 );
                 
                 // Award XP for the welcome bonus

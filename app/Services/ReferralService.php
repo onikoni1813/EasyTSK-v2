@@ -53,7 +53,8 @@ class ReferralService
                         'Referral Bonus Unlocked! 🎁',
                         "Great news! Your referred friend reached their target. +{$lockedTracking->locked_reward} bonus points have been added to your main balance!",
                         'success',
-                        '/reffer'
+                        '/reffer',
+                        true
                     );
                 }
             }

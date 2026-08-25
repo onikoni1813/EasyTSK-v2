@@ -198,14 +198,21 @@ class WithdrawalController extends Controller
             ]);
 
             \App\Models\Transaction::log($lockedUser, 'debit', $coins, "Withdrawal Request (#{$withdrawal->id}) via {$method->name}", 'withdrawal', (string)$withdrawal->id);
-            \App\Models\Notification::send($lockedUser, 'Withdrawal Request Submitted ⏳', "Your payout request of {$currencySymbol}{$payoutAmount} {$currency} via {$method->name} is under review.", 'info', '/withdraw-history');
+            \App\Models\Notification::send(
+                $lockedUser,
+                'Withdrawal Request Submitted ⏳',
+                "Your payout request of {$currencySymbol}{$payoutAmount} {$currency} via {$method->name} is under review. 24-hour cooldown initiated.",
+                'info',
+                '/withdraw-history',
+                true
+            );
 
             DB::commit();
 
             // Send Telegram Admin Notification
             \App\Services\TelegramService::sendAdminWithdrawalAlert($withdrawal);
 
-            return back()->with('success', 'Withdrawal request submitted successfully! 24-hour cooldown initiated.');
+            return back();
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['message' => $e->getMessage()]);

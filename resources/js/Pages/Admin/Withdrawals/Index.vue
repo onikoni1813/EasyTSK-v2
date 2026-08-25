@@ -288,6 +288,7 @@
             <option value="all_completed">All Completed (Paid & Rejected)</option>
             <option value="paid">Paid Requests Only</option>
             <option value="rejected">Rejected Requests Only</option>
+            <option value="all">All Records (Paid, Rejected & Pending)</option>
           </select>
         </div>
 
@@ -295,8 +296,10 @@
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1.5">Age Threshold:</label>
           <select v-model.number="cleanupDays" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
-            <option :value="0">All Time (Delete all matching target status)</option>
+            <option :value="0">All Time (Delete immediately, recommended)</option>
+            <option :value="1">Older than 24 Hours (1 Day)</option>
             <option :value="7">Older than 7 Days</option>
+            <option :value="15">Older than 15 Days</option>
             <option :value="30">Older than 30 Days</option>
             <option :value="90">Older than 90 Days</option>
           </select>
@@ -561,7 +564,7 @@ const submitBulkApprove = () => {
 };
 
 const cleanupStatus = ref('all_completed');
-const cleanupDays = ref(30);
+const cleanupDays = ref(0);
 
 const currentWithdrawal = ref(null);
 const isBulkDeleteMode = ref(false);

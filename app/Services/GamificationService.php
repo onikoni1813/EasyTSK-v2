@@ -55,7 +55,8 @@ class GamificationService
                     'Level Upgraded! ⚡',
                     "Congratulations! You reached Level {$newLevelNumber}" . ($totalBonus > 0 ? " and earned +{$totalBonus} bonus points!" : "!"),
                     'success',
-                    '/dashboard'
+                    '/dashboard',
+                    true
                 );
             }
 
@@ -168,7 +169,8 @@ class GamificationService
                     'Reward Spin Unlocked! 🎰',
                     "Congratulations on your 7-day streak! You unlocked a free spin on the Daily Bonus Wheel!",
                     'success',
-                    '/dashboard'
+                    '/dashboard',
+                    true
                 );
             }
         }

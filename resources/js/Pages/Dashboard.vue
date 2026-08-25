@@ -295,7 +295,6 @@
             </button>
           </form>
           <p v-if="promoError" class="text-rose-400 text-[10px] mt-1.5">{{ promoError }}</p>
-          <p v-if="promoSuccess" class="text-emerald-400 text-[10px] mt-1.5 font-bold">✅ {{ promoSuccess }}</p>
         </div>
       </div>
 
@@ -540,15 +539,12 @@ watch(() => props.canSpin, (newVal) => {
 const redeemPromo = async () => {
   if (!promoCode.value.trim()) return;
   promoError.value   = '';
-  promoSuccess.value = '';
   promoLoading.value = true;
 
   router.post('/promo/redeem', { code: promoCode.value }, {
-    preserveState:  true,
     preserveScroll: true,
     onSuccess: () => {
-      promoCode.value    = '';
-      promoSuccess.value = page.props.flash?.success || 'Promo code redeemed!';
+      promoCode.value = '';
     },
     onError: (errors) => {
       promoError.value = errors.promo_code || 'Invalid or expired code.';
