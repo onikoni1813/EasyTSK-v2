@@ -1,6 +1,6 @@
 <template>
   <GuestLayout>
-    <Head title="Earn Money Online — Easytsk V2" />
+    <Head title="Earn Money Online" />
 
     <!-- ═══════════════════════════════════════════════════════════ -->
     <!-- HERO SECTION                                                -->
