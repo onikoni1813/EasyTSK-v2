@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#070a12" />
+      <stop offset="100%" stop-color="#030508" />
+    </linearGradient>
+
+    <!-- Border Glow Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.8" />
+    </linearGradient>
+
+    <!-- Primary Brand Gradient (Electric Violet to Cyan) -->
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="40%" stop-color="#6366f1" />
+      <stop offset="70%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+
+    <!-- Accent Bolt Gradient (Cyan to Emerald) -->
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+
+    <!-- Subtle Glow Filter -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Squircle Rounded Background Tile -->
+  <rect x="24" y="24" width="464" height="464" rx="112" ry="112" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="8" />
+
+  <!-- Ambient Glow Behind Logo -->
+  <circle cx="256" cy="256" r="140" fill="#6366f1" opacity="0.22" filter="blur(30px)" />
+  <circle cx="340" cy="300" r="100" fill="#06b6d4" opacity="0.20" filter="blur(25px)" />
+
+  <!-- Main 'E' + Task Bolt Symbol (Layer 1: Glow) -->
+  <g filter="url(#neonGlow)" opacity="0.6">
+    <!-- Top Bar -->
+    <path d="M140 148 C140 134.7 150.7 124 164 124 L368 124 C379 124 388 133 388 144 C388 155 379 164 368 164 L180 164 L180 236 L332 236 C343 236 352 245 352 256 C352 267 343 276 332 276 L180 276 L180 348 L368 348 C379 348 388 357 388 368 C388 379 379 388 368 388 L164 388 C150.7 388 140 377.3 140 364 Z" fill="url(#primaryGrad)" />
+  </g>
+
+  <!-- Main 'E' Geometry (Crisp Foreground) -->
+  <path d="M140 148 C140 134.7 150.7 124 164 124 L368 124 C379 124 388 133 388 144 C388 155 379 164 368 164 L180 164 L180 236 L332 236 C343 236 352 245 352 256 C352 267 343 276 332 276 L180 276 L180 348 L368 348 C379 348 388 357 388 368 C388 379 379 388 368 388 L164 388 C150.7 388 140 377.3 140 364 Z" fill="url(#primaryGrad)" />
+
+  <!-- Speed Lightning Bolt & Checkmark Integration (Dynamic Accent) -->
+  <path d="M260 176 L356 256 L296 264 L372 344 L288 336 L248 376 C242 382 232 380 230 372 L212 284 L268 280 L236 216 C232 208 240 200 248 204 Z" fill="url(#accentGrad)" opacity="0.95" />
+
+  <!-- Sparkle Accent Dot -->
+  <circle cx="388" cy="144" r="10" fill="#38bdf8" />
+  <circle cx="388" cy="144" r="18" fill="#38bdf8" opacity="0.3" filter="blur(4px)" />
+</svg>
