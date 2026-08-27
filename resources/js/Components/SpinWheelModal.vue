@@ -33,11 +33,21 @@
 
           <!-- Prize Result -->
           <Transition name="prize-pop">
-            <div v-if="prizeResult" class="mb-4 py-3 px-4 rounded-2xl border" :class="prizeResult.value > 0 ? 'bg-emerald-500/15 border-emerald-500/40' : 'bg-slate-800/60 border-slate-700/40'">
-              <div class="text-2xl font-black" :class="prizeResult.value > 0 ? 'text-emerald-300 neon-text-emerald' : 'text-slate-400'">
+            <div v-if="prizeResult" class="mb-4 py-3.5 px-4 rounded-2xl border transition-all" 
+                 :class="prizeResult.type === 'jackpot' 
+                    ? 'bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-amber-500/20 border-amber-400/60 shadow-[0_0_30px_rgba(245,158,11,0.4)]'
+                    : prizeResult.value > 0 
+                      ? 'bg-emerald-500/15 border-emerald-500/40' 
+                      : 'bg-slate-800/60 border-slate-700/40'">
+              <div v-if="prizeResult.type === 'jackpot'" class="text-[10px] uppercase font-black tracking-widest text-amber-300 mb-0.5 animate-pulse">
+                💥 GRAND JACKPOT WINNER! 💥
+              </div>
+              <div class="text-2xl font-black" :class="prizeResult.type === 'jackpot' ? 'text-amber-300 drop-shadow-[0_0_10px_rgba(245,158,11,0.6)]' : prizeResult.value > 0 ? 'text-emerald-300 neon-text-emerald' : 'text-slate-400'">
                 {{ prizeResult.label }}
               </div>
-              <div v-if="prizeResult.value > 0" class="text-xs text-emerald-400 mt-0.5 font-semibold">+{{ prizeResult.value }} points added to your balance!</div>
+              <div v-if="prizeResult.value > 0" class="text-xs mt-0.5 font-semibold" :class="prizeResult.type === 'jackpot' ? 'text-amber-300 font-bold' : 'text-emerald-400'">
+                +{{ prizeResult.value }} points added directly to your main balance!
+              </div>
               <div v-else class="text-xs text-slate-500 mt-0.5">Better luck next time!</div>
             </div>
           </Transition>
@@ -198,7 +208,7 @@ const doSpin = async () => {
       spinning.value    = false;
       alreadySpun.value = true;
       prizeResult.value = prize;
-      emit('spin-complete', prize);
+      emit('spin-complete', { prize, new_balance: response.data.new_balance });
     }
   };
 
@@ -212,6 +222,7 @@ onMounted(async () => {
       prizes.value = res.data.prizes.map(p => ({
         label: p.label,
         value: p.value,
+        type: p.type,
         color: p.color,
         textColor: p.text_color || '#fff'
       }));

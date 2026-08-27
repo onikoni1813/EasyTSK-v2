@@ -95,6 +95,7 @@ class DashboardController extends Controller
             'rejectedTasksCount'    => $rejectedTasksCount,
             'totalActiveTasks'      => $totalActiveTasks,
             'canSpin'               => $user->canSpin(),
+            'tutorialVideoUrl'      => \App\Models\AppSetting::getByKey('tutorial_video_url', 'https://www.youtube.com'),
         ]);
     }
 

@@ -101,6 +101,18 @@
             </svg>
             <span class="text-[11px] font-bold hidden sm:inline">Support</span>
           </Link>
+
+          <!-- Exit / Logout Button (Desktop only, as mobile has it in bottom nav) -->
+          <button 
+            @click="logout" 
+            class="hidden md:flex glass-pill px-2.5 py-1.5 rounded-xl border border-rose-500/30 hover:border-rose-400/80 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all card-hover shrink-0 items-center gap-1.5 cursor-pointer shadow-[0_0_10px_rgba(244,63,94,0.15)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)]"
+            title="Logout / Exit"
+          >
+            <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span class="text-[11px] font-bold text-rose-400">Exit</span>
+          </button>
         </div>
 
         <div v-else class="flex items-center gap-2">

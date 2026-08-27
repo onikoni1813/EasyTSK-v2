@@ -207,6 +207,91 @@
             </div>
           </div>
 
+          <!-- Daily Bonus Wheel & Jackpot Configuration -->
+          <div class="glass-card p-6 rounded-3xl border border-slate-800/60 bg-slate-900/40 relative overflow-hidden group lg:col-span-2">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-amber-500/20"></div>
+            <div class="flex items-center gap-3 mb-6 relative">
+              <div class="p-2.5 bg-amber-500/20 rounded-xl text-amber-400">
+                <GiftIcon class="w-5 h-5" />
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-bold text-white">Daily Bonus Wheel & Grand Jackpot</h2>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 border border-amber-500/40 text-amber-300">
+                    🎰 7-DAY STREAK REWARD
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">Customize points for regular slots and the Grand Jackpot. BDT values adjust automatically with conversion rate.</p>
+              </div>
+            </div>
+
+            <div class="space-y-4 relative">
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Slot 1 (Low)</label>
+                  <div class="relative">
+                    <input v-model.number="settingsForm.wheel_slot_1" type="number" required min="1" class="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 focus:border-amber-500 rounded-xl text-xs text-white" />
+                    <span class="absolute right-3 top-2.5 text-[10px] text-slate-500 font-bold">PTS</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500 mt-1">≈ {{ ((settingsForm.wheel_slot_1 || 0) / (settingsForm.conversion_rate || 100)).toFixed(2) }} ৳</p>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Slot 2 (Med-Low)</label>
+                  <div class="relative">
+                    <input v-model.number="settingsForm.wheel_slot_2" type="number" required min="1" class="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 focus:border-amber-500 rounded-xl text-xs text-white" />
+                    <span class="absolute right-3 top-2.5 text-[10px] text-slate-500 font-bold">PTS</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500 mt-1">≈ {{ ((settingsForm.wheel_slot_2 || 0) / (settingsForm.conversion_rate || 100)).toFixed(2) }} ৳</p>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Slot 3 (Medium)</label>
+                  <div class="relative">
+                    <input v-model.number="settingsForm.wheel_slot_3" type="number" required min="1" class="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 focus:border-amber-500 rounded-xl text-xs text-white" />
+                    <span class="absolute right-3 top-2.5 text-[10px] text-slate-500 font-bold">PTS</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500 mt-1">≈ {{ ((settingsForm.wheel_slot_3 || 0) / (settingsForm.conversion_rate || 100)).toFixed(2) }} ৳</p>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Slot 4 (High)</label>
+                  <div class="relative">
+                    <input v-model.number="settingsForm.wheel_slot_4" type="number" required min="1" class="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 focus:border-amber-500 rounded-xl text-xs text-white" />
+                    <span class="absolute right-3 top-2.5 text-[10px] text-slate-500 font-bold">PTS</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500 mt-1">≈ {{ ((settingsForm.wheel_slot_4 || 0) / (settingsForm.conversion_rate || 100)).toFixed(2) }} ৳</p>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Slot 5 (Very High)</label>
+                  <div class="relative">
+                    <input v-model.number="settingsForm.wheel_slot_5" type="number" required min="1" class="w-full px-3 py-2.5 bg-slate-950/50 border border-slate-700/50 focus:border-amber-500 rounded-xl text-xs text-white" />
+                    <span class="absolute right-3 top-2.5 text-[10px] text-slate-500 font-bold">PTS</span>
+                  </div>
+                  <p class="text-[10px] text-slate-500 mt-1">≈ {{ ((settingsForm.wheel_slot_5 || 0) / (settingsForm.conversion_rate || 100)).toFixed(2) }} ৳</p>
+                </div>
+
+                <!-- Grand Jackpot Slot -->
+                <div class="p-2 rounded-2xl bg-gradient-to-b from-amber-500/15 via-rose-500/10 to-amber-500/5 border border-amber-500/40 relative">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-extrabold text-amber-300">🔥 GRAND JACKPOT</label>
+                  </div>
+                  <div class="relative">
+                    <input v-model.number="settingsForm.wheel_jackpot" type="number" required min="1" class="w-full px-3 py-2.5 bg-slate-950/80 border border-amber-500/60 focus:border-amber-400 rounded-xl text-xs text-amber-300 font-black shadow-[0_0_15px_rgba(245,158,11,0.2)]" />
+                    <span class="absolute right-3 top-2.5 text-[10px] text-amber-400 font-black">PTS</span>
+                  </div>
+                  <p class="text-[10px] text-amber-400 font-bold mt-1">≈ {{ ((settingsForm.wheel_jackpot || 0) / (settingsForm.conversion_rate || 100)).toFixed(2) }} ৳</p>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-950/50 border border-slate-800/80 text-[11px] text-slate-400 flex items-center gap-2">
+                <span class="text-amber-400 font-bold">💡 Info:</span>
+                <span>Slot 0 is fixed as "Try Again" (0 PTS). Winning the Grand Jackpot triggers special jackpot celebration notifications!</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Additional Settings -->
           <div class="glass-card p-6 rounded-3xl border border-slate-800/60 bg-slate-900/40 relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-rose-500/20"></div>
@@ -229,6 +314,17 @@
                     <span class="text-xs text-slate-500">Hours</span>
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-slate-300 mb-1.5">Tutorial Video URL (How to Work)</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="text-rose-500 text-sm">▶️</span>
+                  </div>
+                  <input v-model="settingsForm.tutorial_video_url" type="url" placeholder="https://www.youtube.com/watch?v=..." class="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl text-sm text-white transition-all" />
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">YouTube tutorial link opened when users click "How to Work" on Dashboard</p>
               </div>
             </div>
           </div>
@@ -540,6 +636,14 @@ const props = defineProps({
   telegramSuccessChatId: String,
   maintenanceMode: Boolean,
   maintenanceMessage: String,
+
+  wheelSlot1: Number,
+  wheelSlot2: Number,
+  wheelSlot3: Number,
+  wheelSlot4: Number,
+  wheelSlot5: Number,
+  wheelJackpot: Number,
+  tutorialVideoUrl: String,
 });
 
 const page = usePage();
@@ -569,6 +673,13 @@ const settingsForm = useForm({
   demo_users: props.demoUsers !== undefined ? props.demoUsers : 1200,
   demo_tasks: props.demoTasks !== undefined ? props.demoTasks : 45000,
   demo_payouts: props.demoPayouts !== undefined ? props.demoPayouts : 280000,
+  wheel_slot_1: props.wheelSlot1 || 10,
+  wheel_slot_2: props.wheelSlot2 || 25,
+  wheel_slot_3: props.wheelSlot3 || 50,
+  wheel_slot_4: props.wheelSlot4 || 100,
+  wheel_slot_5: props.wheelSlot5 || 200,
+  wheel_jackpot: props.wheelJackpot || 500,
+  tutorial_video_url: props.tutorialVideoUrl || 'https://www.youtube.com',
   support_email: props.supportEmail || 'support@easytsk.com',
   contact_email: props.contactEmail || 'contact@easytsk.com',
   company_address: props.companyAddress || 'Dhaka, Bangladesh',

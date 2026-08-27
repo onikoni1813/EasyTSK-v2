@@ -46,15 +46,22 @@ class AuthController extends Controller
             'ref_code'     => 'nullable|exists:users,referral_code',
         ]);
 
-        // 1 Device = 1 Account Anti-Fraud Check
-        $existingDevice = User::where('device_hash', $request->device_hash)->first();
-        if ($existingDevice) {
-            return back()->withErrors([
-                'device_hash' => 'An account is already registered from this device. Multiple accounts are strictly forbidden.',
-            ]);
+        // 1 Device = 1 Account Anti-Fraud Check (Bypassed on local environment)
+        if (!app()->environment('local')) {
+            $existingDevice = User::where('device_hash', $request->device_hash)->first();
+            if ($existingDevice) {
+                return back()->withErrors([
+                    'device_hash' => 'An account is already registered from this device. Multiple accounts are strictly forbidden.',
+                ]);
+            }
         }
 
         $welcomeBonus = (float) AppSetting::getByKey('welcome_bonus', '50.0');
+
+        $deviceHash = $request->device_hash;
+        if (app()->environment('local') && User::where('device_hash', $deviceHash)->exists()) {
+            $deviceHash = $deviceHash . '_' . \Illuminate\Support\Str::random(6);
+        }
 
         $user = User::create([
             'name'          => $request->name,
@@ -62,7 +69,7 @@ class AuthController extends Controller
             'email'         => $request->email,
             'password'      => Hash::make($request->password),
             'recovery_pin'  => $request->recovery_pin,
-            'device_hash'   => $request->device_hash,
+            'device_hash'   => $deviceHash,
             'role'          => 'user',
             'main_balance'  => 0,
             'pending_balance' => 0,
@@ -80,6 +87,17 @@ class AuthController extends Controller
             if ($referrer) {
                 $this->referralService->setupNewReferral($user, $referrer->id);
             }
+        }
+
+        if ($welcomeBonus > 0) {
+            \App\Models\Notification::send(
+                $user,
+                "Congrats! You've Received {$welcomeBonus} Welcome Bonus Points! 🎁",
+                "Welcome to EasyTSK, {$user->name}! Your {$welcomeBonus} bonus points are held in your locked balance. Complete your required task target to unlock and withdraw them!",
+                'info',
+                '/tasks',
+                true
+            );
         }
 
         Auth::login($user);

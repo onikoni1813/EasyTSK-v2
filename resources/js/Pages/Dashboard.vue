@@ -218,33 +218,44 @@
         </div>
       </div>
 
-      <!-- ── Quick Actions Row ────────────────────────────────────────── -->
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <!-- ── Quick Actions Row (Balanced 6-Card Grid) ───────────────── -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <Link href="/tasks" class="glass-card p-4 rounded-2xl border border-indigo-500/15 card-hover text-center group">
-          <div class="text-2xl mb-2">⚡</div>
+          <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">⚡</div>
           <div class="text-xs font-bold text-white">Micro Tasks</div>
           <div class="text-[10px] text-slate-400">Earn points</div>
         </Link>
-        <Link href="/tasks#offerwall" class="glass-card p-4 rounded-2xl border border-cyan-500/15 card-hover text-center">
-          <div class="text-2xl mb-2">🏆</div>
+        <Link href="/tasks#offerwall" class="glass-card p-4 rounded-2xl border border-cyan-500/15 card-hover text-center group">
+          <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🏆</div>
           <div class="text-xs font-bold text-white">Offerwalls</div>
           <div class="text-[10px] text-slate-400">Big rewards</div>
         </Link>
-        <Link href="/referral-contest" class="glass-card p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 card-hover text-center">
-          <div class="text-2xl mb-2">🥇</div>
+        <Link href="/referral-contest" class="glass-card p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 card-hover text-center group">
+          <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">🥇</div>
           <div class="text-xs font-bold text-amber-300">Top Referrer</div>
           <div class="text-[10px] text-amber-400 font-bold">Win Contest</div>
         </Link>
-        <Link href="/campaigns" class="glass-card p-4 rounded-2xl border border-pink-500/15 card-hover text-center">
-          <div class="text-2xl mb-2">📢</div>
+        <Link href="/campaigns" class="glass-card p-4 rounded-2xl border border-pink-500/15 card-hover text-center group">
+          <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">📢</div>
           <div class="text-xs font-bold text-white">Advertise</div>
           <div class="text-[10px] text-slate-400">Promote link</div>
         </Link>
-        <Link href="/withdraw" class="glass-card p-4 rounded-2xl border border-emerald-500/15 card-hover text-center">
-          <div class="text-2xl mb-2">💸</div>
+        <Link href="/withdraw" class="glass-card p-4 rounded-2xl border border-emerald-500/15 card-hover text-center group">
+          <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">💸</div>
           <div class="text-xs font-bold text-white">Withdraw</div>
           <div class="text-[10px] text-slate-400">Get paid</div>
         </Link>
+        <!-- 6th Slot: How to Work (YouTube Video Guide) -->
+        <a 
+          :href="tutorialVideoUrl || $page.props.siteSettings?.tutorial_video_url || 'https://www.youtube.com'" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          class="glass-card p-4 rounded-2xl border border-red-500/30 bg-red-500/10 hover:border-red-500/50 hover:bg-red-500/15 card-hover text-center group cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.1)] hover:shadow-[0_0_20px_rgba(239,68,68,0.25)] transition-all"
+        >
+          <div class="text-2xl mb-2 group-hover:scale-110 transition-transform">▶️</div>
+          <div class="text-xs font-bold text-red-400">How to Work</div>
+          <div class="text-[10px] text-slate-400">Watch tutorial</div>
+        </a>
       </div>
 
       <!-- ── Streak + Promo Row ───────────────────────────────────────── -->
@@ -482,6 +493,7 @@ const props = defineProps({
   rejectedTasksCount:  Number,
   totalActiveTasks:    Number,
   canSpin:             Boolean,
+  tutorialVideoUrl:    String,
 });
 
 const referrals = ref([]);
@@ -584,8 +596,14 @@ const copyReferral = () => {
   });
 };
 
-const onSpinComplete = (prize) => {
+const onSpinComplete = (data) => {
   canSpinLocal.value = false;
+  if (data && data.new_balance !== undefined) {
+    props.user.main_balance = data.new_balance;
+    if (page.props.auth?.user) {
+      page.props.auth.user.main_balance = data.new_balance;
+    }
+  }
   setTimeout(() => {
     showSpinWheel.value = false;
     router.reload({ preserveScroll: true });

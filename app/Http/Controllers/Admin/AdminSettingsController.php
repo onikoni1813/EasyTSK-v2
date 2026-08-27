@@ -53,6 +53,14 @@ class AdminSettingsController extends Controller
         $maintenanceMode = AppSetting::getByKey('maintenance_mode', 'false') === 'true';
         $maintenanceMessage = AppSetting::getByKey('maintenance_message', 'We are currently performing scheduled maintenance to upgrade our platform. Please check back shortly!');
 
+        $wheelSlot1 = AppSetting::getByKey('wheel_slot_1', '10');
+        $wheelSlot2 = AppSetting::getByKey('wheel_slot_2', '25');
+        $wheelSlot3 = AppSetting::getByKey('wheel_slot_3', '50');
+        $wheelSlot4 = AppSetting::getByKey('wheel_slot_4', '100');
+        $wheelSlot5 = AppSetting::getByKey('wheel_slot_5', '200');
+        $wheelJackpot = AppSetting::getByKey('wheel_jackpot', '500');
+        $tutorialVideoUrl = AppSetting::getByKey('tutorial_video_url', 'https://www.youtube.com');
+
         return Inertia::render('Admin/Settings/Index', [
             'conversionRate' => $conversionRate,
             'welcomeBonus' => (float) $welcomeBonus,
@@ -81,6 +89,13 @@ class AdminSettingsController extends Controller
             'telegramSuccessChatId' => $telegramSuccessChatId,
             'maintenanceMode' => $maintenanceMode,
             'maintenanceMessage' => $maintenanceMessage,
+            'wheelSlot1' => (int) $wheelSlot1,
+            'wheelSlot2' => (int) $wheelSlot2,
+            'wheelSlot3' => (int) $wheelSlot3,
+            'wheelSlot4' => (int) $wheelSlot4,
+            'wheelSlot5' => (int) $wheelSlot5,
+            'wheelJackpot' => (int) $wheelJackpot,
+            'tutorialVideoUrl' => $tutorialVideoUrl,
         ]);
     }
 
@@ -108,6 +123,7 @@ class AdminSettingsController extends Controller
             'site_favicon_file' => 'nullable|file|max:2048',
             'site_logo_url' => 'nullable|string|max:500',
             'site_favicon_url' => 'nullable|string|max:500',
+            'tutorial_video_url' => 'nullable|string|max:500',
             'telegram_admin_bot_enabled' => 'nullable|boolean',
             'telegram_admin_bot_token' => 'nullable|string|max:255',
             'telegram_admin_chat_id' => 'nullable|string|max:255',
@@ -116,6 +132,12 @@ class AdminSettingsController extends Controller
             'telegram_success_chat_id' => 'nullable|string|max:255',
             'maintenance_mode' => 'nullable|boolean',
             'maintenance_message' => 'nullable|string|max:1000',
+            'wheel_slot_1' => 'required|numeric|min:1',
+            'wheel_slot_2' => 'required|numeric|min:1',
+            'wheel_slot_3' => 'required|numeric|min:1',
+            'wheel_slot_4' => 'required|numeric|min:1',
+            'wheel_slot_5' => 'required|numeric|min:1',
+            'wheel_jackpot' => 'required|numeric|min:1',
         ]);
 
         AppSetting::setByKey('conversion_rate', $request->conversion_rate);
@@ -143,6 +165,16 @@ class AdminSettingsController extends Controller
         AppSetting::setByKey('support_email', $request->support_email);
         AppSetting::setByKey('contact_email', $request->contact_email);
         AppSetting::setByKey('company_address', $request->company_address);
+        if ($request->has('tutorial_video_url')) {
+            AppSetting::setByKey('tutorial_video_url', $request->tutorial_video_url ?? '');
+        }
+
+        AppSetting::setByKey('wheel_slot_1', $request->wheel_slot_1);
+        AppSetting::setByKey('wheel_slot_2', $request->wheel_slot_2);
+        AppSetting::setByKey('wheel_slot_3', $request->wheel_slot_3);
+        AppSetting::setByKey('wheel_slot_4', $request->wheel_slot_4);
+        AppSetting::setByKey('wheel_slot_5', $request->wheel_slot_5);
+        AppSetting::setByKey('wheel_jackpot', $request->wheel_jackpot);
 
         AppSetting::setByKey('telegram_admin_bot_enabled', $request->telegram_admin_bot_enabled ? 'true' : 'false');
         AppSetting::setByKey('telegram_admin_bot_token', $request->telegram_admin_bot_token ?? '');
