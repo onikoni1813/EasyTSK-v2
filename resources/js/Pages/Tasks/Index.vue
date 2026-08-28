@@ -108,8 +108,21 @@
                 <span class="text-amber-400 text-xs font-bold">⏳ Awaiting Admin Review</span>
               </div>
 
-              <!-- Shortlink / Custom / Social Proof / Secret Code -->
-              <div v-if="['shortlink', 'social', 'secret_code'].includes(task.type) && task.user_status !== 'pending'" class="space-y-2 mt-3">
+              <!-- Shortlink Task: Direct 1-Click Launch Button -->
+              <div v-if="task.type === 'shortlink' && task.user_status !== 'pending'" class="space-y-2 mt-3">
+                <button
+                  @click="startShortlinkTask(task)"
+                  :disabled="loadingShortlinkTaskId === task.id"
+                  class="btn-neon bg-gradient-to-r from-cyan-600 via-indigo-600 to-cyan-500 hover:from-cyan-500 hover:to-indigo-500 w-full py-2.5 rounded-xl text-xs font-black text-white flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all transform active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <span v-if="loadingShortlinkTaskId === task.id" class="animate-spin text-sm">🔄</span>
+                  <span v-else>⚡</span>
+                  <span>{{ loadingShortlinkTaskId === task.id ? 'Generating Secure Link...' : `Start Shortlink (+${task.reward_coins} Coins)` }}</span>
+                </button>
+              </div>
+
+              <!-- Custom / Social Proof / Secret Code / Blog Reward -->
+              <div v-else-if="['social', 'secret_code', 'blog_reward'].includes(task.type) && task.user_status !== 'pending'" class="space-y-2 mt-3">
                 <button
                   @click="openCustomTaskModal(task)"
                   class="btn-neon btn-emerald w-full py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2"
@@ -574,18 +587,18 @@
 
                         <!-- Fallback Legacy Proofs -->
                         <template v-else>
-                          <!-- Secret Code Multiple Inputs -->
-                          <div v-if="activeCustomTask.type === 'secret_code'" class="space-y-3">
+                          <!-- Secret Code / Blog Reward Inputs -->
+                          <div v-if="['secret_code', 'blog_reward'].includes(activeCustomTask.type)" class="space-y-3">
                             <div v-for="idx in (activeCustomTask.secret_code_count || 1)" :key="idx" class="proof-field-card p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
                               <label class="flex items-center gap-2 text-xs font-bold text-slate-300 mb-2">
                                 <span class="w-5 h-5 rounded-md bg-amber-500/15 flex items-center justify-center text-[10px]">🔑</span>
-                                Secret Code #{{ idx }}
+                                {{ activeCustomTask.type === 'blog_reward' ? 'Secret Code from Blog Article' : 'Secret Code #' + idx }}
                               </label>
                               <input
                                 v-model="customSecretCodes[idx - 1]"
                                 type="text"
-                                class="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-emerald-500/40 focus:bg-white/[0.06] text-xs text-white placeholder-slate-600 outline-none transition-all"
-                                placeholder="Enter secret code..."
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-emerald-500/40 focus:bg-white/[0.06] text-xs font-mono font-bold text-emerald-300 placeholder-slate-600 outline-none transition-all tracking-wider"
+                                :placeholder="activeCustomTask.type === 'blog_reward' ? 'Paste code from blog (e.g. TSK-XXXXXX)...' : 'Enter secret code...'"
                               />
                             </div>
                           </div>
@@ -971,6 +984,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router, usePage, Link } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SkeletonBlock from '@/Components/SkeletonBlock.vue';
 
@@ -1049,11 +1063,12 @@ const campaignSubmitError = ref('');
 const isSubmittingCampaign = ref(false);
 
 const categories = computed(() => [
-  { key: 'all',         label: 'All Tasks', icon: '⚡', activeCls: 'badge-indigo' },
+  { key: 'all',         label: 'All Tasks',    icon: '⚡', activeCls: 'badge-indigo' },
   { key: 'community',   label: props.community_locked ? 'Community 🔒' : 'Community', icon: '📢', activeCls: 'badge-violet' },
-  { key: 'shortlink',   label: 'Shortlink', icon: '🔗', activeCls: 'badge-cyan'   },
-  { key: 'secret_code', label: 'Code',      icon: '🔑', activeCls: 'badge-amber'  },
-  { key: 'social',      label: 'Custom',    icon: '📝', activeCls: 'badge-emerald'},
+  { key: 'blog_reward', label: 'Blog Reading', icon: '📖', activeCls: 'badge-emerald' },
+  { key: 'shortlink',   label: 'Shortlink',    icon: '🔗', activeCls: 'badge-cyan'   },
+  { key: 'secret_code', label: 'Code',         icon: '🔑', activeCls: 'badge-amber'  },
+  { key: 'social',      label: 'Custom',       icon: '📝', activeCls: 'badge-violet' },
 ]);
 
 const filteredTasks = computed(() =>
@@ -1187,20 +1202,40 @@ const closeIframe = () => {
 };
 
 const taskIcon = (type) => {
-  const icons = { shortlink: '🔗', secret_code: '🔑', social: '📝' };
+  const icons = { shortlink: '🔗', secret_code: '🔑', blog_reward: '📖', social: '📝' };
   return icons[type] || '⚡';
 };
 const taskBadgeClass = (type) => {
-  const map = { shortlink: 'badge-indigo', secret_code: 'badge-amber', social: 'badge-emerald' };
+  const map = { shortlink: 'badge-indigo', secret_code: 'badge-amber', blog_reward: 'badge-emerald', social: 'badge-violet' };
   return map[type] || 'badge-indigo';
 };
 const taskBorderClass = (type) => {
-  const map = { shortlink: 'border-indigo-500/15', secret_code: 'border-amber-500/15', social: 'border-emerald-500/15' };
+  const map = { shortlink: 'border-indigo-500/15', secret_code: 'border-amber-500/15', blog_reward: 'border-emerald-500/25', social: 'border-violet-500/15' };
   return map[type] || 'border-slate-800/50';
 };
 const taskGlowClass = (type) => {
-  const map = { shortlink: 'bg-indigo-500', secret_code: 'bg-amber-500', social: 'bg-emerald-500' };
+  const map = { shortlink: 'bg-indigo-500', secret_code: 'bg-amber-500', blog_reward: 'bg-emerald-500', social: 'bg-violet-500' };
   return map[type] || 'bg-slate-500';
+};
+
+const loadingShortlinkTaskId = ref(null);
+
+const startShortlinkTask = async (task) => {
+  if (loadingShortlinkTaskId.value) return;
+  loadingShortlinkTaskId.value = task.id;
+  try {
+    const res = await axios.post(`/tasks/${task.id}/shortlink/start`);
+    if (res.data.success && res.data.shortened_url) {
+      window.open(res.data.shortened_url, '_blank');
+    } else {
+      alert(res.data.message || 'Could not generate shortlink. Please try again.');
+    }
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Could not connect to shortlink server. Please try again.';
+    alert(msg);
+  } finally {
+    loadingShortlinkTaskId.value = null;
+  }
 };
 
 const openCustomTaskModal = (task) => {
@@ -1269,7 +1304,7 @@ const submitCustomProof = () => {
     fd.append('is_dynamic', '1');
   } else {
     // ── Legacy fallback path ──
-    if (activeCustomTask.value.type === 'secret_code') {
+    if (['secret_code', 'blog_reward'].includes(activeCustomTask.value.type)) {
       const requiredCount = activeCustomTask.value.secret_code_count || 1;
       let missing = false;
       for (let i = 0; i < requiredCount; i++) {
@@ -1279,7 +1314,9 @@ const submitCustomProof = () => {
         }
       }
       if (missing) {
-        customTaskError.value = 'Please provide all required secret codes.';
+        customTaskError.value = activeCustomTask.value.type === 'blog_reward'
+          ? 'Please provide the secret code from the blog article.'
+          : 'Please provide all required secret codes.';
         isSubmittingProof.value = false;
         return;
       }

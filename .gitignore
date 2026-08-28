@@ -28,3 +28,14 @@ deploy.config.bat
 deploy.config.ps1
 .deploy_history.json
 
+# Blog Engine
+blog_engine/vendor/
+blog_engine/node_modules/
+blog_engine/.env
+blog_engine/.env.backup
+blog_engine/storage/*.key
+blog_engine/storage/logs/*.log
+blog_engine/storage/framework/cache/*
+blog_engine/storage/framework/sessions/*
+blog_engine/storage/framework/views/*
+

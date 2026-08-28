@@ -94,6 +94,8 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::get('/tasks-history', [TaskController::class, 'history'])->name('tasks.history');
     Route::post('/tasks/{task}/social-proof', [TaskController::class, 'submitSocialProof'])->name('tasks.social-proof');
     Route::post('/tasks/campaign/{campaign}/submit', [TaskController::class, 'submitCampaignProof'])->name('tasks.campaign.submit');
+    Route::post('/tasks/{task}/shortlink/start', [\App\Http\Controllers\ShortlinkTaskController::class, 'start'])->name('tasks.shortlink.start');
+    Route::get('/tasks/shortlink/verify/{token}', [\App\Http\Controllers\ShortlinkTaskController::class, 'verify'])->name('tasks.shortlink.verify');
 
     // Withdrawals
     Route::get('/withdraw', [WithdrawalController::class, 'index'])->name('withdraw.index');
@@ -178,6 +180,13 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::put('/offerwalls/{offerwall}', [AdminOfferwallController::class, 'update'])->name('offerwalls.update');
     Route::post('/offerwalls/{offerwall}/toggle', [AdminOfferwallController::class, 'toggleStatus'])->name('offerwalls.toggle');
     Route::delete('/offerwalls/{offerwall}', [AdminOfferwallController::class, 'destroy'])->name('offerwalls.destroy');
+
+    // Shortlink Providers Management
+    Route::get('/shortlink-providers', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'index'])->name('shortlink-providers.index');
+    Route::post('/shortlink-providers', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'store'])->name('shortlink-providers.store');
+    Route::put('/shortlink-providers/{shortlink_provider}', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'update'])->name('shortlink-providers.update');
+    Route::post('/shortlink-providers/{shortlink_provider}/toggle', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'toggle'])->name('shortlink-providers.toggle');
+    Route::delete('/shortlink-providers/{shortlink_provider}', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'destroy'])->name('shortlink-providers.destroy');
 
     // Tasks Management
     Route::get('/tasks', [AdminTaskController::class, 'index'])->name('tasks.index');

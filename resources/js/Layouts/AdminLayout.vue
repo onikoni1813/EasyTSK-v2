@@ -66,6 +66,9 @@
         <Link :href="`${adminPath}/tasks`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/tasks`) && !$page.url.startsWith(`${adminPath}/tasks/reviews`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>🧩 Task Manager</span>
         </Link>
+        <Link :href="`${adminPath}/shortlink-providers`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/shortlink-providers`) ? 'bg-cyan-600 text-white' : 'text-cyan-400 hover:bg-slate-900'">
+          <span>🔗 Shortlink Providers</span>
+        </Link>
         <Link :href="`${adminPath}/withdrawals`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/withdrawals`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>💸 Withdrawals Payout</span>
         </Link>

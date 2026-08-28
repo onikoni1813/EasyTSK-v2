@@ -102,13 +102,29 @@
                 <div>
                   <label class="text-xs font-semibold text-slate-400 mb-1 block">Type</label>
                   <select v-model="form.type" class="input-dark">
-                    <option value="shortlink">Shortlink</option>
-                    <option value="secret_code">Secret Code</option>
-                    <option value="social">Social Proof</option>
-                    <option value="user_ad">User Ad</option>
+                    <option value="shortlink">🔗 Shortlink (Auto API Link & Credit)</option>
+                    <option value="secret_code">🔑 Secret Code (Manual Fixed)</option>
+                    <option value="blog_reward">📖 Blog Reading (Auto One-Time Code)</option>
+                    <option value="social">📝 Social Proof</option>
+                    <option value="user_ad">📢 User Ad</option>
                   </select>
                 </div>
-                <div v-if="['shortlink', 'user_ad'].includes(form.type)">
+                <div v-if="form.type === 'shortlink'">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="text-xs font-semibold text-slate-400">Shortlink Provider *</label>
+                    <Link :href="adminPath + '/shortlink-providers'" class="text-[10px] text-cyan-400 hover:underline">
+                      ⚙️ Manage Keys
+                    </Link>
+                  </div>
+                  <select @change="e => onShortlinkProviderSelect(e.target.value)" v-model="form.provider_name" class="input-dark">
+                    <option value="">-- Select Saved Provider --</option>
+                    <option v-for="p in shortlinkProviders" :key="p.id" :value="p.name">
+                      {{ p.icon || '🔗' }} {{ p.name }} (Saved API)
+                    </option>
+                    <option value="__custom__">➕ Preset / Custom URL...</option>
+                  </select>
+                </div>
+                <div v-else-if="form.type === 'user_ad'">
                   <label class="text-xs font-semibold text-slate-400 mb-1 block">Provider Name</label>
                   <input v-model="form.provider_name" type="text" class="input-dark" placeholder="e.g. ShrinkMe" />
                   <div v-if="form.errors.provider_name" class="text-[10px] text-rose-500 mt-1">{{ form.errors.provider_name }}</div>
@@ -116,9 +132,23 @@
               </div>
 
               <div>
-                <label class="text-xs font-semibold text-slate-400 mb-1 block">Target URL</label>
+                <label class="text-xs font-semibold text-slate-400 mb-1 block">
+                  {{ form.type === 'shortlink' ? 'Provider Base API URL' : 'Target URL' }}
+                </label>
                 <input v-model="form.target_url" type="url" class="input-dark" placeholder="https://..." required />
                 <div v-if="form.errors.target_url" class="text-[10px] text-rose-500 mt-1">{{ form.errors.target_url }}</div>
+              </div>
+
+              <div v-if="form.type === 'shortlink'" class="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl space-y-1">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-cyan-300 font-bold">⚡ Zero-Hassle Auto Shortlink</span>
+                  <Link :href="adminPath + '/shortlink-providers'" class="text-[10px] text-cyan-400 underline">
+                    Shortlink Providers Settings ➔
+                  </Link>
+                </div>
+                <p class="text-[10px] text-slate-400">
+                  EasyTSK securely pulls your API Key from the saved provider and credits the exact Reward Coins & XP set below upon task completion. No secret codes needed!
+                </p>
               </div>
 
               <div v-if="form.type === 'secret_code'">
@@ -255,6 +285,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 const props = defineProps({
   tasks: Array,
   pendingReviewsCount: Number,
+  shortlinkProviders: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -288,9 +319,24 @@ const form = useForm(emptyForm());
 const typeBadge = (type) => ({
   shortlink: 'badge-cyan',
   secret_code: 'badge-amber',
-  social: 'badge-emerald',
-  user_ad: 'badge-violet',
+  blog_reward: 'badge-emerald',
+  social: 'badge-violet',
+  user_ad: 'badge-fuchsia',
 })[type] || 'badge-indigo';
+
+const onShortlinkProviderSelect = (providerName) => {
+  if (providerName === '__custom__') {
+    form.provider_name = '';
+    form.target_url = '';
+    return;
+  }
+
+  const p = props.shortlinkProviders.find(sp => sp.name === providerName);
+  if (p) {
+    form.provider_name = p.name;
+    form.target_url = p.api_url;
+  }
+};
 
 const openCreate = () => {
   editingId.value = null;

@@ -15,6 +15,7 @@ use App\Services\StorageSaverService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 
 class TaskController extends Controller
@@ -283,7 +284,37 @@ class TaskController extends Controller
             return back()->withErrors(['message' => 'You must provide either a screenshot, text proof, or secret code to complete this task.']);
         }
 
-        if ($task->type === 'secret_code' && !empty($task->secret_code)) {
+        if ($task->type === 'blog_reward') {
+            $submittedCodes = $request->input('secret_codes');
+            $submittedCode = '';
+            if (is_array($submittedCodes) && !empty($submittedCodes)) {
+                $submittedCode = trim($submittedCodes[0] ?? '');
+            } elseif (!empty($request->text_proof)) {
+                $submittedCode = trim($request->text_proof);
+            }
+
+            if (empty($submittedCode)) {
+                $userTask->delete();
+                return back()->withErrors(['message' => 'Please provide the secret code from the blog article.']);
+            }
+
+            $submittedData['secret_codes'] = $submittedCode;
+
+            $verification = $this->verifyBlogRewardCode($task, $submittedCode);
+            if ($verification['valid']) {
+                $status = 'approved';
+                $message = 'Blog Reading Task verified! Reward coins and XP credited automatically.';
+            } else {
+                if (empty($verification['is_network_error'])) {
+                    $user->deductHealth(10);
+                    $penaltyText = ' (10 Health deducted)';
+                } else {
+                    $penaltyText = '';
+                }
+                $userTask->delete();
+                return back()->withErrors(['message' => $verification['message'] . $penaltyText]);
+            }
+        } elseif ($task->type === 'secret_code' && !empty($task->secret_code)) {
             $requiredCodes = array_map('trim', explode(',', $task->secret_code));
             
             // Allow submission via text_proof (if 1 code) or secret_codes array
@@ -410,7 +441,35 @@ class TaskController extends Controller
         $status = 'pending';
         $message = 'Proof submitted successfully! It is now pending admin review.';
 
-        if ($task->type === 'secret_code' && !empty($task->secret_code)) {
+        if ($task->type === 'blog_reward') {
+            $submittedCode = '';
+            foreach ($submittedData as $entry) {
+                if (($entry['type'] ?? '') === 'text' && !empty($entry['value'])) {
+                    $submittedCode = trim($entry['value']);
+                    break;
+                }
+            }
+
+            if (empty($submittedCode) && !empty($request->input('secret_codes'))) {
+                $codes = $request->input('secret_codes');
+                $submittedCode = is_array($codes) ? ($codes[0] ?? '') : $codes;
+            }
+
+            $verification = $this->verifyBlogRewardCode($task, (string)$submittedCode);
+            if ($verification['valid']) {
+                $status = 'approved';
+                $message = 'Blog Reading Task verified! Reward coins and XP credited automatically.';
+            } else {
+                if (empty($verification['is_network_error'])) {
+                    $user->deductHealth(10);
+                    $penaltyText = ' (10 Health deducted)';
+                } else {
+                    $penaltyText = '';
+                }
+                $userTask->delete();
+                return back()->withErrors(['message' => $verification['message'] . $penaltyText]);
+            }
+        } elseif ($task->type === 'secret_code' && !empty($task->secret_code)) {
             $requiredCodes = array_map('trim', explode(',', $task->secret_code));
             $submittedCodes = [];
             foreach ($submittedData as $entry) {
@@ -720,6 +779,59 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             return back()->withErrors(['message' => 'Could not submit task proof. Please try again.']);
+        }
+    }
+
+    /**
+     * Verify dynamic one-time code against Blog Engine API.
+     */
+    protected function verifyBlogRewardCode(Task $task, string $submittedCode): array
+    {
+        $submittedCode = trim($submittedCode);
+        if (empty($submittedCode)) {
+            return ['valid' => false, 'is_network_error' => false, 'message' => 'Please provide the secret code from the blog article.'];
+        }
+
+        $targetUrl = trim($task->target_url);
+        
+        // Determine exact API URL for local XAMPP and live production subdomains
+        if (str_contains($targetUrl, 'blog_engine')) {
+            $verifyUrl = 'http://localhost/Easytsk%20v2/blog_engine/public/api/task/verify-code';
+        } else {
+            $parsed = parse_url($targetUrl);
+            $scheme = $parsed['scheme'] ?? 'http';
+            $host = $parsed['host'] ?? 'localhost';
+            $port = !empty($parsed['port']) && !in_array($parsed['port'], [80, 443]) ? ':' . $parsed['port'] : '';
+            $verifyUrl = "{$scheme}://{$host}{$port}/api/task/verify-code";
+        }
+
+        try {
+            $apiRes = Http::timeout(8)->post($verifyUrl, [
+                'code' => $submittedCode,
+            ]);
+
+            if ($apiRes->successful() && $apiRes->json('valid') === true) {
+                return ['valid' => true, 'is_network_error' => false, 'message' => 'Blog task verified!'];
+            }
+
+            $msg = $apiRes->json('message') ?? 'Invalid, expired, or already used blog code!';
+            return ['valid' => false, 'is_network_error' => false, 'message' => $msg];
+        } catch (\Exception $e) {
+            // Fallback for local IP variations if localhost failed
+            if (str_contains($verifyUrl, 'localhost')) {
+                try {
+                    $fallbackUrl = 'http://127.0.0.1/Easytsk%20v2/blog_engine/public/api/task/verify-code';
+                    $fallbackRes = Http::timeout(8)->post($fallbackUrl, ['code' => $submittedCode]);
+                    if ($fallbackRes->successful() && $fallbackRes->json('valid') === true) {
+                        return ['valid' => true, 'is_network_error' => false, 'message' => 'Blog task verified!'];
+                    }
+                    if ($fallbackRes->successful()) {
+                        return ['valid' => false, 'is_network_error' => false, 'message' => $fallbackRes->json('message') ?? 'Invalid code.'];
+                    }
+                } catch (\Exception $e2) {}
+            }
+
+            return ['valid' => false, 'is_network_error' => true, 'message' => 'Could not connect to blog verification server. Please try again.'];
         }
     }
 }

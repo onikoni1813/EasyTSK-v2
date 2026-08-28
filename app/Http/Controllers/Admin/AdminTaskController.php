@@ -31,10 +31,12 @@ class AdminTaskController extends Controller
         ]);
 
         $pendingReviewsCount = \App\Models\UserTask::where('status', 'pending')->count();
+        $shortlinkProviders = \App\Models\ShortlinkProvider::where('is_active', true)->get();
 
         return Inertia::render('Admin/Tasks/Index', [
             'tasks' => $tasks,
             'pendingReviewsCount' => $pendingReviewsCount,
+            'shortlinkProviders' => $shortlinkProviders,
         ]);
     }
 
@@ -42,7 +44,7 @@ class AdminTaskController extends Controller
     {
         $validated = $request->validate([
             'title'              => 'required|string|max:255',
-            'type'               => 'required|in:shortlink,secret_code,social,user_ad',
+            'type'               => 'required|in:shortlink,secret_code,social,user_ad,blog_reward',
             'provider_name'      => 'nullable|string|max:255',
             'target_url'         => 'required|url',
             'secret_code'        => 'required_if:type,secret_code|nullable|string|max:255',
@@ -76,7 +78,7 @@ class AdminTaskController extends Controller
     {
         $validated = $request->validate([
             'title'              => 'required|string|max:255',
-            'type'               => 'required|in:shortlink,secret_code,social,user_ad',
+            'type'               => 'required|in:shortlink,secret_code,social,user_ad,blog_reward',
             'provider_name'      => 'nullable|string|max:255',
             'target_url'         => 'required|url',
             'secret_code'        => 'required_if:type,secret_code|nullable|string|max:255',

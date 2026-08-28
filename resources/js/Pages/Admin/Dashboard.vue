@@ -87,6 +87,11 @@
             <div class="text-xs font-bold text-white">Contests</div>
             <div class="badge badge-cyan mt-1 text-[10px]">{{ stats.activeContestsCount }} active</div>
           </Link>
+          <Link :href="`${adminPath}/shortlink-providers`" class="glass-card p-4 rounded-2xl border border-cyan-500/20 card-hover text-center block transition-transform hover:scale-105">
+            <div class="text-2xl mb-1">🔗</div>
+            <div class="text-xs font-bold text-white">Shortlinks</div>
+            <div class="badge badge-cyan mt-1 text-[10px]">API Engine</div>
+          </Link>
         </div>
       </div>
 
