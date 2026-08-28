@@ -64,6 +64,14 @@ class ShortlinkTaskController extends Controller
             ], 403);
         }
 
+        if (!\Illuminate\Support\Facades\Schema::hasTable('shortlink_sessions')) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
+
         // 1. Generate unique session token
         $token = Str::random(48);
         $session = ShortlinkSession::create([

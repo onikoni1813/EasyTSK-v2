@@ -31,7 +31,9 @@ class AdminTaskController extends Controller
         ]);
 
         $pendingReviewsCount = \App\Models\UserTask::where('status', 'pending')->count();
-        $shortlinkProviders = \App\Models\ShortlinkProvider::where('is_active', true)->get();
+        $shortlinkProviders = \Illuminate\Support\Facades\Schema::hasTable('shortlink_providers')
+            ? \App\Models\ShortlinkProvider::where('is_active', true)->get()
+            : collect();
 
         return Inertia::render('Admin/Tasks/Index', [
             'tasks' => $tasks,

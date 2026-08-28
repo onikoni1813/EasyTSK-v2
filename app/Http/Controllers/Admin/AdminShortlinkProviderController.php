@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ShortlinkProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -12,16 +14,30 @@ class AdminShortlinkProviderController extends Controller
 {
     public function index()
     {
-        $providers = ShortlinkProvider::orderBy('id', 'asc')->get();
+        if (!Schema::hasTable('shortlink_providers')) {
+            try {
+                Artisan::call('migrate', ['--force' => true]);
+            } catch (\Throwable $e) {
+                // Table creation will be handled via migrate
+            }
+        }
+
+        $tableExists = Schema::hasTable('shortlink_providers');
+        $providers = $tableExists ? ShortlinkProvider::orderBy('id', 'asc')->get() : collect();
 
         return Inertia::render('Admin/ShortlinkProviders/Index', [
             'providers' => $providers,
             'presets' => ShortlinkProvider::PRESETS,
+            'tableExists' => $tableExists,
         ]);
     }
 
     public function store(Request $request)
     {
+        if (!Schema::hasTable('shortlink_providers')) {
+            Artisan::call('migrate', ['--force' => true]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'api_url' => 'required|url|max:255',
