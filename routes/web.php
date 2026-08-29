@@ -184,6 +184,8 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     // Shortlink Providers Management
     Route::get('/shortlink-providers', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'index'])->name('shortlink-providers.index');
     Route::post('/shortlink-providers', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'store'])->name('shortlink-providers.store');
+    Route::post('/shortlink-providers/sync-presets', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'syncPresets'])->name('shortlink-providers.sync-presets');
+    Route::post('/shortlink-providers/{shortlink_provider}/test', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'test'])->name('shortlink-providers.test');
     Route::put('/shortlink-providers/{shortlink_provider}', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'update'])->name('shortlink-providers.update');
     Route::post('/shortlink-providers/{shortlink_provider}/toggle', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'toggle'])->name('shortlink-providers.toggle');
     Route::delete('/shortlink-providers/{shortlink_provider}', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'destroy'])->name('shortlink-providers.destroy');

@@ -76,6 +76,27 @@ class Post extends Model
         return $query->published()->where('is_trending', true);
     }
 
+    public function getImageUrlAttribute(): ?string
+    {
+        if (empty($this->featured_image)) {
+            return null;
+        }
+        if (\Illuminate\Support\Str::startsWith($this->featured_image, ['http://', 'https://'])) {
+            return $this->featured_image;
+        }
+
+        $path = ltrim($this->featured_image, '/');
+
+        if (function_exists('request') && request()) {
+            $base = request()->getBasePath();
+            if ($base) {
+                return rtrim($base, '/') . '/' . $path;
+            }
+        }
+
+        return '/' . $path;
+    }
+
     public function getEstimatedReadingTimeAttribute(): int
     {
         if ($this->reading_time > 0) {

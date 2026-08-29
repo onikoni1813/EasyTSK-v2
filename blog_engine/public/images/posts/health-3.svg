@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+    <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4c1d95"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+        <linearGradient id="gradAccent" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#c084fc" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0"/>
+        </linearGradient>
+        <radialGradient id="glowGrad" cx="80%" cy="30%" r="60%">
+            <stop offset="0%" stop-color="#c084fc" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+        </radialGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1200" height="630" fill="url(#bgGrad)"/>
+    <circle cx="950" cy="250" r="350" fill="url(#glowGrad)"/>
+
+    <!-- Decorative Pattern -->
+    
+            <circle cx="850" cy="200" r="8" fill="#c084fc" opacity="0.8"/>
+            <circle cx="1000" cy="150" r="6" fill="#8b5cf6" opacity="0.7"/>
+            <circle cx="950" cy="320" r="10" fill="#c084fc" opacity="0.9"/>
+            <circle cx="1080" cy="280" r="7" fill="#8b5cf6" opacity="0.6"/>
+            <circle cx="820" cy="400" r="9" fill="#c084fc" opacity="0.7"/>
+            <circle cx="1020" cy="450" r="8" fill="#8b5cf6" opacity="0.8"/>
+            <line x1="850" y1="200" x2="1000" y2="150" stroke="#c084fc" stroke-width="2" opacity="0.4"/>
+            <line x1="850" y1="200" x2="950" y2="320" stroke="#c084fc" stroke-width="2" opacity="0.4"/>
+            <line x1="1000" y1="150" x2="1080" y2="280" stroke="#8b5cf6" stroke-width="2" opacity="0.4"/>
+            <line x1="950" y1="320" x2="1080" y2="280" stroke="#c084fc" stroke-width="2" opacity="0.4"/>
+            <line x1="950" y1="320" x2="820" y2="400" stroke="#8b5cf6" stroke-width="2" opacity="0.4"/>
+            <line x1="950" y1="320" x2="1020" y2="450" stroke="#c084fc" stroke-width="2" opacity="0.4"/>
+            <line x1="1080" y1="280" x2="1020" y2="450" stroke="#8b5cf6" stroke-width="2" opacity="0.4"/>
+            
+
+    <!-- Glass Icon Container -->
+    <g transform="translate(900, 220)">
+        <rect x="-60" y="-60" width="120" height="120" rx="30" fill="#0f172a" fill-opacity="0.7" stroke="#c084fc" stroke-width="2" stroke-opacity="0.6"/>
+        <text x="0" y="14" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="34" font-weight="900" fill="#8b5cf6" text-anchor="middle" letter-spacing="1">MED</text>
+    </g>
+
+    <!-- Left Content -->
+    <g transform="translate(80, 160)">
+        <!-- Category Badge -->
+        <rect x="0" y="0" width="240" height="38" rx="19" fill="#c084fc" fill-opacity="0.2" stroke="#c084fc" stroke-width="1.5"/>
+        <text x="120" y="24" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="800" fill="#8b5cf6" text-anchor="middle" letter-spacing="2">NOOTROPICS</text>
+
+        <!-- Main Title -->
+        <text x="0" y="100" font-family="Georgia, Cambria, serif" font-size="44" font-weight="bold" fill="#ffffff">
+            <tspan x="0" dy="0">Nootropics for Cognitive Focus</tspan>
+        </text>
+
+        <!-- Subtitle / Meta -->
+        <text x="0" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="500" fill="#94a3b8">
+            Expert Analysis &#8226; 2026 Strategic Blueprint &#8226; Verified Publication
+        </text>
+
+        <!-- Decorative bar -->
+        <rect x="0" y="220" width="80" height="5" rx="2.5" fill="#c084fc"/>
+    </g>
+</svg>

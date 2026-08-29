@@ -40,6 +40,14 @@ class SiteController extends Controller
             $validated['slug'] = Str::slug($validated['name']);
         }
 
+        // Clean domain & subdomain
+        if (!empty($validated['domain'])) {
+            $validated['domain'] = $this->normalizeDomain($validated['domain']);
+        }
+        if (!empty($validated['subdomain'])) {
+            $validated['subdomain'] = $this->normalizeSubdomain($validated['subdomain']);
+        }
+
         $validated['is_active'] = $request->boolean('is_active', true);
 
         // SEO defaults
@@ -78,6 +86,14 @@ class SiteController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        // Clean domain & subdomain
+        if (!empty($validated['domain'])) {
+            $validated['domain'] = $this->normalizeDomain($validated['domain']);
+        }
+        if (!empty($validated['subdomain'])) {
+            $validated['subdomain'] = $this->normalizeSubdomain($validated['subdomain']);
+        }
+
         $validated['is_active'] = $request->boolean('is_active', true);
 
         // Update SEO defaults
@@ -89,6 +105,28 @@ class SiteController extends Controller
         $site->update($validated);
 
         return redirect()->route('admin.sites.index')->with('success', "Site '{$site->name}' updated successfully.");
+    }
+
+    protected function normalizeDomain(?string $domain): ?string
+    {
+        if (!$domain) {
+            return null;
+        }
+        $clean = preg_replace('#^https?://#i', '', trim($domain));
+        $clean = explode('/', $clean)[0];
+        $clean = explode(':', $clean)[0];
+        return strtolower(trim($clean));
+    }
+
+    protected function normalizeSubdomain(?string $sub): ?string
+    {
+        if (!$sub) {
+            return null;
+        }
+        $clean = preg_replace('#^https?://#i', '', trim($sub));
+        $clean = explode('/', $clean)[0];
+        $clean = explode('.', $clean)[0];
+        return strtolower(trim($clean));
     }
 
     public function destroy(Site $site)

@@ -1,0 +1,25 @@
+Your API token:
+46cf4328855d079b1e0a2b45df82fc5a7d5048f2
+https://droplink.co/api?api=46cf4328855d079b1e0a2b45df82fc5a7d5048f2&url=yourdestinationlink.com&alias=CustomAlias
+{"status":"success","shortenedUrl":""https:\/\/droplink.co\/xxxxx""}
+https://droplink.co/api?api=46cf4328855d079b1e0a2b45df82fc5a7d5048f2&url=yourdestinationlink.com&alias=CustomAlias&format=text
+ Note
+api & url are required fields and the other fields like alias, format & type are optional.
+Using the API in PHP
+$long_url = urlencode('yourdestinationlink.com');
+$api_token = '46cf4328855d079b1e0a2b45df82fc5a7d5048f2';
+$api_url = "https://droplink.co/api?api={$api_token}&url={$long_url}&alias=CustomAlias";
+$result = @json_decode(file_get_contents($api_url),TRUE);
+if($result["status"] === 'error') {
+ echo $result["message"];
+} else {
+ echo $result["shortenedUrl"];
+}
+$long_url = urlencode('yourdestinationlink.com');
+$api_token = '46cf4328855d079b1e0a2b45df82fc5a7d5048f2';
+$api_url = "https://droplink.co/api?api={$api_token}&url={$long_url}&alias=CustomAlias&format=text";
+$result = @file_get_contents($api_url);
+if( $result ){
+ echo $result;
+}
+This website uses cookies to ensure you get the best experience on our website. Learn more

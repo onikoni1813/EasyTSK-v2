@@ -154,7 +154,8 @@ class MultiSiteBlogEngineTest extends TestCase
 
         $response = $this->actingAs($admin)->post('/admin/sites', [
             'name' => 'Fintech Weekly',
-            'subdomain' => 'blog4',
+            'subdomain' => 'blog8',
+            'domain' => 'blog8.easytsk.com',
             'niche' => 'Fintech',
             'tagline' => 'Global Fintech & Banking News',
             'description' => 'Covering neobanks, cross-border payments, and digital wallets.',
@@ -165,12 +166,13 @@ class MultiSiteBlogEngineTest extends TestCase
 
         $response->assertRedirect('/admin/sites');
 
-        $site4 = Site::where('subdomain', 'blog4')->first();
-        $this->assertNotNull($site4);
-        $this->assertEquals('Fintech Weekly', $site4->name);
+        $site8 = Site::where('subdomain', 'blog8')->first();
+        $this->assertNotNull($site8);
+        $this->assertEquals('Fintech Weekly', $site8->name);
+        $this->assertEquals('blog8.easytsk.com', $site8->domain);
 
         // Verify legal pages were automatically seeded
-        $privacy = SitePage::withoutGlobalScopes()->where('site_id', $site4->id)->where('slug', 'privacy-policy')->first();
+        $privacy = SitePage::withoutGlobalScopes()->where('site_id', $site8->id)->where('slug', 'privacy-policy')->first();
         $this->assertNotNull($privacy);
         $this->assertStringContainsString('Fintech Weekly', $privacy->content);
     }

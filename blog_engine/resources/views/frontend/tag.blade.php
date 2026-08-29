@@ -22,9 +22,9 @@
         @forelse($posts as $post)
             <article class="bg-white rounded-2xl overflow-hidden border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition group flex flex-col justify-between">
                 <div>
-                    @if($post->featured_image)
+                    @if($post->image_url)
                         <div class="h-44 sm:h-48 overflow-hidden bg-slate-100 relative">
-                            <img src="{{ $post->featured_image }}" alt="{{ $post->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <img src="{{ $post->image_url }}" alt="{{ $post->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         </div>
                     @endif
 

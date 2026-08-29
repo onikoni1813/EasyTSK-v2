@@ -1,0 +1,51 @@
+Developers API
+ Dashboard Developers API
+Your API token:
+
+f684596598b4c257c5c61f044571c1a23c0039ae
+For developers fc.lc prepared API which returns responses in JSON or TEXT formats.
+
+All you have to do is to send a GET request with your API token and URL Like the following:
+
+https://fc.lc/api?api=f684596598b4c257c5c61f044571c1a23c0039ae&url=yourdestinationlink.com&alias=CustomAlias
+ api and url fields are required. The other fields like alias and format are optional.
+
+You will get a JSON response like the following
+
+{
+    "status": "success",
+    "message": "",
+    "shortenedUrl": "https://fc.lc/CustomAlias"
+}
+ In case of an error, status will return error and message will contain the error message.
+
+If you want a TEXT response just add &format=text at the end of your request as the below example. This will return just the short link. Note that if an error occurs, it will not output anything.
+
+https://fc.lc/api?api=f684596598b4c257c5c61f044571c1a23c0039ae&url=yourdestinationlink.com&alias=CustomAlias&format=text
+ In case of an error, the error message will be returned instead.
+
+Using the API in PHP
+To use the API in your PHP application, you need to send a GET request via file_get_contents or cURL. Please check the below sample examples using file_get_contents
+
+Using JSON Response
+
+$long_url = urlencode('yourdestinationlink.com');
+$api_token = 'f684596598b4c257c5c61f044571c1a23c0039ae';
+$api_url = "https://fc.lc/api?api={$api_token}&url={$long_url}&alias=CustomAlias";
+$result = @json_decode(file_get_contents($api_url), true);
+
+if($result["status"] === 'error') {
+ echo $result["message"];
+} else {
+ echo $result["shortenedUrl"];
+}
+Using Plain Text Response
+
+$long_url = urlencode('yourdestinationlink.com');
+$api_token = 'f684596598b4c257c5c61f044571c1a23c0039ae';
+$api_url = "https://fc.lc/api?api={$api_token}&url={$long_url}&alias=CustomAlias&format=text";
+$result = @(file_get_contents$api_url);
+
+if($result) {
+ echo $result;
+}

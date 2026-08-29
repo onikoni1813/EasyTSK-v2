@@ -21,7 +21,8 @@ class AdController extends Controller
         $defaultNetworks = AdPlacement::NETWORKS;
 
         // Fetch dynamic networks used across all placements
-        $customNetworks = AdPlacement::where('site_id', $site->id)
+        $customNetworks = AdPlacement::withoutGlobalScopes()
+            ->where('site_id', $site->id)
             ->whereNotNull('network')
             ->distinct()
             ->pluck('network')
@@ -35,15 +36,12 @@ class AdController extends Controller
             }
         }
 
-        $existingPlacements = AdPlacement::where('site_id', $site->id)
-            ->get()
-            ->keyBy('placement_slot');
-
-        $allPlacements = AdPlacement::where('site_id', $site->id)
+        $allPlacements = AdPlacement::withoutGlobalScopes()
+            ->where('site_id', $site->id)
             ->orderBy('id', 'asc')
             ->get();
 
-        return view('admin.ads.index', compact('site', 'slots', 'networks', 'existingPlacements', 'allPlacements'));
+        return view('admin.ads.index', compact('site', 'slots', 'networks', 'allPlacements'));
     }
 
     /**
@@ -136,17 +134,22 @@ class AdController extends Controller
     public function destroy(string $idOrSlot, SiteContext $siteContext, AdEngine $adEngine)
     {
         $site = $siteContext->get();
-        
+        if (!$site) {
+            return redirect()->back()->with('error', 'No active site selected.');
+        }
+
+        $query = AdPlacement::withoutGlobalScopes()->where('site_id', $site->id);
+
         if (is_numeric($idOrSlot)) {
-            $placement = AdPlacement::where('site_id', $site->id)->find($idOrSlot);
+            $placement = (clone $query)->where('id', (int)$idOrSlot)->first();
         } else {
-            $placement = AdPlacement::where('site_id', $site->id)->where('placement_slot', $idOrSlot)->first();
+            $placement = (clone $query)->where('placement_slot', $idOrSlot)->first();
         }
 
         if ($placement) {
             $slotTitle = $placement->title ?: $placement->placement_slot;
             $placement->delete();
-            $msg = "Ad Unit '{$slotTitle}' deleted permanently from database.";
+            $msg = "Ad Unit '{$slotTitle}' deleted successfully.";
         } else {
             $msg = "Ad placement reset successfully.";
         }
@@ -154,5 +157,27 @@ class AdController extends Controller
         $adEngine->clearCache($site->id);
 
         return redirect()->route('admin.ads.index')->with('success', $msg);
+    }
+
+    /**
+     * Clear / Disable all ad placements for current site in one click.
+     */
+    public function clearAll(SiteContext $siteContext, AdEngine $adEngine)
+    {
+        $site = $siteContext->get();
+        if (!$site) {
+            return redirect()->back()->with('error', 'No active site selected.');
+        }
+
+        AdPlacement::withoutGlobalScopes()
+            ->where('site_id', $site->id)
+            ->update([
+                'is_active' => false,
+                'ad_code' => '',
+            ]);
+
+        $adEngine->clearCache($site->id);
+
+        return redirect()->route('admin.ads.index')->with('success', "All ad placeholders for '{$site->name}' have been deactivated and cleared.");
     }
 }

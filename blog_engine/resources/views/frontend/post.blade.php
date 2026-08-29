@@ -78,9 +78,9 @@
             @endif
 
             <!-- Featured Image -->
-            @if($post->featured_image)
+            @if($post->image_url)
                 <div class="rounded-xl sm:rounded-2xl overflow-hidden shadow-md">
-                    <img src="{{ $post->featured_image }}" alt="{{ $post->title }}" class="w-full h-auto object-cover max-h-[480px]">
+                    <img src="{{ $post->image_url }}" alt="{{ $post->title }}" class="w-full h-auto object-cover max-h-[480px]">
                 </div>
             @endif
 

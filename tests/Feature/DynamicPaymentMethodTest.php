@@ -101,6 +101,55 @@ class DynamicPaymentMethodTest extends TestCase
         $this->assertFalse($method->fresh()->is_active);
     }
 
+    public function test_admin_can_update_payment_method(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $method = PaymentMethod::where('code', 'bKash')->first();
+
+        $response = $this->actingAs($admin)->put("/secret-panel/payment-methods/{$method->id}", [
+            'name' => 'bKash Personal (Updated)',
+            'code' => 'bKash',
+            'type' => 'mobile_banking',
+            'currency' => 'BDT',
+            'currency_symbol' => '৳',
+            'min_points' => 1500,
+            'fixed_charge' => 5,
+            'charge_percent' => 1.0,
+            'account_placeholder' => '01XXXXXXXXX',
+            'is_active' => true,
+            'order' => 1,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertEquals('bKash Personal (Updated)', $method->fresh()->name);
+        $this->assertEquals(1500, $method->fresh()->min_points);
+    }
+
+    public function test_admin_can_delete_payment_method_without_pending_withdrawals(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $method = PaymentMethod::create([
+            'name' => 'Custom Delete Test',
+            'code' => 'custom_delete_test',
+            'type' => 'mobile_banking',
+            'currency' => 'BDT',
+            'currency_symbol' => '৳',
+            'min_points' => 1000,
+            'account_placeholder' => '017XXXXXXXX',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->delete("/secret-panel/payment-methods/{$method->id}");
+        $response->assertSessionHasNoErrors();
+        $this->assertNull(PaymentMethod::find($method->id));
+    }
+
     public function test_disabled_method_is_hidden_from_user_withdraw_page(): void
     {
         $user = User::factory()->create([

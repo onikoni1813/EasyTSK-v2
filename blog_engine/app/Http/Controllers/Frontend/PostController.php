@@ -30,6 +30,14 @@ class PostController extends Controller
         // Smart in-content ad injection
         $contentWithAds = $adEngine->injectInContent($post->content);
 
+        // Normalize relative local image paths in HTML body with exact base path
+        $base = $request->getBasePath();
+        $contentWithAds = preg_replace_callback('/src=["\'](\/(images|storage)\/[^"\']+)["\']/i', function ($m) use ($base) {
+            $rel = ltrim($m[1], '/');
+            $url = $base ? (rtrim($base, '/') . '/' . $rel) : ('/' . $rel);
+            return 'src="' . $url . '"';
+        }, $contentWithAds);
+
         // Related posts in same categories
         $categoryIds = $post->categories->pluck('id')->toArray();
         $relatedPosts = Post::published()

@@ -28,11 +28,13 @@
                     <input type="text" name="subdomain" value="{{ old('subdomain') }}" placeholder="blog1" required class="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-l-xl text-sm text-white font-mono focus:border-emerald-500 focus:outline-none transition">
                     <span class="px-3 py-2.5 bg-slate-800 text-slate-400 text-xs border border-l-0 border-slate-800 rounded-r-xl font-mono">.easytsk.com</span>
                 </div>
+                <p class="text-[10px] text-slate-500 mt-1">Subdomain prefix (e.g. blog1, blog2, crypto)</p>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Custom Domain (Optional)</label>
-                <input type="text" name="domain" value="{{ old('domain') }}" placeholder="e.g. mycustomdomain.com" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white font-mono focus:border-emerald-500 focus:outline-none transition">
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5">Custom Domain / Subdomain URL (Optional)</label>
+                <input type="text" name="domain" value="{{ old('domain') }}" placeholder="e.g. blog1.easytsk.com or https://mycustomblog.com" class="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white font-mono focus:border-emerald-500 focus:outline-none transition">
+                <p class="text-[10px] text-emerald-400/80 mt-1">&check; Paste any URL or custom domain — auto-cleaned and connected instantly!</p>
             </div>
 
             <div>

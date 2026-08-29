@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             FirstSiteSeeder::class,
             SecondSiteSeeder::class,
             ThirdSiteSeeder::class,
+            ShortlinkProviderSeeder::class,
         ]);
     }
 }

@@ -15,6 +15,15 @@
 
         <div class="flex items-center gap-3 flex-wrap">
           <button 
+            @click="syncOfficialPresets"
+            :disabled="isSyncing"
+            class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 font-extrabold text-xs rounded-xl shadow-lg transition flex items-center gap-1.5 transform hover:-translate-y-0.5 disabled:opacity-50"
+          >
+            <span>⚡</span>
+            <span>{{ isSyncing ? 'Syncing...' : 'Load 12 Official Presets' }}</span>
+          </button>
+
+          <button 
             @click="openCreateModal"
             class="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition flex items-center gap-1.5 transform hover:-translate-y-0.5"
           >
@@ -27,13 +36,22 @@
       <div v-if="providers.length === 0" class="glass-card p-12 rounded-3xl border border-slate-800 text-center space-y-3">
         <div class="text-5xl">🔗</div>
         <h3 class="text-base font-bold text-white">No Shortlink Providers Added Yet</h3>
-        <p class="text-xs text-slate-400 max-w-md mx-auto">Add your first shortener provider (like ShrinkMe.io, Exe.io, or GPLinks) by saving your API key once.</p>
-        <button 
-          @click="openCreateModal" 
-          class="mt-2 px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs rounded-xl transition"
-        >
-          ➕ Add First Provider
-        </button>
+        <p class="text-xs text-slate-400 max-w-md mx-auto">Add your first shortener provider (like ShrinkMe.io, Exe.io, or GPLinks) or load all 12 official presets with 1 click.</p>
+        <div class="flex items-center justify-center gap-3 pt-2">
+          <button 
+            @click="syncOfficialPresets" 
+            :disabled="isSyncing"
+            class="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl transition shadow-lg shadow-cyan-500/20"
+          >
+            ⚡ Load All 12 Official Presets
+          </button>
+          <button 
+            @click="openCreateModal" 
+            class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-extrabold text-xs rounded-xl transition border border-slate-700"
+          >
+            ➕ Custom Provider
+          </button>
+        </div>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -94,6 +112,22 @@
               </div>
             </div>
 
+            <!-- Test Result Banner (If tested) -->
+            <div v-if="testResults[provider.id]" class="p-2.5 rounded-xl text-xs font-mono border transition-all"
+              :class="testResults[provider.id].success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'"
+            >
+              <div class="flex items-center justify-between font-bold text-[11px] mb-1">
+                <span>{{ testResults[provider.id].success ? '✅ API Online' : '❌ API Failed' }}</span>
+                <span class="text-[10px] opacity-75">{{ testResults[provider.id].latency_ms }}ms</span>
+              </div>
+              <div v-if="testResults[provider.id].success" class="truncate text-[10px] text-emerald-400">
+                🔗 {{ testResults[provider.id].shortened_url }}
+              </div>
+              <div v-else class="text-[10px] text-rose-400">
+                {{ testResults[provider.id].message }}
+              </div>
+            </div>
+
             <div class="flex items-center justify-between text-[11px] text-slate-400">
               <span>Daily Limit: <strong class="text-white">{{ provider.daily_limit }} view/day</strong></span>
               <span class="text-[10px] text-emerald-400 font-medium">⚡ 100% Auto Link Gen</span>
@@ -103,18 +137,30 @@
           <!-- Actions Footer -->
           <div class="flex items-center justify-between pt-3 border-t border-slate-800/80 gap-2">
             <button 
-              @click="openEditModal(provider)"
-              class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition flex items-center gap-1"
+              @click="testProviderApi(provider)"
+              :disabled="testingId === provider.id"
+              class="px-2.5 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold rounded-lg transition flex items-center gap-1 disabled:opacity-50"
             >
-              <span>✏️</span> Edit
+              <span v-if="testingId === provider.id" class="animate-spin text-xs">🔄</span>
+              <span v-else>🧪</span>
+              <span>{{ testingId === provider.id ? 'Testing...' : 'Test API' }}</span>
             </button>
 
-            <button 
-              @click="confirmDelete(provider)"
-              class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/20 text-xs font-bold rounded-lg transition flex items-center gap-1"
-            >
-              <span>🗑️</span> Delete
-            </button>
+            <div class="flex items-center gap-2">
+              <button 
+                @click="openEditModal(provider)"
+                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition flex items-center gap-1"
+              >
+                <span>✏️</span> Edit
+              </button>
+
+              <button 
+                @click="confirmDelete(provider)"
+                class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/20 text-xs font-bold rounded-lg transition flex items-center gap-1"
+              >
+                <span>🗑️</span> Delete
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -141,9 +187,9 @@
             
             <!-- Quick Preset Dropdown (When creating) -->
             <div v-if="!isEditing">
-              <label class="block text-xs font-semibold text-cyan-400 mb-1">Select Preset (Auto-Fills Details)</label>
+              <label class="block text-xs font-semibold text-cyan-400 mb-1">Select Preset (Auto-Fills Details & API Token)</label>
               <select @change="e => applyPreset(e.target.value)" class="w-full px-3.5 py-2 bg-slate-950 border border-cyan-500/40 rounded-xl text-xs text-white focus:border-cyan-400 focus:outline-none font-bold">
-                <option value="">-- Choose a Preset --</option>
+                <option value="">-- Choose from 12 Official Presets --</option>
                 <option v-for="(preset, key) in presets" :key="key" :value="key">
                   {{ preset.icon }} {{ preset.name }}
                 </option>
@@ -253,6 +299,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useForm, router, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
@@ -275,6 +322,10 @@ const isModalOpen = ref(false);
 const isEditing = ref(false);
 const editingId = ref(null);
 const showKeys = ref({});
+const isSyncing = ref(false);
+
+const testingId = ref(null);
+const testResults = ref({});
 
 const toggleKeyVisibility = (id) => {
   showKeys.value[id] = !showKeys.value[id];
@@ -295,6 +346,9 @@ const applyPreset = (key) => {
   form.name = p.name;
   form.api_url = p.api_url;
   form.icon = p.icon;
+  if (p.default_key) {
+    form.api_key = p.default_key;
+  }
 };
 
 const openCreateModal = () => {
@@ -347,6 +401,34 @@ const confirmDelete = (provider) => {
     router.delete(`${adminPath.value}/shortlink-providers/${provider.id}`, {
       preserveScroll: true,
     });
+  }
+};
+
+const syncOfficialPresets = () => {
+  if (isSyncing.value) return;
+  isSyncing.value = true;
+  router.post(`${adminPath.value}/shortlink-providers/sync-presets`, {}, {
+    preserveScroll: true,
+    onFinish: () => {
+      isSyncing.value = false;
+    }
+  });
+};
+
+const testProviderApi = async (provider) => {
+  if (testingId.value) return;
+  testingId.value = provider.id;
+  try {
+    const res = await axios.post(`${adminPath.value}/shortlink-providers/${provider.id}/test`);
+    testResults.value[provider.id] = res.data;
+  } catch (err) {
+    testResults.value[provider.id] = {
+      success: false,
+      message: err.response?.data?.message || 'Failed to reach backend test runner.',
+      latency_ms: 0,
+    };
+  } finally {
+    testingId.value = null;
   }
 };
 </script>

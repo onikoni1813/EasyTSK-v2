@@ -1,0 +1,50 @@
+You API Token:
+eaefa6288147fdc378ad1fa8f3544d482f10721e
+
+Copy
+For developers, cuty.io prepared API which returns responses in JSON or TEXT formats.
+
+All you have to do is to send a GET request with your API token and URL Like the following:
+
+https://cuty.io/api?api=eaefa6288147fdc378ad1fa8f3544d482f10721e&url=yourdestinationlink.com&alias=CustomAlias
+api and url fields are required. The other fields like alias and format are optional.
+
+You will get a JSON response like the following
+
+{
+    "status": "success",
+    "message": "",
+    "shortenedUrl": "https://cuty.io/CustomAlias"
+}
+In case of an error, success will be false and message will contain the error message.
+
+If you want a TEXT response just add &format=text at the end of your request as the below example. This will return just the short link. Note that if an error occurs, it will not output anything.
+
+https://cuty.io/api?api=eaefa6288147fdc378ad1fa8f3544d482f10721e&url=yourdestinationlink.com&alias=CustomAlias&format=text
+In case of an error, the error message will be returned instead.
+
+Using the API in PHP
+Of course, you can use our API in any programming languages, but for the sake of making things simple, we'll discuss how you can use it in PHP and you can apply the same logic in any other language
+
+To use our API in your PHP application, you need to send a GET request via file_get_contents or cURL. Please check the below sample examples of using file_get_contents:
+
+Using JSON Response
+$long_url = urlencode('yourdestinationlink.com');
+$api_token = 'eaefa6288147fdc378ad1fa8f3544d482f10721e';
+$api_url = "https://cuty.io/api?api={$api_token}&url={$long_url}&alias=CustomAlias";
+$result = @json_decode(file_get_contents($api_url), true);
+
+if ($result["status"] === 'error') {
+    echo $result["message"];
+} else {
+    echo $result["shortenedUrl"];
+}
+Using Plain Text Response
+$long_url = urlencode('yourdestinationlink.com');
+$api_token = 'eaefa6288147fdc378ad1fa8f3544d482f10721e';
+$api_url = "https://cuty.io/api?api={$api_token}&url={$long_url}&alias=CustomAlias&format=text";
+$result = @file_get_contents($api_url);
+
+if ($result) {
+    echo $result;
+}

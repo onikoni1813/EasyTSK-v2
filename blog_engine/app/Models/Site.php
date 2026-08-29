@@ -93,9 +93,19 @@ class Site extends Model
     public function getUrlAttribute(): string
     {
         if ($this->domain) {
-            return 'https://' . $this->domain;
+            $cleanDomain = preg_replace('#^https?://#i', '', rtrim($this->domain, '/'));
+            $scheme = (app()->environment('production') || request()->isSecure()) ? 'https://' : 'http://';
+            return $scheme . $cleanDomain;
         }
-        $appHost = parse_url(config('app.url', 'http://localhost'), PHP_URL_HOST);
-        return 'http://' . $this->subdomain . '.' . $appHost;
+
+        $appUrl = config('app.url', 'http://localhost');
+        $appHost = parse_url($appUrl, PHP_URL_HOST) ?? 'localhost';
+        $scheme = parse_url($appUrl, PHP_URL_SCHEME) ?? 'http';
+
+        if ($appHost === 'localhost' || $appHost === '127.0.0.1') {
+            return url('/?site=' . ($this->subdomain ?: $this->slug));
+        }
+
+        return $scheme . '://' . ($this->subdomain ?: $this->slug) . '.' . $appHost;
     }
 }

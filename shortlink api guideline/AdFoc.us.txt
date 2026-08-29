@@ -1,0 +1,10 @@
+The AdFoc.us API allows programmers to implement short URLs into their software and applications.
+
+Here is your account's custom API access URL:
+
+http://adfoc.us/api/?key=e172743ea8084e90c2dc17231eb274aa&url=http://www.google.com/
+
+The only required variable to send is url= which contains the full URL of the link to shrink.
+
+If there is NO error, the API will return an AdFoc.us shortened URL.
+If there is an error, the API will return 0.

@@ -68,6 +68,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/ads', [AdminAdController::class, 'index'])->name('ads.index');
         Route::post('/ads', [AdminAdController::class, 'store'])->name('ads.store');
         Route::post('/ads/save', [AdminAdController::class, 'save'])->name('ads.save');
+        Route::post('/ads/clear-all', [AdminAdController::class, 'clearAll'])->name('ads.clear-all');
         Route::delete('/ads/{ad}', [AdminAdController::class, 'destroy'])->name('ads.destroy');
 
         // Static & Legal Pages

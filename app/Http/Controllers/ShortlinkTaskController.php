@@ -3,27 +3,34 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Models\ShortlinkProvider;
 use App\Models\ShortlinkSession;
 use App\Models\Task;
 use App\Models\UserTask;
 use App\Services\GamificationService;
 use App\Services\ReferralService;
+use App\Services\ShortlinkService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ShortlinkTaskController extends Controller
 {
     protected GamificationService $gamificationService;
     protected ReferralService $referralService;
+    protected ShortlinkService $shortlinkService;
 
-    public function __construct(GamificationService $gamificationService, ReferralService $referralService)
-    {
+    public function __construct(
+        GamificationService $gamificationService,
+        ReferralService $referralService,
+        ShortlinkService $shortlinkService
+    ) {
         $this->gamificationService = $gamificationService;
         $this->referralService = $referralService;
+        $this->shortlinkService = $shortlinkService;
     }
 
     /**
@@ -64,7 +71,7 @@ class ShortlinkTaskController extends Controller
             ], 403);
         }
 
-        if (!\Illuminate\Support\Facades\Schema::hasTable('shortlink_sessions')) {
+        if (!Schema::hasTable('shortlink_sessions')) {
             try {
                 \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
             } catch (\Throwable $e) {
@@ -88,55 +95,50 @@ class ShortlinkTaskController extends Controller
         // 2. Build Destination Callback URL
         $callbackUrl = url('/tasks/shortlink/verify/' . $token);
 
-        // 3. Call Shortener API if API details configured
+        // 3. Resolve Shortener API details
         $apiEndpoint = trim($task->target_url ?? '');
         $apiKey = trim($task->secret_code ?? '');
 
         // If apiKey is empty on the task, look up from ShortlinkProvider table
-        if (empty($apiKey)) {
-            $provider = \App\Models\ShortlinkProvider::where('name', $task->provider_name)
+        if (empty($apiKey) || empty($apiEndpoint)) {
+            $provider = ShortlinkProvider::where('name', $task->provider_name)
                 ->orWhere('api_url', $apiEndpoint)
                 ->orWhere('slug', Str::slug($task->provider_name ?? ''))
                 ->first();
 
-            if ($provider && $provider->is_active && !empty($provider->api_key)) {
-                $apiKey = $provider->api_key;
-                if (empty($apiEndpoint)) {
+            if ($provider && $provider->is_active) {
+                if (empty($apiKey) && !empty($provider->api_key)) {
+                    $apiKey = $provider->api_key;
+                }
+                if (empty($apiEndpoint) && !empty($provider->api_url)) {
                     $apiEndpoint = $provider->api_url;
                 }
             }
         }
 
-        // If target_url looks like an API endpoint (e.g. https://shrinkme.io/api)
-        if (!empty($apiEndpoint) && !empty($apiKey) && str_contains($apiEndpoint, '/api')) {
-            try {
-                $response = Http::timeout(10)->get($apiEndpoint, [
-                    'api' => $apiKey,
-                    'url' => $callbackUrl,
-                ]);
+        // 4. Call ShortlinkService if API details are present
+        if (!empty($apiEndpoint) && !empty($apiKey)) {
+            $res = $this->shortlinkService->generateShortlink(
+                $apiEndpoint,
+                $apiKey,
+                $callbackUrl,
+                $task->provider_name
+            );
 
-                if ($response->successful()) {
-                    $json = $response->json();
-                    $shortenedUrl = $json['shortenedUrl'] ?? $json['url'] ?? $json['short'] ?? null;
-
-                    if (!empty($shortenedUrl)) {
-                        return response()->json([
-                            'success' => true,
-                            'shortened_url' => $shortenedUrl,
-                            'token' => $token,
-                            'provider' => $task->provider_name ?? 'Shortlink',
-                        ]);
-                    }
-                }
-
-                $err = $response->json('message') ?? 'Shortlink provider API error. Please try again.';
-                return response()->json(['success' => false, 'message' => $err], 502);
-            } catch (\Exception $e) {
+            if ($res['success'] && !empty($res['shortened_url'])) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Could not connect to shortlink provider API. Please try again.',
-                ], 504);
+                    'success' => true,
+                    'shortened_url' => $res['shortened_url'],
+                    'token' => $token,
+                    'provider' => $task->provider_name ?? 'Shortlink',
+                ]);
             }
+
+            $errMsg = $res['message'] ?: 'Shortlink provider API error. Please try again.';
+            return response()->json([
+                'success' => false,
+                'message' => $errMsg,
+            ], 502);
         }
 
         // If target_url is already a fixed direct shortlink (fallback mode)

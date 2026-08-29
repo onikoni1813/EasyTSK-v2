@@ -1,0 +1,36 @@
+ Developers API
+ Your API Token
+6411a5a0ce3f100e690125a539e2d33217ec2fe4
+Copy
+ How to use Developers API Tool?
+For developers GPlinks prepared API which returns responses in JSON or TEXT formats.
+Currently there is one method which can be used to shorten links on behalf of your account.
+All you have to do is to send a GET request with your API token and URL Like the following:
+ Request URL Format
+ https://api.gplinks.com/api?api=6411a5a0ce3f100e690125a539e2d33217ec2fe4&url=yourdestinationlink.com&alias=CustomAlias
+Copy
+You will get a JSON response like the following
+ JSON Response
+{"status":"success","shortenedUrl":""https:\/\/gplinks.com\/xxxxx""}
+Copy
+If you want a TEXT response just add &format=text at the end of your request as the below example. This will return just the short link. Note that if an error occurs, it will not output anything.
+ TEXT Response
+https://api.gplinks.com/api?api=6411a5a0ce3f100e690125a539e2d33217ec2fe4&url=yourdestinationlink.com&alias=CustomAlias&format=text"}
+Copy
+ Note: API & URL are required fields and the other fields like alias, format & type are optional.
+That's it 🙂
+ Using the API in PHP
+To use the API in your PHP application, you need to send a GET request via file_get_contents or cURL. Please check the below sample examples using file_get_contents
+ Using JSON Response
+Copy
+            $long_url = urlencode('yourdestinationlink.com');
+            $api_token = '6411a5a0ce3f100e690125a539e2d33217ec2fe4';
+            $api_url = "https://api.gplinks.com/api?api=$api_token&url=$long_url&alias=CustomAlias";
+            $result = @json_decode(file_get_contents($api_url),TRUE);
+            if($result["status"] === 'error') {
+             echo $result["message"];
+            } else {
+             echo $result["shortenedUrl"];
+            }
+
+ Using Plain TEXT Response

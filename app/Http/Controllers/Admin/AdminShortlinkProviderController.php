@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ShortlinkProvider;
+use App\Services\ShortlinkService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
@@ -105,5 +107,65 @@ class AdminShortlinkProviderController extends Controller
 
         $status = $shortlink_provider->is_active ? 'Activated' : 'Deactivated';
         return back()->with('success', "Provider '{$shortlink_provider->name}' {$status}.");
+    }
+
+    /**
+     * Test live API connection for a provider.
+     */
+    public function test(ShortlinkProvider $shortlink_provider, ShortlinkService $shortlinkService): JsonResponse
+    {
+        $result = $shortlinkService->testProvider($shortlink_provider);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Sync/Seed all 12 default presets from guidelines into database.
+     */
+    public function syncPresets()
+    {
+        if (!Schema::hasTable('shortlink_providers')) {
+            Artisan::call('migrate', ['--force' => true]);
+        }
+
+        $presets = ShortlinkProvider::PRESETS;
+        $added = 0;
+        $updated = 0;
+
+        foreach ($presets as $key => $preset) {
+            if ($key === 'custom') {
+                continue;
+            }
+
+            $slug = Str::slug($preset['name']);
+            $existing = ShortlinkProvider::where('slug', $slug)
+                ->orWhere('name', $preset['name'])
+                ->first();
+
+            if ($existing) {
+                // If API key was empty, populate it
+                if (empty($existing->api_key) && !empty($preset['default_key'])) {
+                    $existing->update([
+                        'api_key' => $preset['default_key'],
+                        'api_url' => $preset['api_url'],
+                        'icon' => $preset['icon'],
+                    ]);
+                    $updated++;
+                }
+            } else {
+                ShortlinkProvider::create([
+                    'name' => $preset['name'],
+                    'slug' => $slug,
+                    'api_url' => $preset['api_url'],
+                    'api_key' => $preset['default_key'] ?? '',
+                    'icon' => $preset['icon'] ?? '🔗',
+                    'daily_limit' => 1,
+                    'is_active' => true,
+                ]);
+                $added++;
+            }
+        }
+
+        return back()->with('success', "✨ Presets synced successfully! Added: {$added}, Updated: {$updated}");
     }
 }

@@ -16,8 +16,8 @@
             <!-- Main Big Featured Card (8 Cols) -->
             @if($mainFeatured)
                 <div class="lg:col-span-8 group relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg bg-slate-900 min-h-[300px] sm:min-h-[420px] lg:min-h-[460px] flex flex-col justify-end p-5 sm:p-8 lg:p-10">
-                    @if($mainFeatured->featured_image)
-                        <img src="{{ $mainFeatured->featured_image }}" alt="{{ $mainFeatured->title }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-60">
+                    @if($mainFeatured->image_url)
+                        <img src="{{ $mainFeatured->image_url }}" alt="{{ $mainFeatured->title }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-60">
                     @else
                         <div class="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-800 opacity-90"></div>
                     @endif
@@ -56,8 +56,8 @@
                 <div class="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 sm:gap-6">
                     @foreach($subFeatured as $sub)
                         <div class="group relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md bg-slate-900 min-h-[180px] sm:min-h-[200px] flex flex-col justify-end p-4 sm:p-6">
-                            @if($sub->featured_image)
-                                <img src="{{ $sub->featured_image }}" alt="{{ $sub->title }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-50">
+                            @if($sub->image_url)
+                                <img src="{{ $sub->image_url }}" alt="{{ $sub->title }}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-50">
                             @else
                                 <div class="absolute inset-0 bg-gradient-to-tr from-slate-950 to-slate-800 opacity-90"></div>
                             @endif
@@ -108,20 +108,21 @@
             <div class="space-y-4 sm:space-y-6">
                 @forelse($posts as $post)
                     <article class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-md transition duration-200 flex flex-col sm:flex-row gap-4 sm:gap-6 group">
-                        @if($post->featured_image)
-                            <div class="w-full sm:w-52 md:w-56 h-48 sm:h-auto rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
-                                <img src="{{ $post->featured_image }}" alt="{{ $post->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                @if($post->categories->isNotEmpty())
-                                    <span class="absolute top-2.5 left-2.5 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase rounded text-white shadow" style="background-color: var(--brand-color)">
-                                        {{ $post->categories->first()->name }}
-                                    </span>
-                                @endif
-                            </div>
+                        @if($post->image_url)
+                            <a href="{{ route('post.show', $post->slug) }}" class="w-full sm:w-56 md:w-64 h-48 sm:h-40 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 block relative">
+                                <img src="{{ $post->image_url }}" alt="{{ $post->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            </a>
                         @endif
 
-                        <div class="flex-1 flex flex-col justify-between space-y-2 sm:space-y-3">
+                        <div class="flex-1 flex flex-col justify-between space-y-2 sm:space-y-3 min-w-0">
                             <div class="space-y-1.5 sm:space-y-2">
                                 <div class="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs text-slate-500">
+                                    @if($post->categories->isNotEmpty())
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white" style="background-color: var(--brand-color)">
+                                            {{ $post->categories->first()->name }}
+                                        </span>
+                                        <span>&bull;</span>
+                                    @endif
                                     <span>{{ $post->author?->name ?? $site->name }}</span>
                                     <span>&bull;</span>
                                     <span>{{ $post->published_at ? $post->published_at->format('M d, Y') : $post->created_at->format('M d, Y') }}</span>

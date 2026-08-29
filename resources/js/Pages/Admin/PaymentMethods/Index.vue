@@ -464,14 +464,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { useForm, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 const props = defineProps({
   methods: Array,
   stats: Object,
 });
+
+const page = usePage();
+const adminPath = computed(() => '/' + (page.props.admin_path || 'admin'));
 
 const showModal = ref(false);
 const isEditing = ref(false);
@@ -565,12 +568,12 @@ const closeModal = () => {
 
 const submitForm = () => {
   if (isEditing.value) {
-    form.put(`/secret-panel/payment-methods/${editingId.value}`, {
+    form.put(`${adminPath.value}/payment-methods/${editingId.value}`, {
       preserveScroll: true,
       onSuccess: () => closeModal(),
     });
   } else {
-    form.post('/secret-panel/payment-methods', {
+    form.post(`${adminPath.value}/payment-methods`, {
       preserveScroll: true,
       onSuccess: () => closeModal(),
     });
@@ -578,7 +581,7 @@ const submitForm = () => {
 };
 
 const toggleMethod = (m) => {
-  router.post(`/secret-panel/payment-methods/${m.id}/toggle`, {}, {
+  router.post(`${adminPath.value}/payment-methods/${m.id}/toggle`, {}, {
     preserveScroll: true,
   });
 };
@@ -589,7 +592,7 @@ const openDeleteModal = (m) => {
 
 const confirmDelete = () => {
   if (!methodToDelete.value) return;
-  router.delete(`/secret-panel/payment-methods/${methodToDelete.value.id}`, {
+  router.delete(`${adminPath.value}/payment-methods/${methodToDelete.value.id}`, {
     preserveScroll: true,
     onSuccess: () => {
       methodToDelete.value = null;
