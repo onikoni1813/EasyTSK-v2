@@ -64,6 +64,22 @@ return [
             ]) : [],
         ],
 
+        'blog_engine' => [
+            'driver' => 'mysql',
+            'host' => env('DB_BLOG_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_BLOG_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_BLOG_DATABASE', 'easytsk_blogs'),
+            'username' => env('DB_BLOG_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_BLOG_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => false,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

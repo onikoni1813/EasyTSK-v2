@@ -840,9 +840,15 @@ class TaskController extends Controller
 
         foreach ($candidates as $verifyUrl) {
             try {
-                $apiRes = Http::timeout(5)->post($verifyUrl, [
-                    'code' => $submittedCode,
-                ]);
+                $apiRes = Http::withoutVerifying()
+                    ->withHeaders([
+                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 EasyTSK-Verifier/2.0',
+                        'Accept'     => 'application/json',
+                    ])
+                    ->timeout(4)
+                    ->post($verifyUrl, [
+                        'code' => $submittedCode,
+                    ]);
 
                 if ($apiRes->successful() && $apiRes->json('valid') === true) {
                     return [
@@ -880,6 +886,65 @@ class TaskController extends Controller
                 // Connection or DNS failed for this candidate endpoint, continue to next
                 continue;
             }
+        }
+
+        // 5. Direct Database Fallback (when HTTP loopback is blocked by cPanel firewall / NAT / DNS)
+        try {
+            $taskRecord = DB::connection('blog_engine')
+                ->table('be_task_codes')
+                ->where('code', $submittedCode)
+                ->where('is_used', false)
+                ->latest('id')
+                ->first();
+
+            if (!$taskRecord) {
+                $taskRecord = DB::connection('blog_engine')
+                    ->table('be_task_codes')
+                    ->where('code', $submittedCode)
+                    ->latest('id')
+                    ->first();
+            }
+
+            if ($taskRecord && !str_starts_with($taskRecord->code, 'PENDING_')) {
+                if ($taskRecord->is_used) {
+                    return [
+                        'valid' => false,
+                        'is_network_error' => false,
+                        'message' => 'This blog code has already been submitted and used.',
+                    ];
+                }
+
+                if (!empty($taskRecord->expires_at) && now()->gt(\Carbon\Carbon::parse($taskRecord->expires_at))) {
+                    return [
+                        'valid' => false,
+                        'is_network_error' => false,
+                        'message' => 'This blog code has expired (15-minute time limit exceeded).',
+                    ];
+                }
+
+                // Mark as used in blog database
+                DB::connection('blog_engine')
+                    ->table('be_task_codes')
+                    ->where('id', $taskRecord->id)
+                    ->update([
+                        'is_used'    => true,
+                        'used_at'    => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                return [
+                    'valid' => true,
+                    'is_network_error' => false,
+                    'message' => 'Blog task verified!',
+                    'data' => [
+                        'code' => $taskRecord->code,
+                        'site_id' => $taskRecord->site_id,
+                        'dwell_time_seconds' => $taskRecord->dwell_time_seconds,
+                    ],
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Blog database connection not configured or unreachable
         }
 
         if ($anyServerResponded && $lastErrorMessage) {
