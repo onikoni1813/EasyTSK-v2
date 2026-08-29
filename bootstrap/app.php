@@ -17,6 +17,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\CheckMaintenanceMode::class,
         ]);
+        $middleware->trustProxies(at: '*');
         $middleware->validateCsrfTokens(except: [
             'postback/*',
             'logout',
