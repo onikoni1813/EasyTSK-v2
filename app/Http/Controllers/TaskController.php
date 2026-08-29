@@ -784,6 +784,7 @@ class TaskController extends Controller
 
     /**
      * Verify dynamic one-time code against Blog Engine API.
+     * Supports multi-site subdomains (blog1..blog8), custom URLs, and automatic failovers.
      */
     protected function verifyBlogRewardCode(Task $task, string $submittedCode): array
     {
@@ -792,46 +793,99 @@ class TaskController extends Controller
             return ['valid' => false, 'is_network_error' => false, 'message' => 'Please provide the secret code from the blog article.'];
         }
 
-        $targetUrl = trim($task->target_url);
-        
-        // Determine exact API URL for local XAMPP and live production subdomains
-        if (str_contains($targetUrl, 'blog_engine')) {
-            $verifyUrl = 'http://localhost/Easytsk%20v2/blog_engine/public/api/task/verify-code';
-        } else {
-            $parsed = parse_url($targetUrl);
-            $scheme = $parsed['scheme'] ?? 'http';
-            $host = $parsed['host'] ?? 'localhost';
-            $port = !empty($parsed['port']) && !in_array($parsed['port'], [80, 443]) ? ':' . $parsed['port'] : '';
-            $verifyUrl = "{$scheme}://{$host}{$port}/api/task/verify-code";
+        // Build list of candidate verification endpoints
+        $candidates = [];
+
+        // 1. Check custom configured blog engine URL
+        $configuredUrl = env('BLOG_ENGINE_URL') ?: config('services.blog_engine.url');
+        if ($configuredUrl) {
+            $base = rtrim($configuredUrl, '/');
+            $candidates[] = str_ends_with($base, '/api/task/verify-code') ? $base : $base . '/api/task/verify-code';
         }
 
-        try {
-            $apiRes = Http::timeout(8)->post($verifyUrl, [
-                'code' => $submittedCode,
-            ]);
-
-            if ($apiRes->successful() && $apiRes->json('valid') === true) {
-                return ['valid' => true, 'is_network_error' => false, 'message' => 'Blog task verified!'];
+        // 2. From task target_url host (if provided)
+        $targetUrl = trim((string) $task->target_url);
+        if (!empty($targetUrl)) {
+            if (str_contains($targetUrl, 'blog_engine')) {
+                $candidates[] = 'http://localhost/Easytsk%20v2/blog_engine/public/api/task/verify-code';
+                $candidates[] = 'http://127.0.0.1/Easytsk%20v2/blog_engine/public/api/task/verify-code';
+            } else {
+                $parsed = parse_url($targetUrl);
+                if (!empty($parsed['host'])) {
+                    $scheme = $parsed['scheme'] ?? 'https';
+                    $host = $parsed['host'];
+                    $port = !empty($parsed['port']) && !in_array($parsed['port'], [80, 443]) ? ':' . $parsed['port'] : '';
+                    $candidates[] = "{$scheme}://{$host}{$port}/api/task/verify-code";
+                }
             }
-
-            $msg = $apiRes->json('message') ?? 'Invalid, expired, or already used blog code!';
-            return ['valid' => false, 'is_network_error' => false, 'message' => $msg];
-        } catch (\Exception $e) {
-            // Fallback for local IP variations if localhost failed
-            if (str_contains($verifyUrl, 'localhost')) {
-                try {
-                    $fallbackUrl = 'http://127.0.0.1/Easytsk%20v2/blog_engine/public/api/task/verify-code';
-                    $fallbackRes = Http::timeout(8)->post($fallbackUrl, ['code' => $submittedCode]);
-                    if ($fallbackRes->successful() && $fallbackRes->json('valid') === true) {
-                        return ['valid' => true, 'is_network_error' => false, 'message' => 'Blog task verified!'];
-                    }
-                    if ($fallbackRes->successful()) {
-                        return ['valid' => false, 'is_network_error' => false, 'message' => $fallbackRes->json('message') ?? 'Invalid code.'];
-                    }
-                } catch (\Exception $e2) {}
-            }
-
-            return ['valid' => false, 'is_network_error' => true, 'message' => 'Could not connect to blog verification server. Please try again.'];
         }
+
+        // 3. Known live blog subdomains (All subdomains connect to the multi-tenant database)
+        for ($i = 1; $i <= 8; $i++) {
+            $candidates[] = "https://blog{$i}.easytsk.com/api/task/verify-code";
+        }
+        $candidates[] = 'https://easytsk.com/blog_engine/public/api/task/verify-code';
+        $candidates[] = 'https://blogs.easytsk.com/api/task/verify-code';
+
+        // 4. Local development fallbacks
+        $candidates[] = 'http://localhost/Easytsk%20v2/blog_engine/public/api/task/verify-code';
+        $candidates[] = 'http://127.0.0.1/Easytsk%20v2/blog_engine/public/api/task/verify-code';
+        $candidates[] = 'http://127.0.0.1:8000/api/task/verify-code';
+        $candidates[] = 'http://localhost:8000/api/task/verify-code';
+
+        $candidates = array_values(array_unique($candidates));
+
+        $lastErrorMessage = null;
+        $anyServerResponded = false;
+
+        foreach ($candidates as $verifyUrl) {
+            try {
+                $apiRes = Http::timeout(5)->post($verifyUrl, [
+                    'code' => $submittedCode,
+                ]);
+
+                if ($apiRes->successful() && $apiRes->json('valid') === true) {
+                    return [
+                        'valid' => true,
+                        'is_network_error' => false,
+                        'message' => 'Blog task verified!',
+                        'data' => $apiRes->json('data') ?? [],
+                    ];
+                }
+
+                $status = $apiRes->status();
+                // 409: Already used
+                if ($status === 409) {
+                    return [
+                        'valid' => false,
+                        'is_network_error' => false,
+                        'message' => $apiRes->json('message') ?? 'This blog code has already been submitted and used.',
+                    ];
+                }
+
+                // 410: Expired
+                if ($status === 410) {
+                    return [
+                        'valid' => false,
+                        'is_network_error' => false,
+                        'message' => $apiRes->json('message') ?? 'This blog code has expired (15-minute time limit exceeded).',
+                    ];
+                }
+
+                if ($apiRes->json('message')) {
+                    $anyServerResponded = true;
+                    $lastErrorMessage = $apiRes->json('message');
+                }
+            } catch (\Exception $e) {
+                // Connection or DNS failed for this candidate endpoint, continue to next
+                continue;
+            }
+        }
+
+        if ($anyServerResponded && $lastErrorMessage) {
+            return ['valid' => false, 'is_network_error' => false, 'message' => $lastErrorMessage];
+        }
+
+        return ['valid' => false, 'is_network_error' => true, 'message' => 'Could not connect to blog verification server. Please try again.'];
     }
 }
