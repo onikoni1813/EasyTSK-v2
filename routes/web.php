@@ -75,9 +75,11 @@ Route::middleware('guest')->group(function () {
 // Offerwall S2S Postback Webhook Route (Public API / S2S)
 Route::any('/postback/{provider}', [OfferwallPostbackController::class, 'handlePostback'])->name('offerwall.postback');
 
+// Logout Route (Works seamlessly for both authenticated users and expired sessions)
+Route::match(['GET', 'POST'], '/logout', [AuthController::class, 'logout'])->name('logout');
+
 // Authenticated User Routes
 Route::middleware(['auth', 'not_banned'])->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/impersonate/leave', [AdminUserController::class, 'leaveImpersonate'])->name('impersonate.leave');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
