@@ -29,7 +29,7 @@ class IdentifyTenantSite
             })
             ->first();
 
-        // 2. Subdomain extraction (e.g., blog1.easytsk.com, blog2.domain.xyz, blog3.localhost, blog4.test)
+        // 2. Subdomain extraction (e.g., cryptopulse.easytsk.com, blog1.easytsk.com, etc.)
         if (!$site) {
             $parts = explode('.', $host);
             if (count($parts) >= 2) {
@@ -38,7 +38,9 @@ class IdentifyTenantSite
                     ->where(function ($q) use ($subdomainCandidate, $host) {
                         $q->where('subdomain', $subdomainCandidate)
                           ->orWhere('slug', $subdomainCandidate)
-                          ->orWhere('domain', $host);
+                          ->orWhere('domain', $host)
+                          ->orWhere('domain', 'like', '%' . $subdomainCandidate . '%')
+                          ->orWhere('name', 'like', '%' . $subdomainCandidate . '%');
                     })
                     ->first();
             }
@@ -67,16 +69,17 @@ class IdentifyTenantSite
             $site = Site::find(session('admin_active_site_id'));
         }
 
-        // 5. Fallback for localhost root (picks first active site)
-        if (!$site && ($host === 'localhost' || $host === '127.0.0.1')) {
+        // 5. Fallback for any unmatched domain/subdomain or localhost
+        if (!$site) {
             $site = Site::where('is_active', true)->orderBy('id')->first();
         }
 
         if ($site) {
             $this->siteContext->set($site);
-            // Share current site with all Blade views automatically
-            view()->share('currentSite', $site);
         }
+        
+        // Share current site with all Blade views automatically (even if null, to prevent undefined variable errors)
+        view()->share('currentSite', $site);
 
         return $next($request);
     }
