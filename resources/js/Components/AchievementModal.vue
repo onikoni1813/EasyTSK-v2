@@ -192,7 +192,18 @@ const props = defineProps({
 
 const confettiCanvas = ref(null);
 const activeAchievement = ref(null);
-const dismissedIds = ref(new Set());
+
+const getDismissedIds = () => {
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const stored = window.sessionStorage.getItem('easytsk_dismissed_achievements');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    }
+  } catch (e) {}
+  return new Set();
+};
+
+const dismissedIds = ref(getDismissedIds());
 
 const isPromo = computed(() => {
   if (!activeAchievement.value) return false;
@@ -316,6 +327,7 @@ const checkForAchievement = () => {
   const achievement = props.notifications.find(n => 
     !n.read_at && 
     !dismissedIds.value.has(n.id) &&
+    !dismissedIds.value.has(String(n.id)) &&
     (
       n.is_popup ||
       (
@@ -356,24 +368,30 @@ onMounted(() => {
   checkForAchievement();
 });
 
-const dismiss = () => {
+const dismiss = async () => {
   if (activeAchievement.value) {
     const item = activeAchievement.value;
+    item.read_at = new Date().toISOString();
     dismissedIds.value.add(item.id);
+    dismissedIds.value.add(String(item.id));
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('easytsk_dismissed_achievements', JSON.stringify([...dismissedIds.value]));
+      }
+    } catch (e) {}
     activeAchievement.value = null;
 
-    router.post(`/api/notifications/${item.id}/read`, {}, {
-      preserveScroll: true,
-      onFinish: () => {
-        // State successfully updated
-      }
-    });
+    try {
+      await axios.post(`/api/notifications/${item.id}/read`);
+    } catch (err) {
+      console.error('Failed to mark notification read', err);
+    }
   }
 };
 
-const handleAction = () => {
+const handleAction = async () => {
   const url = activeAchievement.value?.action_url;
-  dismiss();
+  await dismiss();
   if (url && typeof window !== 'undefined' && window.location.pathname !== url) {
     router.visit(url);
   }

@@ -21,6 +21,7 @@ class Notification extends Model
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
         'read_at' => 'datetime',
         'is_popup' => 'boolean',
     ];

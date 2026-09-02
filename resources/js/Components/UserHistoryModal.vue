@@ -227,7 +227,7 @@
                         {{ ref.tasks_completed }} tasks
                       </td>
                       <td class="px-3 py-2.5 font-bold text-emerald-400">
-                        ৳{{ ref.locked_reward }}
+                        {{ ref.locked_reward }} pts
                       </td>
                       <td class="px-3 py-2.5">
                         <span v-if="ref.status === 'claimed' || ref.status === 'unlocked'" class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[10px] uppercase font-bold">Unlocked</span>
@@ -253,7 +253,7 @@
                     <tr>
                       <th class="px-3 py-2.5">Method & Account</th>
                       <th class="px-3 py-2.5">Amount (BDT)</th>
-                      <th class="px-3 py-2.5">Coins</th>
+                      <th class="px-3 py-2.5">Points</th>
                       <th class="px-3 py-2.5">Status</th>
                       <th class="px-3 py-2.5">Trx ID / Note</th>
                       <th class="px-3 py-2.5 text-right">Date</th>
@@ -271,7 +271,7 @@
                         ৳{{ w.amount_bdt }}
                       </td>
                       <td class="px-3 py-2.5 font-bold text-amber-400">
-                        {{ w.amount_coins }}
+                        {{ w.amount_coins }} pts
                       </td>
                       <td class="px-3 py-2.5">
                         <span v-if="w.status === 'approved' || w.status === 'paid'" class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[10px] uppercase font-bold">Paid</span>

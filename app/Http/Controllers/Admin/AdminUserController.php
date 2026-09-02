@@ -98,25 +98,37 @@ class AdminUserController extends Controller
             });
 
         // 2. Referral History
-        $referrals = \App\Models\ReferralTracking::where('referrer_id', $user->id)
+        $referralModels = \App\Models\ReferralTracking::where('referrer_id', $user->id)
             ->with(['referredUser:id,name,email,phone'])
             ->latest()
             ->limit(50)
-            ->get()
-            ->map(function ($ref) {
-                return [
-                    'id'              => $ref->id,
-                    'referred_user'   => $ref->referredUser ? [
-                        'name'  => $ref->referredUser->name,
-                        'phone' => $ref->referredUser->phone,
-                        'email' => $ref->referredUser->email,
-                    ] : null,
-                    'status'          => $ref->status,
-                    'locked_reward'   => (float) $ref->locked_reward,
-                    'tasks_completed' => $ref->tasks_completed ?? 0,
-                    'created_at'      => $ref->created_at ? $ref->created_at->format('M d, Y') : '',
-                ];
-            });
+            ->get();
+
+        $referredUserIds = $referralModels->pluck('referred_user_id')->filter()->unique()->toArray();
+        $tasksCompletedCounts = [];
+        if (!empty($referredUserIds)) {
+            $tasksCompletedCounts = \App\Models\UserTask::whereIn('user_id', $referredUserIds)
+                ->where('status', 'approved')
+                ->selectRaw('user_id, COUNT(*) as aggregate')
+                ->groupBy('user_id')
+                ->pluck('aggregate', 'user_id')
+                ->toArray();
+        }
+
+        $referrals = $referralModels->map(function ($ref) use ($tasksCompletedCounts) {
+            return [
+                'id'              => $ref->id,
+                'referred_user'   => $ref->referredUser ? [
+                    'name'  => $ref->referredUser->name,
+                    'phone' => $ref->referredUser->phone,
+                    'email' => $ref->referredUser->email,
+                ] : null,
+                'status'          => $ref->status,
+                'locked_reward'   => (float) $ref->locked_reward,
+                'tasks_completed' => (int) ($tasksCompletedCounts[$ref->referred_user_id] ?? 0),
+                'created_at'      => $ref->created_at ? $ref->created_at->format('M d, Y') : '',
+            ];
+        });
 
         // 3. Withdrawal History
         $withdrawals = \App\Models\Withdrawal::where('user_id', $user->id)

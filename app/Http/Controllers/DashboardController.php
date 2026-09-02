@@ -168,10 +168,16 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function markNotificationRead(\App\Models\Notification $notification)
+    public function markNotificationRead($notification)
     {
-        if ($notification->user_id === Auth::id() && !$notification->read_at) {
-            $notification->update(['read_at' => now()]);
+        $model = $notification instanceof \App\Models\Notification
+            ? $notification
+            : \App\Models\Notification::find($notification);
+
+        if ($model && (int) $model->user_id === (int) Auth::id()) {
+            if (!$model->read_at) {
+                $model->update(['read_at' => now()]);
+            }
         }
 
         if (request()->wantsJson()) {
