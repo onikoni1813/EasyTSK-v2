@@ -40,7 +40,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'CryptoPulse is a premier digital publication dedicated to cutting-edge decentralized finance (DeFi), Layer-2 scaling protocols, crypto trading indicators, and Web3 trends.',
                 'theme_color' => '#10b981', // Emerald
                 'theme_layout' => 'modern',
-                'fixed_secret_code' => 'TSK-CRYPTO01',
+                'fixed_secret_code' => null,
                 'author' => [
                     'name' => 'Alex Rivera',
                     'slug' => 'alex-rivera',
@@ -132,7 +132,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Exploring the frontiers of generative AI, autonomous agent architectures, developer productivity stacks, and enterprise machine learning automation.',
                 'theme_color' => '#3b82f6', // Electric Blue
                 'theme_layout' => 'bold',
-                'fixed_secret_code' => 'TSK-AI2026',
+                'fixed_secret_code' => null,
                 'author' => [
                     'name' => 'Elena Vance',
                     'slug' => 'elena-vance',
@@ -223,7 +223,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'WealthPeak provides actionable, research-backed financial guides on index fund investing, tax optimization strategies, high-yield savings, and building generational wealth.',
                 'theme_color' => '#f59e0b', // Amber Gold
                 'theme_layout' => 'modern',
-                'fixed_secret_code' => 'TSK-FIN99',
+                'fixed_secret_code' => null,
                 'author' => [
                     'name' => 'Marcus Sterling',
                     'slug' => 'marcus-sterling',
@@ -308,7 +308,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'VitalityBio is an evidence-based wellness publication delivering cutting-edge research on cellular longevity, metabolic health, circadian optimization, and physical fitness.',
                 'theme_color' => '#8b5cf6', // Royal Violet
                 'theme_layout' => 'minimal',
-                'fixed_secret_code' => 'TSK-VITAL04',
+                'fixed_secret_code' => null,
                 'author' => [
                     'name' => 'Dr. Sarah Jenkins',
                     'slug' => 'dr-sarah-jenkins',
@@ -392,7 +392,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'CyberShield delivers expert cybersecurity intelligence, enterprise threat defense strategies, ethical hacking tutorials, and practical privacy hardening guides.',
                 'theme_color' => '#6366f1', // Indigo
                 'theme_layout' => 'bold',
-                'fixed_secret_code' => 'TSK-SECURE05',
+                'fixed_secret_code' => null,
                 'author' => [
                     'name' => 'David Thorne',
                     'slug' => 'david-thorne',
@@ -476,7 +476,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'GrowthHustle is a modern online business accelerator delivering battle-tested strategies in affiliate marketing, high-converting funnel optimization, SEO growth, and side incomes.',
                 'theme_color' => '#f43f5e', // Rose Crimson
                 'theme_layout' => 'modern',
-                'fixed_secret_code' => 'TSK-GROWTH06',
+                'fixed_secret_code' => null,
                 'author' => [
                     'name' => 'Liam Vance',
                     'slug' => 'liam-vance',
@@ -560,7 +560,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'PixelForge Gaming is your definitive source for rigorous PC hardware benchmarks, GPU comparisons, competitive esports settings, and gaming peripheral reviews.',
                 'theme_color' => '#06b6d4', // Cyan Neon
                 'theme_layout' => 'bold',
-                'fixed_secret_code' => 'TSK-PIXEL07',
+                'fixed_secret_code' => null,
                 'author' => [
                     'name' => 'Kai Chen',
                     'slug' => 'kai-chen',

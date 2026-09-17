@@ -147,10 +147,21 @@ class TaskRewardController extends Controller
             ], 400);
         }
 
+        // Look for valid unused code first, then fallback to latest matching code for precise status reporting
         $taskRecord = TaskCode::withoutGlobalScopes()
             ->with(['post', 'site'])
             ->where('code', $code)
+            ->where('is_used', false)
+            ->latest('id')
             ->first();
+
+        if (!$taskRecord) {
+            $taskRecord = TaskCode::withoutGlobalScopes()
+                ->with(['post', 'site'])
+                ->where('code', $code)
+                ->latest('id')
+                ->first();
+        }
 
         if (!$taskRecord || str_starts_with($taskRecord->code, 'PENDING_')) {
             return response()->json([

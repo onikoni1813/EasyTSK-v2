@@ -38,29 +38,92 @@ class OfferwallPostbackController extends Controller
         $paramSecret = $offerwall->param_secret_key ?: 'secure';
         $chargebackValue = strtolower($offerwall->status_chargeback_value ?: 'reversed');
 
-        $subId = $request->input($paramUserId) ?? $request->input('subId') ?? $request->input('uid') ?? $request->input('userID');
-        $transId = $request->input($paramTransId) ?? $request->input('tx_id') ?? $request->input('transId') ?? $request->input('transactionID');
+        // Helper closure for provider-specific acknowledgment responses
+        $respondSuccess = function () use ($normalizedProvider) {
+            if ($normalizedProvider === 'earnwall') {
+                return response('ok', 200)->header('Content-Type', 'text/plain');
+            }
+            if ($normalizedProvider === 'moneyrain' || $normalizedProvider === 'capsbit') {
+                return response('OK', 200)->header('Content-Type', 'text/plain');
+            }
+            return response('1', 200)->header('Content-Type', 'text/plain');
+        };
+
+        // Extract parameters with support for GET, POST Form, and Raw JSON (MoneyRain)
+        $subId = $request->input($paramUserId) 
+            ?? $request->input('external_uid') 
+            ?? $request->input('subId') 
+            ?? $request->input('uid') 
+            ?? $request->input('userID') 
+            ?? $request->input('userId') 
+            ?? $request->input('external_user_id');
+
+        $transId = $request->input($paramTransId) 
+            ?? $request->input('view_id') 
+            ?? $request->input('txid') 
+            ?? $request->input('tx_id') 
+            ?? $request->input('transId') 
+            ?? $request->input('transactionID') 
+            ?? $request->input('withdrawId') 
+            ?? $request->input('withdraw_id') 
+            ?? $request->input('conversion_id');
         
         $type = strtolower((string) $request->input('type', ''));
-        $status = strtolower((string) $request->input($paramStatus, $type ?: '1'));
+        $status = strtolower((string) $request->input($paramStatus, $request->input('status', $type ?: '1')));
+
+        \Log::info("Offerwall Postback hit ({$provider}):", [
+            'all_inputs' => $request->all(),
+            'subId' => $subId,
+            'transId' => $transId,
+            'status' => $status,
+            'type' => $type,
+            'ip' => $request->ip()
+        ]);
 
         // Handle TimeWall lifecycle stages: 'hold' and 'hold_cancelled' (do NOT credit/debit, return 200 OK)
         if ($type === 'hold' || $type === 'hold_cancelled') {
-            return response('1', 200);
+            return $respondSuccess();
         }
 
-        $rawRevenue = (string) ($request->input('revenue') ?? '');
-        $rawReward = (string) ($request->input($paramAmount) ?? $request->input('currencyAmount') ?? $request->input('reward') ?? $request->input('payout') ?? $rawRevenue);
+        // Handle Capsbit pending status (0 = Pending: Received, under review. Wait - do not credit)
+        if ($normalizedProvider === 'capsbit' && ($status === '0' || $status === 'pending')) {
+            \Log::info("Capsbit Postback: Status is pending ({$status}). Acknowledged without crediting.");
+            return $respondSuccess();
+        }
+
+        // Handle MoneyRain non-completion events
+        if ($normalizedProvider === 'moneyrain') {
+            $event = (string) $request->input('event', '');
+            if ($event !== '' && $event !== 'reward.completed' && $event !== 'hourly_reward.completed') {
+                \Log::info("MoneyRain Postback: Non-reward event received ({$event}). Acknowledged.");
+                return $respondSuccess();
+            }
+        }
+
+        $rawRevenue = (string) ($request->input('revenue') ?? $request->input('payout') ?? $request->input('reward_usdt') ?? '');
+        $rawReward = (string) ($request->input($paramAmount) 
+            ?? $request->input('currencyAmount') 
+            ?? $request->input('reward_currency_amount') 
+            ?? $request->input('reward') 
+            ?? $request->input('payout') 
+            ?? $rawRevenue);
         
         $rewardNum = (float) $rawReward;
         $revenueNum = (float) $rawRevenue;
 
-        // Check if request is a chargeback (explicit status/type or negative amounts)
-        $isChargeback = ($status === $chargebackValue || $status === '2' || $status === 'chargeback' || $type === 'chargeback' || $rewardNum < 0 || $revenueNum < 0);
+        // Check if request is a chargeback (explicit status/type, rejected, or negative amounts)
+        $isChargeback = ($status === $chargebackValue 
+            || $status === '2' 
+            || $status === 'chargeback' 
+            || $status === 'rejected' 
+            || $type === 'chargeback' 
+            || $rewardNum < 0 
+            || $revenueNum < 0);
 
         $reward = abs($rewardNum != 0 ? $rewardNum : $revenueNum);
 
         if (!$subId || (!$transId && !$isChargeback)) {
+            \Log::warning("Offerwall Postback missing parameters: subId={$subId}, transId={$transId}");
             return response('Missing parameters', 400);
         }
 
@@ -79,6 +142,7 @@ class OfferwallPostbackController extends Controller
         // Validate Provider Secret Key (if configured)
         if (!empty($offerwall->secret_key)) {
             $providedSecret = $request->input($paramSecret) 
+                ?? $request->input('sig') 
                 ?? $request->input('hash') 
                 ?? $request->input('signature') 
                 ?? $request->input('hash_signature') 
@@ -89,18 +153,49 @@ class OfferwallPostbackController extends Controller
 
             $isValidSecret = false;
 
-            if ($providedSecret !== null) {
-                // 1. Direct exact match
-                if ($providedSecret === $offerwall->secret_key) {
+            // 1. Check MoneyRain raw JSON HMAC-SHA256 signature in header
+            $moneyRainHeader = $request->header('X-MoneyRain-Signature') 
+                ?? $request->header('HTTP_X_MONEYRAIN_SIGNATURE') 
+                ?? $request->server('HTTP_X_MONEYRAIN_SIGNATURE', '');
+
+            if (!empty($moneyRainHeader)) {
+                $rawBody = $request->getContent();
+                $expectedMoneyRainSig = 'sha256=' . hash_hmac('sha256', $rawBody, $offerwall->secret_key);
+                if (hash_equals($expectedMoneyRainSig, $moneyRainHeader)) {
                     $isValidSecret = true;
                 }
-                
-                // 2. Query parameter 'secret' or 'secure' match
-                if ($request->input('secret') === $offerwall->secret_key || $request->input('secure') === $offerwall->secret_key) {
+            }
+
+            if ($providedSecret !== null) {
+                $cleanProvidedSecret = strtolower(trim((string) $providedSecret));
+
+                // 2. Direct exact match
+                if ($providedSecret === $offerwall->secret_key || $request->input('secret') === $offerwall->secret_key || $request->input('secure') === $offerwall->secret_key) {
                     $isValidSecret = true;
                 }
 
-                // 3. Dynamic SHA1 & SHA256 Hash verification for providers like TimeWall & Notik
+                // 3. Capsbit Signature Formula: md5(uid . payout . offer_id . txid . secret_key)
+                if (!$isValidSecret && $normalizedProvider === 'capsbit') {
+                    $offerId = (string) ($request->input('offer_id') ?? $request->input('offerId') ?? '');
+                    $payoutVal = (string) ($request->input('payout') ?? $request->input('revenue') ?? $rawReward);
+                    $capsbitRaw = $subId . $payoutVal . $offerId . $transId . $offerwall->secret_key;
+                    
+                    if (hash_equals(md5($capsbitRaw), $cleanProvidedSecret) || 
+                        hash_equals(hash_hmac('sha256', $subId . $payoutVal . $offerId . $transId, $offerwall->secret_key), $cleanProvidedSecret)) {
+                        $isValidSecret = true;
+                    }
+                }
+
+                // 4. EarnWall Signature Formula: md5(subId . transId . reward . secret_key)
+                if (!$isValidSecret && $normalizedProvider === 'earnwall') {
+                    $earnwallReward = (string) ($request->input('reward') ?? $rawReward);
+                    $earnwallRaw = $subId . $transId . $earnwallReward . $offerwall->secret_key;
+                    if (hash_equals(md5($earnwallRaw), $cleanProvidedSecret)) {
+                        $isValidSecret = true;
+                    }
+                }
+
+                // 5. Dynamic SHA1 & SHA256 Hash verification for providers like TimeWall, Notik, etc.
                 if (!$isValidSecret) {
                     $pubId = $request->input('pub_id', '');
                     $possibleHashes = [
@@ -136,20 +231,22 @@ class OfferwallPostbackController extends Controller
                         hash_hmac('sha256', $subId . $transId . $rawReward, $offerwall->secret_key),
                     ];
 
-                    if (in_array(strtolower($providedSecret), array_map('strtolower', $possibleHashes))) {
+                    if (in_array($cleanProvidedSecret, array_map('strtolower', $possibleHashes))) {
                         $isValidSecret = true;
                     }
                 }
             }
 
             if (!$isValidSecret) {
+                \Log::warning("Offerwall Postback: Unauthorized Secret for provider {$provider}. Provided: {$providedSecret}");
                 return response('Unauthorized Secret', 403);
             }
         }
 
         $user = User::find($subId);
         if (!$user) {
-            return response('1', 200);
+            \Log::warning("Offerwall Postback: User ID {$subId} not found in database.");
+            return $respondSuccess();
         }
 
         $existingLog = OfferwallLog::where('transaction_id', $transId)->first();
@@ -175,19 +272,27 @@ class OfferwallPostbackController extends Controller
                     }
                 });
             }
-            return response('1', 200);
+            return $respondSuccess();
         }
 
         if ($existingLog) {
-            return response('1', 200);
+            \Log::info("Offerwall Postback: Transaction {$transId} already processed previously. Log ID: {$existingLog->id}, Status: {$existingLog->status}, Amount: {$existingLog->amount}");
+            return $respondSuccess();
         }
 
         try {
-            DB::transaction(function () use ($user, $provider, $transId, $reward, $offerwall) {
+            DB::transaction(function () use ($user, $provider, $normalizedProvider, $transId, $reward, $offerwall, $request) {
                 $pendingHours = AppSetting::offerwallPendingHours();
                 $releaseTime = Carbon::now()->addHours($pendingHours);
+                
+                $currencyAmount = $request->input('currencyAmount');
                 $conversionRate = (float) AppSetting::getByKey('conversion_rate', 100);
-                $creditedAmount = $reward * ($offerwall->reward_ratio ?? 1.0) * $conversionRate * AppSetting::rewardMultiplier();
+
+                if ($normalizedProvider === 'moneyrain' && $request->filled('reward_currency_amount')) {
+                    $creditedAmount = (float) $request->input('reward_currency_amount') * ($offerwall->reward_ratio ?? 1.0) * AppSetting::rewardMultiplier();
+                } else {
+                    $creditedAmount = $reward * ($offerwall->reward_ratio ?? 1.0) * $conversionRate * AppSetting::rewardMultiplier();
+                }
                 
                 $initialStatus = $pendingHours > 0 ? 'pending' : 'approved';
 
@@ -203,6 +308,13 @@ class OfferwallPostbackController extends Controller
                     ]
                 );
 
+                \Log::info("Offerwall Postback: Crediting user #{$user->id}", [
+                    'creditedAmount' => $creditedAmount,
+                    'initialStatus' => $initialStatus,
+                    'wasRecentlyCreated' => $log->wasRecentlyCreated,
+                    'log_id' => $log->id
+                ]);
+
                 // Only increment if it was actually created just now
                 if ($log->wasRecentlyCreated) {
                     if ($initialStatus === 'pending') {
@@ -215,12 +327,11 @@ class OfferwallPostbackController extends Controller
                 }
             });
         } catch (\Exception $e) {
-            // If unique constraint fails during concurrent requests, it will land here. 
-            // We return 200 so provider stops retrying.
-            return response('1', 200);
+            \Log::error("Offerwall Postback DB Exception: " . $e->getMessage());
+            return $respondSuccess();
         }
 
-        return response('1', 200);
+        return $respondSuccess();
     }
 
     public function releasePendingBalances(): int
