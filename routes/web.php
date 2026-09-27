@@ -182,6 +182,8 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::put('/offerwalls/{offerwall}', [AdminOfferwallController::class, 'update'])->name('offerwalls.update');
     Route::post('/offerwalls/{offerwall}/toggle', [AdminOfferwallController::class, 'toggleStatus'])->name('offerwalls.toggle');
     Route::delete('/offerwalls/{offerwall}', [AdminOfferwallController::class, 'destroy'])->name('offerwalls.destroy');
+    Route::post('/offerwalls/logs/{log}/release', [AdminOfferwallController::class, 'releaseLog'])->name('offerwalls.logs.release');
+    Route::post('/offerwalls/logs/cleanup', [AdminOfferwallController::class, 'cleanupLogs'])->name('offerwalls.logs.cleanup');
 
     // Shortlink Providers Management
     Route::get('/shortlink-providers', [\App\Http\Controllers\Admin\AdminShortlinkProviderController::class, 'index'])->name('shortlink-providers.index');

@@ -127,7 +127,7 @@
       <div class="glass-card p-6 rounded-3xl border border-slate-800">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h3 class="text-base font-bold text-white">Active Scheduled Tasks</h3>
-          <span class="text-xs text-slate-400">Total 4 Background Jobs Configured</span>
+          <span class="text-xs text-slate-400">Total 5 Background Jobs Configured</span>
         </div>
         
         <div class="space-y-4">
@@ -268,6 +268,46 @@
               class="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 disabled:opacity-50 cursor-pointer"
             >
               <svg v-if="runningTask === 'referral-contest:distribute'" class="animate-spin h-3.5 w-3.5 text-amber-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>▶️ Run Now</span>
+            </button>
+          </div>
+
+          <!-- 5. Offerwall History Log Auto-Prune -->
+          <div class="flex items-center justify-between gap-4 p-5 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 flex-wrap lg:flex-nowrap hover:border-cyan-500/40 transition-all">
+            <div class="flex items-start gap-4 flex-1">
+              <div class="w-11 h-11 rounded-2xl bg-cyan-500/20 flex items-center justify-center text-cyan-300 text-xl shrink-0">
+                🧹
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h4 class="font-bold text-white text-sm">Offerwall History Auto-Prune</h4>
+                  <span class="text-[10px] font-bold px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-md border border-cyan-500/30">
+                    Runs: Daily (02:00 AM)
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400">
+                  Safely deletes completed (approved/reversed) offerwall conversion logs older than 30 days to optimize database performance and save server storage. Pending hold balances are strictly protected.
+                </p>
+                <div class="flex items-center gap-3 pt-1 flex-wrap text-xs">
+                  <span class="px-2.5 py-1 rounded-lg bg-slate-800/80 text-slate-300 font-semibold border border-slate-700/50">
+                    📊 Ready for Cleanup (30+ days): <strong class="text-cyan-400">{{ stats?.offerwall_logs_eligible_for_cleanup || 0 }}</strong> logs
+                  </span>
+                  <span class="text-slate-500 text-[11px]">
+                    Last Executed: <strong class="text-slate-300">{{ last_runs?.['offerwall:cleanup-logs'] ? formatDate(last_runs['offerwall:cleanup-logs']) : 'Never' }}</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              @click="runJob('offerwall:cleanup-logs')" 
+              :disabled="runningTask !== null"
+              class="px-4 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 disabled:opacity-50 cursor-pointer"
+            >
+              <svg v-if="runningTask === 'offerwall:cleanup-logs'" class="animate-spin h-3.5 w-3.5 text-cyan-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>

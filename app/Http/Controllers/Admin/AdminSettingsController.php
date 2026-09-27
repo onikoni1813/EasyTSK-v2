@@ -236,11 +236,15 @@ class AdminSettingsController extends Controller
                 ->where('end_date', '<=', now())
                 ->whereNull('distributed_at')
                 ->count(),
+            'offerwall_logs_eligible_for_cleanup' => OfferwallLog::whereIn('status', ['approved', 'reversed'])
+                ->where('created_at', '<=', now()->subDays(30))
+                ->count(),
         ];
 
         $lastRuns = [
             'all' => AppSetting::getByKey('cron_last_run_all', null),
             'offerwall:release-pending' => AppSetting::getByKey('cron_last_run_offerwall:release-pending', null),
+            'offerwall:cleanup-logs' => AppSetting::getByKey('cron_last_run_offerwall:cleanup-logs', null),
             'proofs:cleanup-screenshots' => AppSetting::getByKey('cron_last_run_proofs:cleanup-screenshots', null),
             'health:regenerate-daily' => AppSetting::getByKey('cron_last_run_health:regenerate-daily', null),
             'referral-contest:distribute' => AppSetting::getByKey('cron_last_run_referral-contest:distribute', null),
@@ -258,7 +262,7 @@ class AdminSettingsController extends Controller
     public function runCronJob(Request $request)
     {
         $request->validate([
-            'target' => 'required|string|in:offerwall:release-pending,proofs:cleanup-screenshots,health:regenerate-daily,referral-contest:distribute,all',
+            'target' => 'required|string|in:offerwall:release-pending,offerwall:cleanup-logs,proofs:cleanup-screenshots,health:regenerate-daily,referral-contest:distribute,all',
         ]);
 
         $target = $request->target;
@@ -267,12 +271,14 @@ class AdminSettingsController extends Controller
             $now = now()->toDateTimeString();
             if ($target === 'all') {
                 Artisan::call('offerwall:release-pending');
+                Artisan::call('offerwall:cleanup-logs');
                 Artisan::call('proofs:cleanup-screenshots');
                 Artisan::call('health:regenerate-daily');
                 Artisan::call('referral-contest:distribute');
 
                 AppSetting::setByKey('cron_last_run_all', $now);
                 AppSetting::setByKey('cron_last_run_offerwall:release-pending', $now);
+                AppSetting::setByKey('cron_last_run_offerwall:cleanup-logs', $now);
                 AppSetting::setByKey('cron_last_run_proofs:cleanup-screenshots', $now);
                 AppSetting::setByKey('cron_last_run_health:regenerate-daily', $now);
                 AppSetting::setByKey('cron_last_run_referral-contest:distribute', $now);

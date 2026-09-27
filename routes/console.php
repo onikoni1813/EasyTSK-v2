@@ -19,3 +19,6 @@ Schedule::command('health:regenerate-daily')->dailyAt('00:05');
 
 // Automatically distribute rewards for expired referral contests every 5 minutes
 Schedule::command('referral-contest:distribute')->everyFiveMinutes();
+
+// Automatically clean up completed (approved/reversed) offerwall logs older than 30 days every night
+Schedule::command('offerwall:cleanup-logs --days=30')->dailyAt('02:00');
