@@ -60,6 +60,9 @@
         <Link :href="`${adminPath}/notifications`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/notifications`) ? 'bg-indigo-600 text-white' : 'text-indigo-400/90 hover:bg-slate-900'">
           <span>🔔 Notifications Broadcast</span>
         </Link>
+        <Link :href="`${adminPath}/sms-campaign`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/sms-campaign`) ? 'bg-emerald-600 text-white' : 'text-emerald-400/90 hover:bg-slate-900'">
+          <span>📱 SMS Campaign</span>
+        </Link>
         <Link :href="`${adminPath}/tasks/reviews`" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold" :class="$page.url.startsWith(`${adminPath}/tasks/reviews`) ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900'">
           <span>📸 Proof Review Hub</span>
         </Link>

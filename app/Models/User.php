@@ -15,6 +15,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'phone',
+        'phone_verified_at',
         'email',
         'password',
         'google_id',
@@ -51,6 +52,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at'         => 'datetime',
+            'phone_verified_at'         => 'datetime',
             'password'                  => 'hashed',
             'main_balance'              => 'decimal:2',
             'pending_balance'           => 'decimal:2',
@@ -245,5 +247,15 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function isPhoneVerified(): bool
+    {
+        return !is_null($this->phone_verified_at);
+    }
+
+    public function phoneVerifications(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PhoneVerification::class);
     }
 }

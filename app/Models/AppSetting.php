@@ -36,6 +36,12 @@ class AppSetting extends Model
         return $all[$key] ?? $default;
     }
 
+    public static function flushCache(): void
+    {
+        static::$localCache = [];
+        Cache::forget('all_app_settings');
+    }
+
     public static function setByKey(string $key, mixed $value): void
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);

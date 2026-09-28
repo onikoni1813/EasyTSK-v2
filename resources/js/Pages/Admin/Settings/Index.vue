@@ -571,6 +571,135 @@
             </div>
           </div>
 
+          <!-- BulkSMS Dhaka Gateway Settings -->
+          <div class="glass-card p-6 rounded-3xl border border-slate-800/60 bg-slate-900/40 relative overflow-hidden group lg:col-span-2">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all duration-500 group-hover:bg-emerald-500/20"></div>
+            
+            <div class="flex items-center justify-between gap-3 mb-6 relative flex-wrap">
+              <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-400">
+                  <SmartphoneIcon class="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    BulkSMS Dhaka Gateway
+                    <span v-if="settingsForm.bulksmsdhaka_enabled" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACTIVE</span>
+                    <span v-else class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-700/50 text-slate-400 border border-slate-600/30">DISABLED</span>
+                  </h2>
+                  <p class="text-xs text-slate-400">SMS Gateway configuration (bulksmsdhaka.com) for OTP, Qualify Verification, and alerts.</p>
+                </div>
+              </div>
+
+              <!-- Enable/Disable Switch -->
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-semibold text-slate-300">Enable SMS Gateway</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="settingsForm.bulksmsdhaka_enabled" class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+              <!-- Left Column: Credentials & Sender ID -->
+              <div class="p-5 rounded-2xl bg-slate-950/40 border border-slate-800/80 space-y-4">
+                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                  <span>🔑 API Credentials</span>
+                </h3>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">BulkSMS Dhaka API Key</label>
+                  <div class="relative">
+                    <input 
+                      v-model="settingsForm.bulksmsdhaka_api_key" 
+                      :type="showSmsApiKey ? 'text' : 'password'" 
+                      placeholder="Enter bulksmsdhaka.com API key" 
+                      class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/60 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-600 pr-16" 
+                    />
+                    <button 
+                      type="button" 
+                      @click="showSmsApiKey = !showSmsApiKey" 
+                      class="absolute right-2.5 top-2 text-[10px] font-bold text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 cursor-pointer"
+                    >
+                      {{ showSmsApiKey ? 'Hide' : 'Show' }}
+                    </button>
+                  </div>
+                  <p class="text-[11px] text-slate-500 mt-1">Found in your bulksmsdhaka.com dashboard under API settings.</p>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Caller ID / Sender ID</label>
+                  <input 
+                    v-model="settingsForm.bulksmsdhaka_sender_id" 
+                    type="text" 
+                    placeholder="1234 or your approved sender mask" 
+                    class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/60 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-600" 
+                  />
+                  <p class="text-[11px] text-slate-500 mt-1">Default is 1234 for non-masking accounts.</p>
+                </div>
+
+                <div class="pt-1">
+                  <button 
+                    type="button" 
+                    @click="checkSmsBalance" 
+                    :disabled="checkingBalance || !settingsForm.bulksmsdhaka_api_key" 
+                    class="w-full py-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCwIcon class="w-3.5 h-3.5" :class="{ 'animate-spin': checkingBalance }" />
+                    {{ checkingBalance ? 'Checking Balance...' : '🔍 Check SMS Balance Live' }}
+                  </button>
+                </div>
+
+                <div v-if="$page.props.flash?.success && $page.props.flash?.success.includes('BulkSMS')" class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <span>✅ {{ $page.props.flash.success }}</span>
+                </div>
+                <div v-if="$page.props.errors.bulksms_balance" class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+                  ❌ {{ $page.props.errors.bulksms_balance }}
+                </div>
+              </div>
+
+              <!-- Right Column: Live Testing & Diagnostics -->
+              <div class="p-5 rounded-2xl bg-slate-950/40 border border-slate-800/80 space-y-4">
+                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                  <span>🧪 Test Gateway Delivery</span>
+                </h3>
+                <p class="text-[11px] text-slate-400">
+                  Send a live test verification SMS to verify your connection and balance before deploying user verification.
+                </p>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Recipient Mobile Number</label>
+                  <input 
+                    v-model="testSmsPhone" 
+                    type="text" 
+                    placeholder="017XXXXXXXX" 
+                    class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/60 focus:border-emerald-500 rounded-xl text-xs text-white placeholder-slate-600" 
+                  />
+                  <p class="text-[11px] text-slate-500 mt-1">Enter a valid 11-digit Bangladeshi mobile number.</p>
+                </div>
+
+                <div class="pt-5">
+                  <button 
+                    type="button" 
+                    @click="sendTestSms" 
+                    :disabled="sendingTestSms || !testSmsPhone" 
+                    class="w-full py-2.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 border border-cyan-500/30 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  >
+                    <SendIcon class="w-3.5 h-3.5" :class="{ 'animate-pulse': sendingTestSms }" />
+                    {{ sendingTestSms ? 'Dispatching Test SMS...' : '📤 Send Test SMS Now' }}
+                  </button>
+                </div>
+
+                <div v-if="$page.props.flash?.success && $page.props.flash?.success.includes('Test SMS')" class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <span>✅ {{ $page.props.flash.success }}</span>
+                </div>
+                <div v-if="$page.props.errors.bulksms_test" class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+                  ❌ {{ $page.props.errors.bulksms_test }}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </form>
     </div>
@@ -634,6 +763,9 @@ const props = defineProps({
   telegramSuccessBotEnabled: Boolean,
   telegramSuccessBotToken: String,
   telegramSuccessChatId: String,
+  bulksmsApiKey: String,
+  bulksmsEnabled: Boolean,
+  bulksmsSenderId: String,
   maintenanceMode: Boolean,
   maintenanceMessage: String,
 
@@ -655,6 +787,10 @@ const faviconPreview = ref(null);
 const faviconFileName = ref('');
 const testingAdmin = ref(false);
 const testingSuccess = ref(false);
+const showSmsApiKey = ref(false);
+const checkingBalance = ref(false);
+const sendingTestSms = ref(false);
+const testSmsPhone = ref('');
 
 const settingsForm = useForm({
   conversion_rate: props.conversionRate || 100,
@@ -694,6 +830,10 @@ const settingsForm = useForm({
   telegram_success_bot_enabled: props.telegramSuccessBotEnabled || false,
   telegram_success_bot_token: props.telegramSuccessBotToken || '',
   telegram_success_chat_id: props.telegramSuccessChatId || '',
+
+  bulksmsdhaka_enabled: props.bulksmsEnabled || false,
+  bulksmsdhaka_api_key: props.bulksmsApiKey || '',
+  bulksmsdhaka_sender_id: props.bulksmsSenderId || '1234',
 });
 
 const testTelegram = (type) => {
@@ -712,6 +852,32 @@ const testTelegram = (type) => {
     onFinish: () => {
       if (isAdmin) testingAdmin.value = false;
       else testingSuccess.value = false;
+    }
+  });
+};
+
+const checkSmsBalance = () => {
+  checkingBalance.value = true;
+  useForm({
+    api_key: settingsForm.bulksmsdhaka_api_key,
+  }).post(`${adminPath.value}/settings/bulksms-balance`, {
+    preserveScroll: true,
+    onFinish: () => {
+      checkingBalance.value = false;
+    }
+  });
+};
+
+const sendTestSms = () => {
+  if (!testSmsPhone.value) return;
+  sendingTestSms.value = true;
+  useForm({
+    phone: testSmsPhone.value,
+    api_key: settingsForm.bulksmsdhaka_api_key,
+  }).post(`${adminPath.value}/settings/bulksms-test`, {
+    preserveScroll: true,
+    onFinish: () => {
+      sendingTestSms.value = false;
     }
   });
 };

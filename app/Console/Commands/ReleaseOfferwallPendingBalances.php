@@ -15,6 +15,10 @@ class ReleaseOfferwallPendingBalances extends Command
     {
         $releasedCount = $offerwallPostbackController->releasePendingBalances();
 
+        // Self-healing guard: ensure no negative balances linger
+        \App\Models\User::where('pending_balance', '<', 0)->update(['pending_balance' => 0]);
+        \App\Models\User::where('main_balance', '<', 0)->update(['main_balance' => 0]);
+
         \App\Models\AppSetting::setByKey('cron_last_run_offerwall:release-pending', now()->toDateTimeString());
 
         $this->info("Released {$releasedCount} offerwall pending balance(s) into main_balance.");

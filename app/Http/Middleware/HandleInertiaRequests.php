@@ -93,6 +93,7 @@ class HandleInertiaRequests extends Middleware
                     'payment_method' => $user->payment_method,
                     'payment_number' => $user->payment_number,
                     'has_recovery_pin' => !empty($user->recovery_pin),
+                    'phone_verified_at' => $user->phone_verified_at,
                 ] : null,
                 'notifications' => fn () => $user ? \App\Models\Notification::where('user_id', $user->id)->latest()->take(10)->get() : [],
                 'unreadNotificationsCount' => fn () => $user ? \App\Models\Notification::where('user_id', $user->id)->whereNull('read_at')->count() : 0,

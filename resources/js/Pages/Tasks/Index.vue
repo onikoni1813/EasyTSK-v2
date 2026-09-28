@@ -348,8 +348,20 @@
               :class="is_locked ? 'border-white/5 cursor-not-allowed' : 'border-white/5 card-hover cursor-pointer'"
             >
               <div class="ow-icon" :class="!is_locked && 'group-hover:scale-110'">
-                <img v-if="ow.image_url && !ow.image_error" :src="ow.image_url" :alt="ow.name" style="width:100%;height:100%;object-fit:contain;" @error="ow.image_error = true">
-                <span v-else class="ow-initial">{{ ow.name.charAt(0) }}</span>
+                <!-- 1. Emoji / Custom Icon -->
+                <span v-if="isEmojiIcon(ow.image_url)" class="text-2xl filter drop-shadow">
+                  {{ cleanEmoji(ow.image_url) }}
+                </span>
+                <!-- 2. Remote Image URL -->
+                <img 
+                  v-else-if="ow.image_url && !ow.image_error && isHttpUrl(ow.image_url)" 
+                  :src="ow.image_url" 
+                  :alt="ow.name" 
+                  style="width:100%;height:100%;object-fit:contain;" 
+                  @error="ow.image_error = true"
+                >
+                <!-- 3. Smart Network Fallback Icon -->
+                <span v-else class="text-2xl filter drop-shadow">{{ getNetworkFallbackIcon(ow.name) }}</span>
               </div>
               <div class="ow-name">{{ ow.name }}</div>
               <div class="ow-ratio">x{{ ow.reward_ratio }}</div>
@@ -940,8 +952,16 @@
         <div class="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-cyan-500/20 shrink-0">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold overflow-hidden">
-              <img v-if="activeOfferwall?.image_url" :src="activeOfferwall.image_url" :alt="activeOfferwall?.name" class="w-full h-full object-contain p-1" />
-              <span v-else>{{ activeOfferwall?.name?.charAt(0) || '🏆' }}</span>
+              <span v-if="isEmojiIcon(activeOfferwall?.image_url)" class="text-lg">
+                {{ cleanEmoji(activeOfferwall?.image_url) }}
+              </span>
+              <img 
+                v-else-if="activeOfferwall?.image_url && isHttpUrl(activeOfferwall?.image_url)" 
+                :src="activeOfferwall.image_url" 
+                :alt="activeOfferwall?.name" 
+                class="w-full h-full object-contain p-1" 
+              />
+              <span v-else class="text-lg">{{ getNetworkFallbackIcon(activeOfferwall?.name) }}</span>
             </div>
             <div>
               <h3 class="text-sm font-bold text-white leading-none flex items-center gap-2">
@@ -987,6 +1007,12 @@ import { router, usePage, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SkeletonBlock from '@/Components/SkeletonBlock.vue';
+import { 
+  isEmojiIcon, 
+  cleanEmoji, 
+  isHttpUrl, 
+  getNetworkFallbackIcon 
+} from '@/Utils/offerwallIcons';
 
 const props = defineProps({
   tasks:                      Array,
@@ -1180,14 +1206,22 @@ const openOfferwall = (ow) => {
   let url = ow.iframe_url_pattern || '';
   if (user) {
     url = url
-      .replace(/{user_id}/gi, user.id)
-      .replace(/{uid}/gi, user.id)
-      .replace(/{sub_id}/gi, user.id)
-      .replace(/{sub_id1}/gi, user.id)
-      .replace(/{userID}/gi, user.id)
-      .replace(/{id}/gi, user.id)
-      .replace(/{username}/gi, encodeURIComponent(user.name || ''))
-      .replace(/{email}/gi, encodeURIComponent(user.email || ''));
+      .replace(/\{user_id\}/gi, user.id)
+      .replace(/\[user_id\]/gi, user.id)
+      .replace(/\{uid\}/gi, user.id)
+      .replace(/\[uid\]/gi, user.id)
+      .replace(/\{sub_id\}/gi, user.id)
+      .replace(/\[sub_id\]/gi, user.id)
+      .replace(/\{sub_id1\}/gi, user.id)
+      .replace(/\[sub_id1\]/gi, user.id)
+      .replace(/\{userID\}/gi, user.id)
+      .replace(/\[userID\]/gi, user.id)
+      .replace(/\{id\}/gi, user.id)
+      .replace(/\[id\]/gi, user.id)
+      .replace(/\{username\}/gi, encodeURIComponent(user.name || ''))
+      .replace(/\[username\]/gi, encodeURIComponent(user.name || ''))
+      .replace(/\{email\}/gi, encodeURIComponent(user.email || ''))
+      .replace(/\[email\]/gi, encodeURIComponent(user.email || ''));
   }
   iframeLoaded.value = false;
   activeIframeUrl.value = url;

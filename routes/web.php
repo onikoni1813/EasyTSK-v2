@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\AdminCampaignController;
 use App\Http\Controllers\Admin\AdminDeployController;
 use App\Http\Controllers\Admin\AdminLevelController;
 use App\Http\Controllers\Admin\AdminNotificationController;
+use App\Http\Controllers\Admin\AdminSmsCampaignController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ExternalSiteController;
@@ -105,6 +106,10 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::post('/withdraw', [WithdrawalController::class, 'requestWithdrawal'])->name('withdraw.request');
     Route::post('/withdraw/wallet', [WithdrawalController::class, 'updatePaymentDetails'])->name('withdraw.wallet');
 
+    // Phone Qualification & OTP Verification
+    Route::post('/verification/phone/send-otp', [\App\Http\Controllers\PhoneVerificationController::class, 'sendOtp'])->name('verification.phone.send-otp');
+    Route::post('/verification/phone/verify-otp', [\App\Http\Controllers\PhoneVerificationController::class, 'verifyOtp'])->name('verification.phone.verify-otp');
+
     // Spin the Wheel
     Route::get('/wheel/config', [WheelSpinController::class, 'config'])->name('wheel.config');
     Route::post('/wheel/spin', [WheelSpinController::class, 'spin'])
@@ -155,10 +160,12 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::put('/campaign-services/{service}', [AdminCampaignController::class, 'updateService'])->name('campaign-services.update');
     Route::delete('/campaign-services/{service}', [AdminCampaignController::class, 'deleteService'])->name('campaign-services.destroy');
 
-    // System Settings & Telegram Test
+    // System Settings, Telegram Test & BulkSMS
     Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [AdminSettingsController::class, 'updateSettings'])->name('settings.update');
     Route::post('/settings/telegram-test', [AdminSettingsController::class, 'testTelegram'])->name('settings.telegram-test');
+    Route::post('/settings/bulksms-balance', [AdminSettingsController::class, 'checkBulkSmsBalance'])->name('settings.bulksms.balance');
+    Route::post('/settings/bulksms-test', [AdminSettingsController::class, 'testBulkSms'])->name('settings.bulksms.test');
 
     // Cron Jobs Setup & Execution
     Route::get('/cron-jobs', [AdminSettingsController::class, 'cronJobs'])->name('cron-jobs.index');
@@ -321,4 +328,10 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/send', [AdminNotificationController::class, 'send'])->name('notifications.send');
     Route::delete('/notifications/{notification}', [AdminNotificationController::class, 'destroy'])->name('notifications.destroy');
+
+    // Admin SMS Campaign Marketing Manager
+    Route::get('/sms-campaign', [AdminSmsCampaignController::class, 'index'])->name('sms-campaign.index');
+    Route::get('/sms-campaign/count', [AdminSmsCampaignController::class, 'audienceCount'])->name('sms-campaign.count');
+    Route::post('/sms-campaign/send', [AdminSmsCampaignController::class, 'send'])->name('sms-campaign.send');
+    Route::post('/sms-campaign/test', [AdminSmsCampaignController::class, 'testSend'])->name('sms-campaign.test');
 });

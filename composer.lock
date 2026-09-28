@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5230842a1c53af565b6662dfb6d1164e",
+    "content-hash": "8a5584a887d47388367dd8310f3322d6",
     "packages": [
         {
             "name": "brick/math",
@@ -2413,6 +2413,58 @@
                 }
             ],
             "time": "2026-01-02T08:56:05+00:00"
+        },
+        {
+            "name": "mysoftit/bulksmsdhaka",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mysoftit/bulksmsdhaka.git",
+                "reference": "aaefdd59a017371f9972423d87534f3431fe95af"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mysoftit/bulksmsdhaka/zipball/aaefdd59a017371f9972423d87534f3431fe95af",
+                "reference": "aaefdd59a017371f9972423d87534f3431fe95af",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "mysoftit\\bulksmsdhaka\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Md.Omar Faruqe",
+                    "email": "mysoftit13@gmail.com",
+                    "homepage": "https://github.com/mysoftit",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Bulk SMS Dhaka Package for Laravel - Easy to SMS integration with the SMS Gateway from bulksmsdhaka.com Bulk send messages, check balances, get delivery reports, and manage SMS effortlessly in your Laravel applications.",
+            "homepage": "https://github.com/mysoftit/bulksmsdhaka",
+            "keywords": [
+                "Bulk SMS Dhaka",
+                "api",
+                "bulksmsdhaka.com",
+                "communication",
+                "gateway",
+                "laravel",
+                "message",
+                "notification",
+                "sms",
+                "sms-gateway"
+            ],
+            "support": {
+                "issues": "https://github.com/mysoftit/bulksmsdhaka/issues",
+                "source": "https://github.com/mysoftit/bulksmsdhaka/tree/1.0.0"
+            },
+            "time": "2024-12-31T17:18:08+00:00"
         },
         {
             "name": "nesbot/carbon",

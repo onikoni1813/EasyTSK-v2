@@ -89,6 +89,9 @@ class WithdrawalController extends Controller
             'savedMethod' => $user->payment_method,
             'savedNumber' => $user->payment_number,
             'hasRecoveryPin' => !empty($user->recovery_pin),
+            'smsGatewayActive' => AppSetting::getByKey('bulksmsdhaka_enabled', 'false') === 'true',
+            'isPhoneVerified' => !is_null($user->phone_verified_at),
+            'userPhone' => $user->phone,
             'userStats' => $userStats,
             'withdrawals' => $withdrawals,
         ]);
@@ -121,6 +124,11 @@ class WithdrawalController extends Controller
 
             /** @var \App\Models\User $lockedUser */
             $lockedUser = \App\Models\User::where('id', Auth::id())->lockForUpdate()->first();
+
+            $smsGatewayActive = AppSetting::getByKey('bulksmsdhaka_enabled', 'false') === 'true';
+            if ($smsGatewayActive && is_null($lockedUser->phone_verified_at)) {
+                throw new \Exception('Account Qualification Required: You must verify your Bangladeshi mobile phone number via OTP before submitting a withdrawal request.');
+            }
 
             $minWithdrawHealth = (int) AppSetting::getByKey('min_withdrawal_health', 40);
             if (($lockedUser->health ?? 100) <= $minWithdrawHealth) {

@@ -2,6 +2,15 @@
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { ref, computed, watch } from 'vue';
 import { router, usePage, Link } from '@inertiajs/vue3';
+import { 
+  networkPresets, 
+  badgePresets, 
+  isEmojiIcon, 
+  cleanEmoji, 
+  isHttpUrl, 
+  getNetworkFallbackIcon, 
+  getIconWrapperClass 
+} from '@/Utils/offerwallIcons';
 
 const props = defineProps({
   offerwalls: {
@@ -44,6 +53,7 @@ const activeTab = ref(initialTab);
 const showModal = ref(false);
 const showPostbackModal = ref(false);
 const selectedOfferwall = ref(null);
+const iconTab = ref('networks');
 
 const form = ref({
   name: '', iframe_url_pattern: '', reward_ratio: 1.00, secret_key: '', image_url: '', description: '', status: true,
@@ -52,14 +62,55 @@ const form = ref({
 const isEditing = ref(false);
 const currentId = ref(null);
 
+const suggestedNetwork = computed(() => {
+  if (!form.value.name) return null;
+  const clean = form.value.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (clean.length < 3) return null;
+  return networkPresets.find(n => {
+    const nClean = n.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return nClean.includes(clean) || clean.includes(nClean);
+  }) || null;
+});
+
+function selectNetworkPreset(net) {
+  form.value.image_url = net.icon;
+  if (!form.value.name || form.value.name.trim() === '') {
+    form.value.name = net.name;
+  }
+  if (!form.value.description) {
+    form.value.description = net.desc;
+  }
+  if (!form.value.iframe_url_pattern) {
+    form.value.iframe_url_pattern = net.pattern;
+  }
+  if (net.param_user_id) form.value.param_user_id = net.param_user_id;
+  if (net.param_amount) form.value.param_amount = net.param_amount;
+  if (net.param_transaction_id) form.value.param_transaction_id = net.param_transaction_id;
+  if (net.param_status) form.value.param_status = net.param_status;
+  if (net.param_secret_key) form.value.param_secret_key = net.param_secret_key;
+  if (net.status_chargeback_value) form.value.status_chargeback_value = net.status_chargeback_value;
+}
+
+function selectBadgeIcon(icon) {
+  form.value.image_url = icon;
+}
+
 function openModal(offerwall = null) {
   if (offerwall) {
     isEditing.value = true;
     currentId.value = offerwall.id;
     form.value = { ...offerwall };
+    if (isEmojiIcon(offerwall.image_url)) {
+      iconTab.value = 'badges';
+    } else if (isHttpUrl(offerwall.image_url)) {
+      iconTab.value = 'custom';
+    } else {
+      iconTab.value = 'networks';
+    }
   } else {
     isEditing.value = false;
     currentId.value = null;
+    iconTab.value = 'networks';
     form.value = { 
       name: '', iframe_url_pattern: '', reward_ratio: 1.00, secret_key: '', image_url: '', description: '', status: true,
       param_user_id: 'user_id', param_amount: 'amount', param_transaction_id: 'transaction_id', param_status: 'status', param_secret_key: 'secure', status_chargeback_value: 'reversed', allowed_ips: ''
@@ -307,14 +358,41 @@ function getReleaseStatus(log) {
           </div>
           
           <div class="flex items-center gap-4 mb-6">
-            <div class="w-16 h-16 rounded-2xl bg-black/40 p-2 flex items-center justify-center border border-white/10">
-              <img v-if="ow.image_url && !ow.image_error" :src="ow.image_url" class="max-w-full max-h-full rounded-xl object-contain" :alt="ow.name" @error="ow.image_error = true">
-              <span v-else class="text-2xl font-bold text-slate-400">{{ ow.name.charAt(0) }}</span>
+            <div 
+              class="w-16 h-16 rounded-2xl p-2 flex items-center justify-center border shadow-lg shrink-0 transition-transform group-hover:scale-105"
+              :class="getIconWrapperClass(ow)"
+            >
+              <!-- 1. Emoji / Icon -->
+              <span v-if="isEmojiIcon(ow.image_url)" class="text-3xl filter drop-shadow">
+                {{ cleanEmoji(ow.image_url) }}
+              </span>
+              <!-- 2. Remote Image URL -->
+              <img 
+                v-else-if="ow.image_url && !ow.image_error && isHttpUrl(ow.image_url)" 
+                :src="ow.image_url" 
+                class="max-w-full max-h-full rounded-xl object-contain" 
+                :alt="ow.name" 
+                @error="ow.image_error = true"
+              >
+              <!-- 3. Smart Network Fallback Icon -->
+              <span v-else class="text-3xl filter drop-shadow">
+                {{ getNetworkFallbackIcon(ow.name) }}
+              </span>
             </div>
-            <div>
-              <h3 class="text-xl font-bold text-white">{{ ow.name }}</h3>
-              <p class="text-sm text-slate-400">Ratio: <span class="text-emerald-400 font-semibold">{{ ow.reward_ratio }}x</span></p>
-              <p v-if="ow.description" class="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-2" :title="ow.description">{{ ow.description }}</p>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h3 class="text-xl font-bold text-white truncate">{{ ow.name }}</h3>
+                <span class="text-xs px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 font-mono shrink-0">
+                  {{ ow.reward_ratio }}x
+                </span>
+              </div>
+              <p v-if="ow.description" class="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2" :title="ow.description">
+                {{ ow.description }}
+              </p>
+              <p v-else class="text-[11px] text-slate-500 mt-1 italic">
+                Active Offerwall Network
+              </p>
             </div>
           </div>
 
@@ -472,8 +550,9 @@ function getReleaseStatus(log) {
 
                 <!-- Provider -->
                 <td class="px-4 py-3">
-                  <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-200 border border-slate-700/60 inline-flex items-center gap-1">
-                    {{ log.provider }}
+                  <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-200 border border-slate-700/60 inline-flex items-center gap-1.5">
+                    <span>{{ getNetworkFallbackIcon(log.provider) }}</span>
+                    <span>{{ log.provider }}</span>
                   </span>
                 </td>
 
@@ -658,7 +737,17 @@ function getReleaseStatus(log) {
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div class="space-y-1">
-            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Provider Name</label>
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Provider Name</label>
+              <button 
+                v-if="suggestedNetwork && form.name !== suggestedNetwork.name" 
+                type="button" 
+                @click="selectNetworkPreset(suggestedNetwork)"
+                class="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold underline cursor-pointer"
+              >
+                Auto-fill {{ suggestedNetwork.icon }} {{ suggestedNetwork.name }}
+              </button>
+            </div>
             <input v-model="form.name" placeholder="e.g. Timewall" class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all">
           </div>
           
@@ -678,13 +767,124 @@ function getReleaseStatus(log) {
             <input v-model="form.secret_key" placeholder="Optional but recommended" class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all">
           </div>
 
-          <div class="space-y-1 md:col-span-2">
-            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Logo URL <span class="text-slate-500 normal-case font-normal">(Optional)</span></label>
-            <div class="flex gap-4 items-center">
-              <input v-model="form.image_url" placeholder="https://..." class="flex-1 w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all">
-              <div v-if="form.image_url" class="w-12 h-12 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center p-1 shrink-0 shadow-inner">
-                <img :src="form.image_url" class="max-w-full max-h-full object-contain rounded-lg" alt="Preview">
+          <!-- Logo & Icon Picker Component -->
+          <div class="space-y-3 md:col-span-2 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-inner">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/5">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🎨</span>
+                <div>
+                  <label class="text-xs font-bold text-white uppercase tracking-wider">
+                    Offerwall Icon & Logo (সহজে আইকন সেট করুন)
+                  </label>
+                  <p class="text-[11px] text-slate-400">
+                    লিঙ্ক খোঁজার ঝামেলা নেই — নিচে যেকোনো ব্র্যান্ড বা আকর্ষণীয় আইকনে ১-ক্লিকেই সেট হয়ে যাবে
+                  </p>
+                </div>
               </div>
+              
+              <!-- Current Active Preview & Reset -->
+              <div class="flex items-center gap-2 self-start sm:self-auto shrink-0 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-white/10">
+                <span class="text-[10px] text-slate-400 uppercase font-semibold">Active:</span>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center border shadow shrink-0" :class="getIconWrapperClass(form)">
+                  <span v-if="isEmojiIcon(form.image_url)" class="text-xl leading-none">{{ cleanEmoji(form.image_url) }}</span>
+                  <img v-else-if="form.image_url && isHttpUrl(form.image_url)" :src="form.image_url" class="max-w-full max-h-full object-contain p-0.5 rounded" alt="Preview">
+                  <span v-else class="text-xl leading-none">{{ getNetworkFallbackIcon(form.name) }}</span>
+                </div>
+                <button 
+                  v-if="form.image_url" 
+                  type="button" 
+                  @click="form.image_url = ''" 
+                  class="text-xs text-slate-400 hover:text-rose-400 p-1 transition cursor-pointer"
+                  title="Reset to smart network fallback"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <!-- Tabs: Networks vs Badges vs Custom URL -->
+            <div class="flex items-center gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs">
+              <button 
+                type="button" 
+                @click="iconTab = 'networks'"
+                class="flex-1 py-1.5 px-3 rounded-lg font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1.5"
+                :class="iconTab === 'networks' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'"
+              >
+                <span>🏆 Top Networks</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="iconTab === 'networks' ? 'bg-white/20' : 'bg-slate-800 text-slate-400'">15</span>
+              </button>
+              <button 
+                type="button" 
+                @click="iconTab = 'badges'"
+                class="flex-1 py-1.5 px-3 rounded-lg font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1.5"
+                :class="iconTab === 'badges' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'"
+              >
+                <span>✨ Beautiful Badges</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="iconTab === 'badges' ? 'bg-white/20' : 'bg-slate-800 text-slate-400'">24</span>
+              </button>
+              <button 
+                type="button" 
+                @click="iconTab = 'custom'"
+                class="flex-1 py-1.5 px-3 rounded-lg font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1.5"
+                :class="iconTab === 'custom' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'"
+              >
+                <span>🔗 Custom URL</span>
+              </button>
+            </div>
+
+            <!-- Tab 1: Top Networks Grid -->
+            <div v-if="iconTab === 'networks'" class="space-y-2">
+              <p class="text-[10px] text-slate-400">ক্লিক করলে আইকন এবং সাথে সাথে অফিসিয়াল প্যারামিটার সেটিংস অটো-ফিল হবে:</p>
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 max-h-48 overflow-y-auto pr-1">
+                <button
+                  v-for="net in networkPresets"
+                  :key="net.name"
+                  type="button"
+                  @click="selectNetworkPreset(net)"
+                  class="p-2 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer group"
+                  :class="form.name === net.name || form.image_url === net.icon ? 'bg-indigo-600/30 border-indigo-500 shadow-md shadow-indigo-500/20' : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60'"
+                >
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-lg bg-black/40 border border-white/5 shrink-0 group-hover:scale-110 transition-transform">
+                    {{ net.icon }}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-bold text-white truncate">{{ net.name }}</div>
+                    <div class="text-[9px] text-slate-500 truncate">1-Click Auto</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab 2: Curated 24 Badges Grid -->
+            <div v-else-if="iconTab === 'badges'" class="space-y-2">
+              <p class="text-[10px] text-slate-400">অফারওয়াল কার্ডে প্রদর্শনের জন্য যেকোনো আকর্ষণীয় আইকন নির্বাচন করুন:</p>
+              <div class="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-2 max-h-48 overflow-y-auto pr-1">
+                <button
+                  v-for="badge in badgePresets"
+                  :key="badge.icon"
+                  type="button"
+                  @click="selectBadgeIcon(badge.icon)"
+                  class="p-2 rounded-xl border transition-all flex items-center justify-center cursor-pointer group"
+                  :class="form.image_url === badge.icon ? 'bg-emerald-600/30 border-emerald-500 shadow-md ring-2 ring-emerald-500/50 scale-105' : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60'"
+                  :title="badge.label"
+                >
+                  <span class="text-2xl group-hover:scale-125 transition-transform">{{ badge.icon }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab 3: Custom URL Input -->
+            <div v-else-if="iconTab === 'custom'" class="space-y-2 pt-1">
+              <div class="flex gap-3 items-center">
+                <input 
+                  v-model="form.image_url" 
+                  placeholder="https://example.com/logo.png" 
+                  class="flex-1 w-full bg-black/30 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-emerald-500/50 transition-all font-mono"
+                />
+              </div>
+              <p class="text-[11px] text-slate-500 leading-relaxed">
+                ঐচ্ছিক: আপনার নিজস্ব হোস্টেড পিএনজি/এসভিজি লোগো ইমেজ ইউআরএল পেস্ট করতে পারেন।
+              </p>
             </div>
           </div>
 

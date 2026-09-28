@@ -156,10 +156,18 @@ class AdminOfferwallController extends Controller
             if ($lockedLog && $lockedLog->status === 'pending') {
                 $user = User::find($lockedLog->user_id);
                 if ($user) {
-                    $user->decrement('pending_balance', $lockedLog->amount);
-                    $user->increment('main_balance', $lockedLog->amount);
+                    $releaseAmount = (float) $lockedLog->amount;
+                    $deductPending = min((float) $user->pending_balance, $releaseAmount);
+                    if ($deductPending > 0) {
+                        $user->decrement('pending_balance', $deductPending);
+                    }
+                    $user->increment('main_balance', $releaseAmount);
 
-                    $referralService->recordReferredUserEarning($user, (float) $lockedLog->amount);
+                    if ($user->pending_balance < 0) {
+                        $user->update(['pending_balance' => 0]);
+                    }
+
+                    $referralService->recordReferredUserEarning($user, $releaseAmount);
                 }
 
                 $lockedLog->update(['status' => 'approved']);

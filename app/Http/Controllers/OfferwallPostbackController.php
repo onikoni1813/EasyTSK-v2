@@ -160,8 +160,9 @@ class OfferwallPostbackController extends Controller
 
             if (!empty($moneyRainHeader)) {
                 $rawBody = $request->getContent();
-                $expectedMoneyRainSig = 'sha256=' . hash_hmac('sha256', $rawBody, $offerwall->secret_key);
-                if (hash_equals($expectedMoneyRainSig, $moneyRainHeader)) {
+                $expectedHmac = hash_hmac('sha256', $rawBody, $offerwall->secret_key);
+                $cleanHeader = trim((string) $moneyRainHeader);
+                if (hash_equals('sha256=' . $expectedHmac, $cleanHeader) || hash_equals($expectedHmac, $cleanHeader)) {
                     $isValidSecret = true;
                 }
             }
@@ -195,7 +196,16 @@ class OfferwallPostbackController extends Controller
                     }
                 }
 
-                // 5. Dynamic SHA1 & SHA256 Hash verification for providers like TimeWall, Notik, etc.
+                // 5. MoneyRain Signature Formula if passed via payload/param: sha256={HMAC} or {HMAC}
+                if (!$isValidSecret && $normalizedProvider === 'moneyrain') {
+                    $rawBody = $request->getContent();
+                    $expectedHmac = hash_hmac('sha256', $rawBody, $offerwall->secret_key);
+                    if (hash_equals($expectedHmac, $cleanProvidedSecret) || hash_equals('sha256=' . $expectedHmac, $cleanProvidedSecret)) {
+                        $isValidSecret = true;
+                    }
+                }
+
+                // 6. Dynamic SHA1 & SHA256 Hash verification for providers like TimeWall, Notik, etc.
                 if (!$isValidSecret) {
                     $pubId = $request->input('pub_id', '');
                     $possibleHashes = [
@@ -259,10 +269,27 @@ class OfferwallPostbackController extends Controller
                     $lockedLog = OfferwallLog::where('id', $existingLog->id)->lockForUpdate()->first();
 
                     if ($lockedLog && $lockedLog->status !== 'reversed') {
+                        $chargebackAmount = (float) $lockedLog->amount;
+
                         if ($lockedLog->status === 'pending') {
-                            $user->decrement('pending_balance', $lockedLog->amount);
+                            $deductPending = min((float) $user->pending_balance, $chargebackAmount);
+                            if ($deductPending > 0) {
+                                $user->decrement('pending_balance', $deductPending);
+                            }
+                            $remainingChargeback = $chargebackAmount - $deductPending;
+                            if ($remainingChargeback > 0) {
+                                $user->decrement('main_balance', min((float) $user->main_balance, $remainingChargeback));
+                            }
                         } else {
-                            $user->decrement('main_balance', $lockedLog->amount);
+                            $user->decrement('main_balance', min((float) $user->main_balance, $chargebackAmount));
+                        }
+
+                        // Ensure balances strictly never become negative
+                        if ($user->pending_balance < 0) {
+                            $user->update(['pending_balance' => 0]);
+                        }
+                        if ($user->main_balance < 0) {
+                            $user->update(['main_balance' => 0]);
                         }
 
                         $lockedLog->update([
@@ -353,10 +380,18 @@ class OfferwallPostbackController extends Controller
                 if ($lockedLog) {
                     $user = User::find($lockedLog->user_id);
                     if ($user) {
-                        $user->decrement('pending_balance', $lockedLog->amount);
-                        $user->increment('main_balance', $lockedLog->amount);
+                        $releaseAmount = (float) $lockedLog->amount;
+                        $deductPending = min((float) $user->pending_balance, $releaseAmount);
+                        if ($deductPending > 0) {
+                            $user->decrement('pending_balance', $deductPending);
+                        }
+                        $user->increment('main_balance', $releaseAmount);
 
-                        $this->referralService->recordReferredUserEarning($user, (float) $lockedLog->amount);
+                        if ($user->pending_balance < 0) {
+                            $user->update(['pending_balance' => 0]);
+                        }
+
+                        $this->referralService->recordReferredUserEarning($user, $releaseAmount);
                     }
                     $lockedLog->update(['status' => 'approved']);
                     return true;

@@ -135,17 +135,65 @@
       :notifications="notifications"
     />
 
-    <!-- ── Flash Toasts ────────────────────────────────────────────────── -->
-    <Transition name="toast">
-      <div v-if="$page.props.flash?.success" class="max-w-md mx-auto mt-3 mx-4 px-4 py-2.5 toast-success rounded-xl text-xs font-semibold text-center shadow-xl animate-slide-in-up">
-        ✅ {{ $page.props.flash.success }}
-      </div>
-    </Transition>
-    <Transition name="toast">
-      <div v-if="$page.props.flash?.error" class="max-w-md mx-auto mt-3 mx-4 px-4 py-2.5 toast-error rounded-xl text-xs font-semibold text-center shadow-xl animate-slide-in-up">
-        ❌ {{ $page.props.flash.error }}
-      </div>
-    </Transition>
+    <!-- ── Floating Premium Notification Toasts ──────────────────────────── -->
+    <div class="fixed top-5 right-4 sm:right-6 z-[100] max-w-sm w-[calc(100%-2rem)] pointer-events-none space-y-3">
+      <Transition name="slide-fade">
+        <div 
+          v-if="showSuccessToast && flashSuccess" 
+          class="pointer-events-auto p-4 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-emerald-500/30 shadow-2xl shadow-emerald-950/60 flex items-start gap-3.5 transform transition-all"
+        >
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 text-base shadow-inner">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0 pt-0.5">
+            <div class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+              <span>সফল হয়েছে</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            </div>
+            <p class="text-xs text-slate-200 mt-0.5 leading-relaxed">{{ flashSuccess }}</p>
+          </div>
+          <button 
+            @click="dismissSuccessToast" 
+            type="button"
+            class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition cursor-pointer shrink-0 -mr-1 -mt-1"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </Transition>
+
+      <Transition name="slide-fade">
+        <div 
+          v-if="showErrorToast && flashError" 
+          class="pointer-events-auto p-4 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-rose-500/30 shadow-2xl shadow-rose-950/60 flex items-start gap-3.5 transform transition-all"
+        >
+          <div class="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 text-base shadow-inner">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0 pt-0.5">
+            <div class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+              <span>ত্রুটি হয়েছে</span>
+            </div>
+            <p class="text-xs text-slate-200 mt-0.5 leading-relaxed">{{ flashError }}</p>
+          </div>
+          <button 
+            @click="dismissErrorToast" 
+            type="button"
+            class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition cursor-pointer shrink-0 -mr-1 -mt-1"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </Transition>
+    </div>
 
     <!-- ── Main Content ────────────────────────────────────────────────── -->
     <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6">
@@ -207,7 +255,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { usePage, Link, router } from '@inertiajs/vue3';
 import AntiAdblock from '@/Components/AntiAdblock.vue';
 import AnimatedNumber from '@/Components/AnimatedNumber.vue';
@@ -225,6 +273,49 @@ const isNavigating = ref(false);
 let removeStartListener = null;
 let removeFinishListener = null;
 
+// Floating Toast Notification Logic
+const showSuccessToast = ref(false);
+const showErrorToast = ref(false);
+let successTimer = null;
+let errorTimer = null;
+
+const flashSuccess = computed(() => page.props.flash?.success);
+const flashError = computed(() => page.props.flash?.error);
+
+watch(flashSuccess, (newVal) => {
+  if (newVal) {
+    showSuccessToast.value = true;
+    if (successTimer) clearTimeout(successTimer);
+    successTimer = setTimeout(() => {
+      showSuccessToast.value = false;
+    }, 5000);
+  } else {
+    showSuccessToast.value = false;
+  }
+}, { immediate: true });
+
+watch(flashError, (newVal) => {
+  if (newVal) {
+    showErrorToast.value = true;
+    if (errorTimer) clearTimeout(errorTimer);
+    errorTimer = setTimeout(() => {
+      showErrorToast.value = false;
+    }, 6000);
+  } else {
+    showErrorToast.value = false;
+  }
+}, { immediate: true });
+
+const dismissSuccessToast = () => {
+  showSuccessToast.value = false;
+  if (successTimer) clearTimeout(successTimer);
+};
+
+const dismissErrorToast = () => {
+  showErrorToast.value = false;
+  if (errorTimer) clearTimeout(errorTimer);
+};
+
 onMounted(() => {
   removeStartListener  = router.on('start',  () => { isNavigating.value = true; });
   removeFinishListener = router.on('finish', () => { isNavigating.value = false; });
@@ -233,6 +324,8 @@ onMounted(() => {
 onUnmounted(() => {
   removeStartListener?.();
   removeFinishListener?.();
+  if (successTimer) clearTimeout(successTimer);
+  if (errorTimer) clearTimeout(errorTimer);
 });
 
 const navClass = (path) => {
@@ -272,9 +365,20 @@ const leaveImpersonation = () => {
   border: none;
 }
 
-.toast-enter-active, .toast-leave-active { transition: all 0.35s ease; }
-.toast-enter-from  { transform: translateY(-10px); opacity: 0; }
-.toast-leave-to    { transform: translateY(-10px); opacity: 0; }
+.slide-fade-enter-active {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-fade-leave-active {
+  transition: all 0.25s cubic-bezier(0.7, 0, 0.84, 0);
+}
+.slide-fade-enter-from {
+  transform: translateY(-20px) scale(0.95);
+  opacity: 0;
+}
+.slide-fade-leave-to {
+  transform: translateY(-10px) scale(0.95);
+  opacity: 0;
+}
 
 @keyframes gradient-x {
   0%, 100% {

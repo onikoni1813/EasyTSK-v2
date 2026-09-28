@@ -413,6 +413,89 @@ class PostbackTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_moneyrain_raw_hex_hmac_signature_credits_user(): void
+    {
+        \App\Models\AppSetting::setByKey('offerwall_pending_hours', 0);
+        \App\Models\AppSetting::setByKey('conversion_rate', 100);
+
+        $user = User::factory()->create(['main_balance' => 0]);
+        $secret = 'moneyrain_raw_hex_sec';
+        $viewId = 887766;
+
+        Offerwall::create([
+            'name' => 'MoneyRain',
+            'iframe_url_pattern' => 'https://offerwall.moneyrain.top/wall.php?pub=123&uid={user_id}',
+            'status' => true,
+            'secret_key' => $secret,
+            'param_user_id' => 'external_uid',
+            'param_transaction_id' => 'view_id',
+            'param_amount' => 'reward_currency_amount',
+            'reward_ratio' => 1.0,
+        ]);
+
+        $payload = [
+            'event' => 'reward.completed',
+            'view_id' => $viewId,
+            'external_uid' => (string) $user->id,
+            'reward_currency_amount' => '25.00',
+            'status' => 'completed',
+        ];
+
+        $rawBody = json_encode($payload);
+        $rawHexSig = hash_hmac('sha256', $rawBody, $secret); // without sha256= prefix
+
+        $response = $this->call(
+            'POST',
+            '/postback/moneyrain',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_MONEYRAIN_SIGNATURE' => $rawHexSig,
+            ],
+            $rawBody
+        );
+
+        $response->assertStatus(200);
+        $this->assertEquals('OK', $response->getContent());
+        $this->assertEquals(25, $user->fresh()->main_balance);
+    }
+
+    public function test_capsbit_hmac_sha256_postback_credits_user(): void
+    {
+        \App\Models\AppSetting::setByKey('offerwall_pending_hours', 0);
+        \App\Models\AppSetting::setByKey('conversion_rate', 100);
+
+        $user = User::factory()->create(['main_balance' => 0]);
+        $secret = 'capsbit_hmac_secret';
+        $payout = '1.20';
+        $txid = 'CAPS_HMAC_99';
+        $offerId = '5001';
+
+        Offerwall::create([
+            'name' => 'Capsbit',
+            'iframe_url_pattern' => 'https://offerwall.capsbit.com/key/{user_id}',
+            'status' => true,
+            'secret_key' => $secret,
+            'param_user_id' => 'uid',
+            'param_transaction_id' => 'txid',
+            'param_amount' => 'payout',
+            'param_secret_key' => 'sig',
+            'reward_ratio' => 1.0,
+        ]);
+
+        // HMAC-SHA256 formula
+        $hmacSig = hash_hmac('sha256', $user->id . $payout . $offerId . $txid, $secret);
+
+        $response = $this->get("/postback/capsbit?uid={$user->id}&txid={$txid}&payout={$payout}&offer_id={$offerId}&status=approved&sig={$hmacSig}");
+
+        $response->assertStatus(200);
+        $this->assertEquals('OK', $response->getContent());
+        // $1.20 * 100 = 120 coins
+        $this->assertEquals(120, $user->fresh()->main_balance);
+    }
+
     public function test_capsbit_rejected_chargeback_reverses_balance(): void
     {
         \App\Models\AppSetting::setByKey('offerwall_pending_hours', 0);

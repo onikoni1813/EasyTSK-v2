@@ -50,6 +50,10 @@ class AdminSettingsController extends Controller
         $telegramSuccessBotToken = AppSetting::getByKey('telegram_success_bot_token', '');
         $telegramSuccessChatId = AppSetting::getByKey('telegram_success_chat_id', '');
 
+        $bulksmsApiKey = AppSetting::getByKey('bulksmsdhaka_api_key', config('services.bulksmsdhaka.api_key', ''));
+        $bulksmsEnabled = AppSetting::getByKey('bulksmsdhaka_enabled', 'false') === 'true';
+        $bulksmsSenderId = AppSetting::getByKey('bulksmsdhaka_sender_id', '1234');
+
         $maintenanceMode = AppSetting::getByKey('maintenance_mode', 'false') === 'true';
         $maintenanceMessage = AppSetting::getByKey('maintenance_message', 'We are currently performing scheduled maintenance to upgrade our platform. Please check back shortly!');
 
@@ -87,6 +91,9 @@ class AdminSettingsController extends Controller
             'telegramSuccessBotEnabled' => $telegramSuccessBotEnabled,
             'telegramSuccessBotToken' => $telegramSuccessBotToken,
             'telegramSuccessChatId' => $telegramSuccessChatId,
+            'bulksmsApiKey' => $bulksmsApiKey,
+            'bulksmsEnabled' => $bulksmsEnabled,
+            'bulksmsSenderId' => $bulksmsSenderId,
             'maintenanceMode' => $maintenanceMode,
             'maintenanceMessage' => $maintenanceMessage,
             'wheelSlot1' => (int) $wheelSlot1,
@@ -130,6 +137,9 @@ class AdminSettingsController extends Controller
             'telegram_success_bot_enabled' => 'nullable|boolean',
             'telegram_success_bot_token' => 'nullable|string|max:255',
             'telegram_success_chat_id' => 'nullable|string|max:255',
+            'bulksmsdhaka_enabled' => 'nullable|boolean',
+            'bulksmsdhaka_api_key' => 'nullable|string|max:255',
+            'bulksmsdhaka_sender_id' => 'nullable|string|max:50',
             'maintenance_mode' => 'nullable|boolean',
             'maintenance_message' => 'nullable|string|max:1000',
             'wheel_slot_1' => 'required|numeric|min:1',
@@ -184,6 +194,10 @@ class AdminSettingsController extends Controller
         AppSetting::setByKey('telegram_success_bot_token', $request->telegram_success_bot_token ?? '');
         AppSetting::setByKey('telegram_success_chat_id', $request->telegram_success_chat_id ?? '');
 
+        AppSetting::setByKey('bulksmsdhaka_enabled', $request->bulksmsdhaka_enabled ? 'true' : 'false');
+        AppSetting::setByKey('bulksmsdhaka_api_key', $request->bulksmsdhaka_api_key ?? '');
+        AppSetting::setByKey('bulksmsdhaka_sender_id', $request->bulksmsdhaka_sender_id ?? '1234');
+
         if ($request->hasFile('site_logo_file')) {
             $path = $request->file('site_logo_file')->store('branding', 'public');
             AppSetting::setByKey('site_logo', '/storage/' . $path);
@@ -218,6 +232,47 @@ class AdminSettingsController extends Controller
         }
 
         return back()->withErrors(['telegram_test' => 'Failed to send Telegram test message. Please verify Bot Token and Chat ID.']);
+    }
+
+    public function checkBulkSmsBalance(Request $request)
+    {
+        $apiKey = $request->api_key ?: AppSetting::getByKey('bulksmsdhaka_api_key', config('services.bulksmsdhaka.api_key', ''));
+
+        if (empty($apiKey)) {
+            return back()->withErrors(['bulksms_balance' => 'Please enter or save your BulkSMS Dhaka API Key first.']);
+        }
+
+        $service = new \App\Services\BulkSmsDhakaService($apiKey);
+        $result = $service->getBalance();
+
+        if ($result['success']) {
+            return back()->with('success', 'BulkSMS Gateway: ' . $result['message']);
+        }
+
+        return back()->withErrors(['bulksms_balance' => 'Failed to check balance: ' . $result['message']]);
+    }
+
+    public function testBulkSms(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string',
+            'api_key' => 'nullable|string',
+        ]);
+
+        $apiKey = $request->api_key ?: AppSetting::getByKey('bulksmsdhaka_api_key', config('services.bulksmsdhaka.api_key', ''));
+
+        if (empty($apiKey)) {
+            return back()->withErrors(['bulksms_test' => 'Please enter or save your BulkSMS Dhaka API Key first.']);
+        }
+
+        $service = new \App\Services\BulkSmsDhakaService($apiKey);
+        $result = $service->sendSms($request->phone, 'EasyTsk Test SMS: Your BulkSMS Dhaka gateway is configured and working properly!');
+
+        if ($result['success']) {
+            return back()->with('success', 'Test SMS sent successfully to ' . $request->phone . '!');
+        }
+
+        return back()->withErrors(['bulksms_test' => 'Failed to send test SMS: ' . $result['message']]);
     }
 
     public function cronJobs()

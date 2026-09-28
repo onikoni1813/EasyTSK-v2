@@ -162,6 +162,112 @@
         </div>
       </div>
 
+      <!-- Account Qualification & Phone OTP Verification Banner -->
+      <div v-if="smsGatewayActive && !isPhoneVerified" class="glass-card p-6 sm:p-7 rounded-3xl border border-indigo-500/40 bg-gradient-to-br from-indigo-950/70 via-slate-900 to-indigo-900/30 relative overflow-hidden space-y-5 shadow-xl shadow-indigo-950/50">
+        <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-indigo-500/20 pb-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-2xl shrink-0">
+              📱
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="text-base sm:text-lg font-bold text-white">Account Qualification Required</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  One-time Verification
+                </span>
+              </div>
+              <p class="text-xs text-indigo-200/80 mt-0.5">
+                উইথড্র করার পূর্বে আপনার বাংলাদেশি মোবাইল নাম্বারটি OTP দিয়ে ভেরিফাই করে একাউন্ট কোয়ালিফাই করতে হবে।
+              </p>
+            </div>
+          </div>
+
+          <div class="text-right self-start sm:self-auto shrink-0">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold">
+              🔒 Payouts Locked
+            </span>
+          </div>
+        </div>
+
+        <!-- Verification Steps & Forms Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Step 1: Input Phone & Send OTP -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-indigo-500/20 space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <span>1️⃣ মোবাইল নাম্বার দিন</span>
+              </label>
+              <span class="text-[10px] text-slate-400">১১ ডিজিট (যেমন: 017XXXXXXXX)</span>
+            </div>
+
+            <div class="relative">
+              <input 
+                v-model="otpForm.phone" 
+                type="text" 
+                :disabled="otpSent && otpCooldown > 0"
+                placeholder="01XXXXXXXXX" 
+                class="w-full px-4 py-3 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-sm font-mono text-white placeholder-slate-600 disabled:opacity-60"
+              />
+            </div>
+
+            <button 
+              type="button" 
+              @click="sendOtp" 
+              :disabled="sendingOtp || (otpSent && otpCooldown > 0) || !otpForm.phone"
+              class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-600/20"
+            >
+              <span v-if="sendingOtp">⏳ ওটিপি পাঠানো হচ্ছে...</span>
+              <span v-else-if="otpSent && otpCooldown > 0">🔄 রিসেন্ড করতে অপেক্ষা: {{ otpCooldown }}s</span>
+              <span v-else-if="otpSent">🔄 ওটিপি পুনরায় পাঠান (Resend)</span>
+              <span v-else>📩 ওটিপি কোড পাঠান (Send OTP)</span>
+            </button>
+
+            <p v-if="otpSent" class="text-[11px] text-emerald-400 flex items-center gap-1">
+              ✓ আপনার নাম্বারে ওটিপি পাঠানো হয়েছে। কোডটির মেয়াদ ৫ মিনিট।
+            </p>
+          </div>
+
+          <!-- Step 2: Input 6-Digit OTP Code & Verify -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-indigo-500/20 space-y-3" :class="{ 'opacity-60 pointer-events-none': !otpSent }">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <span>2️⃣ ৬-ডিজিট ওটিপি কোড লিখুন</span>
+              </label>
+              <span class="text-[10px] text-indigo-300 font-mono">মেয়াদ: ৫ মিনিট</span>
+            </div>
+
+            <input 
+              v-model="verifyForm.otp_code" 
+              type="text" 
+              maxlength="6"
+              placeholder="123456" 
+              class="w-full px-4 py-3 bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl text-center text-lg font-mono font-bold tracking-widest text-white placeholder-slate-600"
+            />
+
+            <button 
+              type="button" 
+              @click="confirmOtp" 
+              :disabled="verifyingOtp || verifyForm.otp_code.length !== 6"
+              class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20"
+            >
+              <span v-if="verifyingOtp">⏳ যাচাই করা হচ্ছে...</span>
+              <span v-else>✅ কোড যাচাই করে কোয়ালিফাই করুন</span>
+            </button>
+
+            <p class="text-[10px] text-slate-500 text-center">
+              একবার ভেরিফাই করলেই আপনার একাউন্ট আজীবনের জন্য কোয়ালিফাইড হয়ে যাবে।
+            </p>
+          </div>
+        </div>
+
+        <div v-if="$page.props.errors.phone || $page.props.errors.otp || $page.props.errors.otp_code" class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+          <span>⚠️</span>
+          <span>{{ $page.props.errors.phone || $page.props.errors.otp || $page.props.errors.otp_code }}</span>
+        </div>
+      </div>
+
       <!-- Main Layout Grid: Wallet Settings & Withdrawal Form -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -385,9 +491,18 @@
             </div>
 
             <button 
+              v-if="smsGatewayActive && !isPhoneVerified"
+              type="button" 
+              disabled
+              class="w-full py-3.5 px-4 bg-slate-800/80 text-slate-500 font-bold text-xs rounded-2xl border border-slate-700/80 cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <span>🔒 Account Qualification (Phone OTP) Required</span>
+            </button>
+            <button 
+              v-else
               type="submit" 
               :disabled="!canWithdraw || form.processing"
-              class="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs rounded-2xl shadow-xl shadow-emerald-500/20 transition transform active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              class="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs rounded-2xl shadow-xl shadow-emerald-500/20 transition transform active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>{{ form.processing ? 'Submitting Request...' : 'Submit Withdrawal Request' }}</span>
             </button>
@@ -495,11 +610,80 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  smsGatewayActive: {
+    type: Boolean,
+    default: false,
+  },
+  isPhoneVerified: {
+    type: Boolean,
+    default: false,
+  },
+  userPhone: {
+    type: String,
+    default: '',
+  },
 });
 
 const showWalletModal = ref(false);
 const cooldownSeconds = ref(props.remainingSeconds || 0);
 let timerInterval = null;
+
+// OTP & Account Qualification State
+const otpSent = ref(false);
+const sendingOtp = ref(false);
+const verifyingOtp = ref(false);
+const otpCooldown = ref(0);
+let otpCooldownInterval = null;
+
+const otpForm = useForm({
+  phone: props.userPhone || '',
+});
+
+const verifyForm = useForm({
+  otp_code: '',
+});
+
+const startOtpCooldown = (seconds = 60) => {
+  if (otpCooldownInterval) clearInterval(otpCooldownInterval);
+  otpCooldown.value = seconds;
+  otpCooldownInterval = setInterval(() => {
+    if (otpCooldown.value > 0) {
+      otpCooldown.value--;
+    } else {
+      clearInterval(otpCooldownInterval);
+      otpCooldownInterval = null;
+    }
+  }, 1000);
+};
+
+const sendOtp = () => {
+  if (!otpForm.phone || sendingOtp.value || (otpSent.value && otpCooldown.value > 0)) return;
+  sendingOtp.value = true;
+  otpForm.post('/verification/phone/send-otp', {
+    preserveScroll: true,
+    onSuccess: () => {
+      otpSent.value = true;
+      startOtpCooldown(60);
+    },
+    onFinish: () => {
+      sendingOtp.value = false;
+    },
+  });
+};
+
+const confirmOtp = () => {
+  if (!verifyForm.otp_code || verifyForm.otp_code.length !== 6 || verifyingOtp.value) return;
+  verifyingOtp.value = true;
+  verifyForm.post('/verification/phone/verify-otp', {
+    preserveScroll: true,
+    onSuccess: () => {
+      verifyForm.reset();
+    },
+    onFinish: () => {
+      verifyingOtp.value = false;
+    },
+  });
+};
 
 const initialMethod = computed(() => {
   if (props.savedMethod) {
@@ -598,6 +782,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (timerInterval) clearInterval(timerInterval);
+  if (otpCooldownInterval) clearInterval(otpCooldownInterval);
 });
 
 const submitWithdrawal = () => {

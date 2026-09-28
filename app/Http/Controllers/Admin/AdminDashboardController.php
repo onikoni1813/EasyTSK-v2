@@ -26,8 +26,8 @@ class AdminDashboardController extends Controller
         $totalUsers                  = User::where('role', 'user')->count();
         $newUsersThisWeek            = User::where('role', 'user')->where('created_at', '>=', now()->subDays(7))->count();
         $bannedUsersCount            = User::where('is_banned', true)->count();
-        $totalMainLiability          = (float) User::sum('main_balance');
-        $totalPendingLiability       = (float) User::sum('pending_balance');
+        $totalMainLiability          = max(0, (float) User::where('main_balance', '>', 0)->sum('main_balance'));
+        $totalPendingLiability       = max(0, (float) User::where('pending_balance', '>', 0)->sum('pending_balance'));
         $totalPaidOut                = (float) Withdrawal::where('status', 'approved')->sum('amount_bdt');
 
         $pendingReviewsCount         = UserTask::where('status', 'pending')->count();
