@@ -11,7 +11,33 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Standalone PSR-4 autoloader for bundled WebPush packages on cPanel without composer CLI
+        spl_autoload_register(function ($class) {
+            $prefixes = [
+                'Minishlink\\WebPush\\'     => base_path('vendor/minishlink/web-push/src/'),
+                'Jose\\Component\\'         => base_path('vendor/web-token/jwt-library/'),
+                'Base64Url\\'               => base_path('vendor/spomky-labs/base64url/src/'),
+                'SpomkyLabs\\Pki\\'         => base_path('vendor/spomky-labs/pki-framework/src/'),
+                'Http\\Discovery\\'         => base_path('vendor/php-http/discovery/src/'),
+                'Http\\Client\\'            => base_path('vendor/php-http/httplug/src/'),
+                'Http\\Promise\\'           => base_path('vendor/php-http/promise/src/'),
+                'ParagonIE\\ConstantTime\\' => base_path('vendor/paragonie/constant_time_encoding/src/'),
+                'Psr\\Http\\Client\\'       => base_path('vendor/psr/http-client/src/'),
+            ];
+
+            foreach ($prefixes as $prefix => $baseDir) {
+                $len = strlen($prefix);
+                if (strncmp($prefix, $class, $len) === 0) {
+                    $relativeClass = substr($class, $len);
+                    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+                    if (file_exists($file)) {
+                        require_once $file;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
     }
 
     /**
