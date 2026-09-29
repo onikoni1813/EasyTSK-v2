@@ -27,8 +27,8 @@ class AppServiceProvider extends ServiceProvider
             $publicHtmlBuild = $publicHtml . '/build';
 
             if (is_dir($publicHtml)) {
-                // Sync root assets (favicon.svg, favicon.ico, manifest.json, sw.js)
-                $syncFiles = ['favicon.svg', 'favicon.ico', 'manifest.json', 'sw.js'];
+                // Sync root assets (favicon.svg, favicon.ico, manifest.json, sw.js, icon-*.png)
+                $syncFiles = ['favicon.svg', 'favicon.ico', 'manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png'];
                 foreach ($syncFiles as $file) {
                     $src = $corePublic . '/' . $file;
                     $dst = $publicHtml . '/' . $file;

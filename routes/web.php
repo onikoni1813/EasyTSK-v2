@@ -34,11 +34,17 @@ use App\Http\Controllers\Auth\PasswordResetTicketController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Controllers\PwaController;
+use App\Http\Controllers\WebPushController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
 // PWA Manifest Route
 Route::get('/manifest.json', [PwaController::class, 'manifest'])->name('manifest');
+
+// Web Push Notification Client Routes
+Route::get('/push/public-key', [WebPushController::class, 'getPublicKey'])->name('push.public-key');
+Route::post('/push/subscribe', [WebPushController::class, 'subscribe'])->name('push.subscribe');
+Route::post('/push/unsubscribe', [WebPushController::class, 'unsubscribe'])->name('push.unsubscribe');
 
 // Public Routes (no auth required)
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -95,6 +101,7 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     // Tasks & Offerwalls
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks-history', [TaskController::class, 'history'])->name('tasks.history');
+    Route::get('/offerwall/notik/offers', [\App\Http\Controllers\User\NotikOfferwallController::class, 'getOffers'])->name('offerwall.notik.offers');
     Route::post('/tasks/{task}/social-proof', [TaskController::class, 'submitSocialProof'])->name('tasks.social-proof');
     Route::post('/tasks/campaign/{campaign}/submit', [TaskController::class, 'submitCampaignProof'])->name('tasks.campaign.submit');
     Route::post('/tasks/{task}/shortlink/start', [\App\Http\Controllers\ShortlinkTaskController::class, 'start'])->name('tasks.shortlink.start');
@@ -334,4 +341,9 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::get('/sms-campaign/count', [AdminSmsCampaignController::class, 'audienceCount'])->name('sms-campaign.count');
     Route::post('/sms-campaign/send', [AdminSmsCampaignController::class, 'send'])->name('sms-campaign.send');
     Route::post('/sms-campaign/test', [AdminSmsCampaignController::class, 'testSend'])->name('sms-campaign.test');
+
+    // Admin Web Push Notification Manager
+    Route::post('/sms-campaign/push-send', [AdminSmsCampaignController::class, 'sendPush'])->name('sms-campaign.push-send');
+    Route::post('/sms-campaign/push-test', [AdminSmsCampaignController::class, 'testPush'])->name('sms-campaign.push-test');
+    Route::post('/sms-campaign/push-settings', [AdminSmsCampaignController::class, 'updatePushSettings'])->name('sms-campaign.push-settings');
 });

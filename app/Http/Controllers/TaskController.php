@@ -104,7 +104,7 @@ class TaskController extends Controller
                     : ($ut->task?->reward_coins ?? 0)),
                 'status'      => $ut->status,
                 'admin_note'  => $ut->admin_note,
-                'submitted_at'=> $ut->created_at->format('M d, Y · H:i'),
+                'submitted_at'=> $ut->created_at ? $ut->created_at->format('M d, Y · H:i') : '',
             ]);
 
         $offerwallLogs = OfferwallLog::where('user_id', $user->id)
@@ -575,7 +575,7 @@ class TaskController extends Controller
                     : ($ut->task?->reward_coins ?? 0)),
                 'status'      => $ut->status,
                 'admin_note'  => $ut->admin_note,
-                'submitted_at'=> $ut->created_at->format('M d, Y · H:i'),
+                'submitted_at'=> $ut->created_at ? $ut->created_at->format('M d, Y · H:i') : '',
             ]);
 
         return Inertia::render('Tasks/History', [

@@ -251,6 +251,9 @@
 
       </div>
     </nav>
+
+    <!-- Web Push Opt-in Prompt -->
+    <WebPushPrompt />
   </div>
 </template>
 
@@ -262,6 +265,7 @@ import AnimatedNumber from '@/Components/AnimatedNumber.vue';
 import SkeletonBlock from '@/Components/SkeletonBlock.vue';
 import NotificationDrawer from '@/Components/NotificationDrawer.vue';
 import AchievementModal from '@/Components/AchievementModal.vue';
+import WebPushPrompt from '@/Components/WebPushPrompt.vue';
 
 const page   = usePage();
 const user   = computed(() => page.props.auth?.user);

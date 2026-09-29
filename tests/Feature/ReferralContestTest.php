@@ -175,4 +175,64 @@ class ReferralContestTest extends TestCase
         $contest->refresh();
         $this->assertEquals('completed', $contest->status);
     }
+
+    public function test_admin_and_user_contest_workflow_synchronization(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create();
+
+        // 1. Admin creates a new contest
+        $payload = [
+            'title'                 => 'Synctest Weekly Championship',
+            'start_date'            => now()->subDay()->format('Y-m-d H:i:s'),
+            'end_date'              => now()->addDays(6)->format('Y-m-d H:i:s'),
+            'min_unlocked_required' => 1,
+            'prizes'                => [
+                ['rank' => 1, 'reward' => 3000],
+                ['rank' => 2, 'reward' => 1000],
+            ],
+        ];
+
+        $createResponse = $this->actingAs($admin)->post('/secret-panel/referral-contests', $payload);
+        $createResponse->assertRedirect();
+
+        $this->assertDatabaseHas('referral_contests', [
+            'title'  => 'Synctest Weekly Championship',
+            'status' => 'active',
+        ]);
+
+        $contest = ReferralContest::where('title', 'Synctest Weekly Championship')->first();
+
+        // 2. User visits /referral-contest and verifies it synced immediately
+        $userResponse = $this->actingAs($user)->get('/referral-contest');
+        $userResponse->assertStatus(200);
+        $userResponse->assertInertia(fn ($page) => $page
+            ->component('Referrals/Contest')
+            ->where('activeContest.id', $contest->id)
+            ->where('activeContest.title', 'Synctest Weekly Championship')
+        );
+
+        // 3. Admin visits /secret-panel/referral-contests and verifies active contest
+        $adminViewResponse = $this->actingAs($admin)->get('/secret-panel/referral-contests');
+        $adminViewResponse->assertStatus(200);
+        $adminViewResponse->assertInertia(fn ($page) => $page
+            ->component('Admin/ReferralContests/Index')
+            ->where('activeContest.id', $contest->id)
+        );
+
+        // 4. Admin distributes rewards
+        $distributeResponse = $this->actingAs($admin)->post("/secret-panel/referral-contests/{$contest->id}/distribute");
+        $distributeResponse->assertRedirect();
+
+        $contest->refresh();
+        $this->assertEquals('completed', $contest->status);
+
+        // 5. User page reflects completed state (no active contest)
+        $userResponseAfter = $this->actingAs($user)->get('/referral-contest');
+        $userResponseAfter->assertStatus(200);
+        $userResponseAfter->assertInertia(fn ($page) => $page
+            ->component('Referrals/Contest')
+            ->where('activeContest', null)
+        );
+    }
 }

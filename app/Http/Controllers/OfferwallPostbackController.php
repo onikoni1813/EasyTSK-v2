@@ -226,19 +226,37 @@ class OfferwallPostbackController extends Controller
                         sha1($offerwall->secret_key . $subId . $rawReward),
                         sha1($offerwall->secret_key),
 
+                        // MD5 hashes (Notik, AdGate, CPALead, etc.)
+                        md5($subId . $reward . $offerwall->secret_key),
+                        md5($subId . $rawReward . $offerwall->secret_key),
+                        md5($subId . $rawRevenue . $offerwall->secret_key),
+                        md5($subId . $transId . $reward . $offerwall->secret_key),
+                        md5($subId . $transId . $rawReward . $offerwall->secret_key),
+                        md5($subId . $transId . $rawRevenue . $offerwall->secret_key),
+                        md5($pubId . $subId . $reward . $offerwall->secret_key),
+                        md5($pubId . $subId . $rawReward . $offerwall->secret_key),
+                        md5($transId . $offerwall->secret_key),
+                        md5($offerwall->secret_key . $subId . $reward),
+                        md5($offerwall->secret_key . $subId . $rawReward),
+                        md5($offerwall->secret_key . $subId . $transId),
+                        md5($offerwall->secret_key),
+
                         // SHA256 hashes (Notik v1 & others)
                         hash('sha256', $pubId . $subId . $reward . $offerwall->secret_key),
                         hash('sha256', $pubId . $subId . $rawReward . $offerwall->secret_key),
                         hash('sha256', $subId . $transId . $reward . $offerwall->secret_key),
                         hash('sha256', $subId . $transId . $rawReward . $offerwall->secret_key),
+                        hash('sha256', $subId . $transId . $rawRevenue . $offerwall->secret_key),
                         hash('sha256', $transId . $offerwall->secret_key),
                         hash('sha256', $offerwall->secret_key . $subId . $reward),
                         hash('sha256', $offerwall->secret_key . $subId . $rawReward),
                         hash('sha256', $offerwall->secret_key),
                         hash_hmac('sha256', $subId . $reward, $offerwall->secret_key),
                         hash_hmac('sha256', $subId . $rawReward, $offerwall->secret_key),
+                        hash_hmac('sha256', $subId . $rawRevenue, $offerwall->secret_key),
                         hash_hmac('sha256', $subId . $transId . $reward, $offerwall->secret_key),
                         hash_hmac('sha256', $subId . $transId . $rawReward, $offerwall->secret_key),
+                        hash_hmac('sha256', $subId . $transId . $rawRevenue, $offerwall->secret_key),
                     ];
 
                     if (in_array($cleanProvidedSecret, array_map('strtolower', $possibleHashes))) {

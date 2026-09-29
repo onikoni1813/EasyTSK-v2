@@ -363,7 +363,10 @@
                 <!-- 3. Smart Network Fallback Icon -->
                 <span v-else class="text-2xl filter drop-shadow">{{ getNetworkFallbackIcon(ow.name) }}</span>
               </div>
-              <div class="ow-name">{{ ow.name }}</div>
+              <div class="ow-name flex items-center justify-center gap-1">
+                <span>{{ ow.name }}</span>
+                <span v-if="ow.is_api || (ow.name || '').toLowerCase().includes('notik')" class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shrink-0" title="Native API Active"></span>
+              </div>
               <div class="ow-ratio">x{{ ow.reward_ratio }}</div>
             </div>
           </div>
@@ -890,6 +893,7 @@
               <!-- Type Icon -->
               <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0"
                 :class="{
+                  'bg-violet-500/15 border border-violet-500/20 text-violet-300': item.task_type === 'community',
                   'bg-indigo-500/15 border border-indigo-500/20': item.task_type === 'shortlink',
                   'bg-amber-500/15 border border-amber-500/20': item.task_type === 'secret_code',
                   'bg-emerald-500/15 border border-emerald-500/20': item.task_type === 'social',
@@ -901,6 +905,7 @@
               <!-- Task Info -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <span v-if="item.task_type === 'community'" class="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 text-[9px] font-bold">📢 Community</span>
                   <span class="text-xs font-bold text-white truncate">{{ item.task_title }}</span>
                   <!-- Status Badge -->
                   <span class="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase"
@@ -998,6 +1003,13 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Notik Native Custom Offerwall Modal -->
+    <NotikCustomOfferwallModal
+      :is-open="isNotikModalOpen"
+      :offerwall="activeNotikOfferwall"
+      @close="isNotikModalOpen = false"
+    />
   </AppLayout>
 </template>
 
@@ -1007,6 +1019,7 @@ import { router, usePage, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SkeletonBlock from '@/Components/SkeletonBlock.vue';
+import NotikCustomOfferwallModal from '@/Components/NotikCustomOfferwallModal.vue';
 import { 
   isEmojiIcon, 
   cleanEmoji, 
@@ -1199,8 +1212,10 @@ const activeIframeUrl = ref(null);
 const isIframeOpen = ref(false);
 const iframeLoaded = ref(false);
 
-const openOfferwall = (ow) => {
-  if (props.is_locked) return;
+const isNotikModalOpen = ref(false);
+const activeNotikOfferwall = ref(null);
+
+const openIframeForNetwork = (ow) => {
   const user = usePage().props.auth.user;
   activeOfferwall.value = ow;
   let url = ow.iframe_url_pattern || '';
@@ -1228,6 +1243,24 @@ const openOfferwall = (ow) => {
   isIframeOpen.value = true;
 };
 
+const openIframeDirect = (ow) => {
+  isNotikModalOpen.value = false;
+  if (ow) {
+    openIframeForNetwork(ow);
+  }
+};
+
+const openOfferwall = (ow) => {
+  if (props.is_locked) return;
+  const isNotik = (ow.name || '').toLowerCase().replace(/[^a-z0-9]/g, '') === 'notik';
+  if (ow.is_api || isNotik) {
+    activeNotikOfferwall.value = ow;
+    isNotikModalOpen.value = true;
+    return;
+  }
+  openIframeForNetwork(ow);
+};
+
 const closeIframe = () => {
   isIframeOpen.value = false;
   activeIframeUrl.value = null;
@@ -1236,7 +1269,7 @@ const closeIframe = () => {
 };
 
 const taskIcon = (type) => {
-  const icons = { shortlink: '🔗', secret_code: '🔑', blog_reward: '📖', social: '📝' };
+  const icons = { shortlink: '🔗', secret_code: '🔑', blog_reward: '📖', social: '📱', community: '📢', website_visit: '🌐' };
   return icons[type] || '⚡';
 };
 const taskBadgeClass = (type) => {

@@ -83,6 +83,7 @@ function selectNetworkPreset(net) {
   if (!form.value.iframe_url_pattern) {
     form.value.iframe_url_pattern = net.pattern;
   }
+  if (net.is_api !== undefined) form.value.is_api = net.is_api;
   if (net.param_user_id) form.value.param_user_id = net.param_user_id;
   if (net.param_amount) form.value.param_amount = net.param_amount;
   if (net.param_transaction_id) form.value.param_transaction_id = net.param_transaction_id;
@@ -99,7 +100,13 @@ function openModal(offerwall = null) {
   if (offerwall) {
     isEditing.value = true;
     currentId.value = offerwall.id;
-    form.value = { ...offerwall };
+    form.value = { 
+      ...offerwall,
+      is_api: Boolean(offerwall.is_api),
+      api_key: offerwall.api_key || '',
+      pub_id: offerwall.pub_id || '',
+      app_id: offerwall.app_id || '',
+    };
     if (isEmojiIcon(offerwall.image_url)) {
       iconTab.value = 'badges';
     } else if (isHttpUrl(offerwall.image_url)) {
@@ -113,6 +120,7 @@ function openModal(offerwall = null) {
     iconTab.value = 'networks';
     form.value = { 
       name: '', iframe_url_pattern: '', reward_ratio: 1.00, secret_key: '', image_url: '', description: '', status: true,
+      is_api: false, api_key: '', pub_id: '', app_id: '',
       param_user_id: 'user_id', param_amount: 'amount', param_transaction_id: 'transaction_id', param_status: 'status', param_secret_key: 'secure', status_chargeback_value: 'reversed', allowed_ips: ''
     };
   }
@@ -381,8 +389,11 @@ function getReleaseStatus(log) {
             </div>
 
             <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <h3 class="text-xl font-bold text-white truncate">{{ ow.name }}</h3>
+                <span v-if="ow.is_api" class="text-[10px] px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold uppercase shrink-0">
+                  ⚡ Native API
+                </span>
                 <span class="text-xs px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 font-mono shrink-0">
                   {{ ow.reward_ratio }}x
                 </span>
@@ -765,6 +776,54 @@ function getReleaseStatus(log) {
           <div class="space-y-1 md:col-span-2">
             <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Secret Key (For Postback Security)</label>
             <input v-model="form.secret_key" placeholder="Optional but recommended" class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all">
+          </div>
+
+          <!-- Native API Integration Settings (Notik / Custom REST API) -->
+          <div class="space-y-4 md:col-span-2 p-5 rounded-2xl bg-gradient-to-r from-cyan-950/30 via-slate-950/80 to-indigo-950/30 border border-cyan-500/30 shadow-inner">
+            <div class="flex items-center justify-between pb-2 border-b border-cyan-500/20">
+              <div class="flex items-center gap-2.5">
+                <span class="text-xl">⚡</span>
+                <div>
+                  <h4 class="text-xs font-black text-white uppercase tracking-wider">
+                    Native Custom API Integration (Notik / Custom REST Wall)
+                  </h4>
+                  <p class="text-[11px] text-cyan-300/80">
+                    আইফ্রেমের বদলে সাইটের ভেতর ডিরেক্ট প্রিমিয়াম কার্ড গ্রিড UI এবং ফিল্টার প্রদর্শন করুন
+                  </p>
+                </div>
+              </div>
+
+              <!-- Toggle Native API Switch -->
+              <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input type="checkbox" v-model="form.is_api" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                <span class="ml-2 text-xs font-bold text-cyan-400">
+                  {{ form.is_api ? 'API Active' : 'Iframe Mode' }}
+                </span>
+              </label>
+            </div>
+
+            <!-- Credentials inputs when API is enabled or provider is Notik -->
+            <div v-if="form.is_api || (form.name && form.name.toLowerCase().includes('notik'))" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Publisher ID (pub_id)</label>
+                <input v-model="form.pub_id" placeholder="e.g. 12345" class="w-full bg-black/40 border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none font-mono transition-all">
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold text-slate-300 uppercase tracking-wider">App ID (app_id)</label>
+                <input v-model="form.app_id" placeholder="e.g. abcde_6789" class="w-full bg-black/40 border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none font-mono transition-all">
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold text-slate-300 uppercase tracking-wider">API Key (api_key)</label>
+                <input v-model="form.api_key" placeholder="e.g. notik_live_key_..." class="w-full bg-black/40 border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none font-mono transition-all">
+              </div>
+
+              <div class="sm:col-span-3 text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                💡 <b>Notik Publisher Portal</b> (<a href="https://publisher.notik.me" target="_blank" class="text-cyan-400 underline font-semibold">publisher.notik.me</a>) থেকে এই ৩টি ক্রেডেনশিয়াল এবং উপরে <b>Secret Key</b> সেট করলে সাইটে অটোমেটিক অফার কার্ডগুলো লোড হবে।
+              </div>
+            </div>
           </div>
 
           <!-- Logo & Icon Picker Component -->

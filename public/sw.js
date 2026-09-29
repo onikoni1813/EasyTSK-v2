@@ -9,6 +9,62 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Web Push Notification Event Listener
+self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: 'EasyTSK Notification', body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'EasyTSK Update';
+  const options = {
+    body: data.body || 'You have a new update from EasyTSK!',
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/icon-192.png',
+    image: data.image || null,
+    tag: data.tag || 'easytsk-push-' + Date.now(),
+    vibrate: data.vibrate || [200, 100, 200],
+    data: {
+      url: data.url || '/tasks',
+      dateOfArrival: Date.now()
+    },
+    actions: [
+      { action: 'open_url', title: 'Open EasyTSK 🚀' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification Click Event Listener
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || '/tasks';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // If a window is already open, focus it and navigate
+      for (let client of windowClients) {
+        if ('focus' in client) {
+          if (client.url.includes(self.location.origin)) {
+            client.focus();
+            return client.navigate(targetUrl);
+          }
+        }
+      }
+      // If no window is open, open a new one
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   // Only handle HTTP/HTTPS GET requests
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {

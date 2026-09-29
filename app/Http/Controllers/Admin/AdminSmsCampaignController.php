@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
+use App\Models\PushCampaign;
+use App\Models\PushSubscription;
 use App\Models\SmsCampaign;
 use App\Models\User;
 use App\Services\BulkSmsDhakaService;
+use App\Services\WebPushService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -40,10 +43,17 @@ class AdminSmsCampaignController extends Controller
             return substr($p, 0, 4) . '****' . substr($p, -3);
         });
 
-        // Campaign history
+        // SMS Campaign history
         $campaigns = SmsCampaign::with('admin:id,name,email')
             ->latest()
             ->paginate(10);
+
+        // Web Push Service stats and history
+        $pushService = new WebPushService();
+        $pushStats = $pushService->getStats();
+        $pushCampaigns = PushCampaign::with('admin:id,name,email')
+            ->latest()
+            ->paginate(10, ['*'], 'push_page');
 
         return Inertia::render('Admin/SmsCampaign/Index', [
             'balance'         => $balanceData['balance'] ?? 0,
@@ -55,6 +65,12 @@ class AdminSmsCampaignController extends Controller
             'sampleContacts'  => $sampleContacts,
             'campaigns'       => $campaigns,
             'adminPhone'      => Auth::user()?->phone ?? '',
+            'pushStats'        => $pushStats,
+            'pushCampaigns'    => $pushCampaigns,
+            'vapidPublicKey'   => $pushService->getPublicKey(),
+            'isPushEnabled'    => $pushService->isEnabled(),
+            'pushBonusEnabled' => AppSetting::getByKey('push_bonus_enabled', 'true') === 'true',
+            'pushBonusAmount'  => (float) AppSetting::getByKey('push_bonus_amount', '20'),
         ]);
     }
 
@@ -203,5 +219,95 @@ class AdminSmsCampaignController extends Controller
         ]);
 
         return back()->with('success', "🚀 এসএমএস ক্যাম্পেইন সফলভাবে পরিচালিত হয়েছে! পাঠানো হয়েছে: {$result['sent']} টি, ব্যর্থ: {$result['failed']} টি।");
+    }
+
+    /**
+     * Broadcast a Web Push notification campaign.
+     */
+    public function sendPush(Request $request)
+    {
+        $validated = $request->validate([
+            'title'           => 'required|string|max:200',
+            'body'            => 'required|string|max:1000',
+            'target_url'      => 'nullable|string|max:500',
+            'audience_filter' => 'nullable|string|in:all,mobile_only,desktop_only,today_active,inactive_3d,inactive_7d',
+            'image_url'       => 'nullable|url|max:500',
+        ]);
+
+        $pushService = new WebPushService();
+        $targetUrl = !empty($validated['target_url']) ? $validated['target_url'] : '/tasks';
+
+        $result = $pushService->broadcastCampaign([
+            'title' => $validated['title'],
+            'body'  => $validated['body'],
+            'url'   => $targetUrl,
+            'image' => $validated['image_url'] ?? null,
+        ], $validated['audience_filter'] ?? 'all', Auth::user());
+
+        if ($result['success']) {
+            return back()->with('success', $result['message']);
+        }
+
+        return back()->with('error', $result['message']);
+    }
+
+    /**
+     * Send instant test push notification to a specific endpoint (admin's browser).
+     */
+    public function testPush(Request $request)
+    {
+        $validated = $request->validate([
+            'title'      => 'required|string|max:200',
+            'body'       => 'required|string|max:1000',
+            'target_url' => 'nullable|string',
+            'endpoint'   => 'nullable|string',
+        ]);
+
+        $pushService = new WebPushService();
+        $targetUrl = !empty($validated['target_url']) ? $validated['target_url'] : '/tasks';
+
+        // Find subscription by endpoint or current user
+        $sub = null;
+        if (!empty($validated['endpoint'])) {
+            $sub = PushSubscription::where('endpoint', $validated['endpoint'])->first();
+        }
+
+        if (!$sub && Auth::check()) {
+            $sub = PushSubscription::where('user_id', Auth::id())->where('is_active', true)->latest()->first();
+        }
+
+        if (!$sub) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please enable push notifications in this browser first by clicking "Subscribe This Browser".',
+            ], 422);
+        }
+
+        $res = $pushService->sendToSubscription($sub, [
+            'title' => '🔔 [TEST] ' . $validated['title'],
+            'body'  => $validated['body'],
+            'url'   => $targetUrl,
+        ]);
+
+        return response()->json([
+            'success' => $res['success'],
+            'message' => $res['success'] ? 'Test push notification sent to your browser!' : ('Failed: ' . $res['message']),
+        ]);
+    }
+
+    /**
+     * Update Web Push settings (bonus enabled, bonus amount).
+     */
+    public function updatePushSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'push_bonus_enabled' => 'required|boolean',
+            'push_bonus_amount'  => 'required|numeric|min:0|max:1000',
+        ]);
+
+        AppSetting::setByKey('push_bonus_enabled', $validated['push_bonus_enabled'] ? 'true' : 'false');
+        AppSetting::setByKey('push_bonus_amount', (string) $validated['push_bonus_amount']);
+
+        return back()->with('success', 'ওয়েব পুশ নোটিফিকেশন বোনাস সেটিংস সফলভাবে আপডেট করা হয়েছে!');
     }
 }

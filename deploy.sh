@@ -1,6 +1,9 @@
 #!/bin/bash
 git pull origin main
 
+# Run database migrations
+php artisan migrate --force
+
 # Clean and sync compiled Vite assets & public files to ~/public_html
 mkdir -p ~/public_html/build
 cp -rf public/build/* ~/public_html/build/
