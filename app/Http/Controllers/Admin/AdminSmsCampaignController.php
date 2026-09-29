@@ -234,21 +234,29 @@ class AdminSmsCampaignController extends Controller
             'image_url'       => 'nullable|url|max:500',
         ]);
 
-        $pushService = new WebPushService();
-        $targetUrl = !empty($validated['target_url']) ? $validated['target_url'] : '/tasks';
+        try {
+            $pushService = new WebPushService();
+            $targetUrl = !empty($validated['target_url']) ? $validated['target_url'] : '/tasks';
 
-        $result = $pushService->broadcastCampaign([
-            'title' => $validated['title'],
-            'body'  => $validated['body'],
-            'url'   => $targetUrl,
-            'image' => $validated['image_url'] ?? null,
-        ], $validated['audience_filter'] ?? 'all', Auth::user());
+            $result = $pushService->broadcastCampaign([
+                'title' => $validated['title'],
+                'body'  => $validated['body'],
+                'url'   => $targetUrl,
+                'image' => $validated['image_url'] ?? null,
+            ], $validated['audience_filter'] ?? 'all', Auth::user());
 
-        if ($result['success']) {
-            return back()->with('success', $result['message']);
+            if ($result['success']) {
+                return back()->with('success', $result['message']);
+            }
+
+            return back()->with('error', $result['message']);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("WebPush sendPush exception: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->with('error', "পুশ নোটিফিকেশন পাঠাতে সমস্যা হয়েছে: " . $e->getMessage());
         }
-
-        return back()->with('error', $result['message']);
     }
 
     /**

@@ -177,4 +177,22 @@ class WebPushNotificationTest extends TestCase
         $this->assertEquals('true', AppSetting::getByKey('push_bonus_enabled'));
         $this->assertEquals('50', AppSetting::getByKey('push_bonus_amount'));
     }
+
+    public function test_admin_can_send_push_campaign_safely(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.sms-campaign.push-send'), [
+            'title'           => 'Special Announcement',
+            'body'            => 'Earn extra 20% on all tasks today!',
+            'target_url'      => '/tasks',
+            'audience_filter' => 'all',
+        ]);
+
+        $response->assertRedirect();
+        // Since no active subscribers exist, it redirects back with informative message without 500 error
+        $response->assertSessionHas('error');
+    }
 }

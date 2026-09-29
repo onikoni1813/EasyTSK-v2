@@ -202,6 +202,26 @@ class WebPushService
      */
     public function broadcastCampaign(array $payload, string $audienceFilter = 'all', ?User $admin = null): array
     {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('push_subscriptions') || !\Illuminate\Support\Facades\Schema::hasTable('push_campaigns')) {
+            return [
+                'success'        => false,
+                'message'        => 'ডাটাবেজে push_subscriptions বা push_campaigns টেবিল পাওয়া যায়নি। দয়া করে Deployment Center থেকে "migrate" বাটনে চাপুন।',
+                'total_targeted' => 0,
+                'total_sent'     => 0,
+                'total_failed'   => 0,
+            ];
+        }
+
+        if (!class_exists(\Minishlink\WebPush\WebPush::class)) {
+            return [
+                'success'        => false,
+                'message'        => 'সার্ভারে minishlink/web-push প্যাকেজটি ইনস্টল নেই। Deployment Center থেকে "composer install" বাটনে চাপুন।',
+                'total_targeted' => 0,
+                'total_sent'     => 0,
+                'total_failed'   => 0,
+            ];
+        }
+
         $query = PushSubscription::where('is_active', true);
 
         switch ($audienceFilter) {
@@ -231,14 +251,13 @@ class WebPushService
         if ($totalTargeted === 0) {
             return [
                 'success'        => false,
-                'message'        => 'No active push subscribers found for the selected audience.',
+                'message'        => 'নির্বাচিত অডিয়েন্সে কোনো সক্রিয় সাবস্ক্রাইবার পাওয়া যায়নি।',
                 'total_targeted' => 0,
                 'total_sent'     => 0,
                 'total_failed'   => 0,
             ];
         }
 
-        $webPush = $this->getWebPushInstance();
         $payloadJson = json_encode([
             'title'   => $payload['title'] ?? 'EasyTSK Update',
             'body'    => $payload['body'] ?? '',
@@ -250,65 +269,96 @@ class WebPushService
             'vibrate' => [200, 100, 200],
         ]);
 
-        $subMap = [];
-        foreach ($subscriptions as $sub) {
-            $subscriptionObj = Subscription::create([
-                'endpoint'        => $sub->endpoint,
-                'publicKey'       => $sub->public_key,
-                'authToken'       => $sub->auth_token,
-                'contentEncoding' => $sub->content_encoding ?: 'aes128gcm',
-            ]);
-            $webPush->queueNotification($subscriptionObj, $payloadJson);
-            $subMap[$sub->endpoint] = $sub;
-        }
-
         $totalSent = 0;
         $totalFailed = 0;
         $errorReasons = [];
 
-        foreach ($webPush->flush() as $report) {
-            $endpoint = $report->getEndpoint();
-            $subModel = $subMap[$endpoint] ?? null;
+        try {
+            $webPush = $this->getWebPushInstance();
+        } catch (\Throwable $e) {
+            Log::error("Failed to initialize WebPush instance: " . $e->getMessage());
+            return [
+                'success'        => false,
+                'message'        => 'WebPush সার্ভিস চালু করতে ব্যর্থ: ' . $e->getMessage(),
+                'total_targeted' => $totalTargeted,
+                'total_sent'     => 0,
+                'total_failed'   => $totalTargeted,
+            ];
+        }
 
-            if ($report->isSuccess()) {
-                $totalSent++;
-                if ($subModel) {
-                    $subModel->update(['last_active_at' => now()]);
+        foreach ($subscriptions as $sub) {
+            try {
+                if (empty($sub->public_key) || empty($sub->auth_token)) {
+                    $sub->update(['is_active' => false]);
+                    $totalFailed++;
+                    $errorReasons[] = 'Missing keys';
+                    continue;
                 }
-            } else {
+
+                $subscriptionObj = Subscription::create([
+                    'endpoint'        => $sub->endpoint,
+                    'publicKey'       => $sub->public_key,
+                    'authToken'       => $sub->auth_token,
+                    'contentEncoding' => $sub->content_encoding ?: 'aes128gcm',
+                ]);
+
+                $report = $webPush->sendOneNotification($subscriptionObj, $payloadJson);
+
+                if ($report->isSuccess()) {
+                    $totalSent++;
+                    $sub->update(['last_active_at' => now()]);
+                } else {
+                    $totalFailed++;
+                    $reason = $report->getReason();
+                    $errorReasons[] = $reason;
+
+                    if ($report->isSubscriptionExpired()) {
+                        $sub->update(['is_active' => false]);
+                    }
+                }
+            } catch (\Throwable $subError) {
                 $totalFailed++;
-                $reason = $report->getReason();
-                $errorReasons[] = $reason;
-
-                if ($report->isSubscriptionExpired() && $subModel) {
-                    $subModel->update(['is_active' => false]);
-                }
+                $errorReasons[] = $subError->getMessage();
+                $sub->update(['is_active' => false]);
+                Log::warning("WebPush failed for subscription ID {$sub->id}: " . $subError->getMessage());
             }
         }
 
-        // Record Campaign History Log
-        $campaign = PushCampaign::create([
-            'admin_id'        => $admin?->id ?? Auth::id(),
-            'title'           => $payload['title'] ?? 'Push Broadcast',
-            'body'            => $payload['body'] ?? '',
-            'target_url'      => $payload['url'] ?? '/tasks',
-            'icon_url'        => $payload['icon'] ?? '/icon-192.png',
-            'image_url'       => $payload['image'] ?? null,
-            'audience_filter' => $audienceFilter,
-            'total_targeted'  => $totalTargeted,
-            'total_sent'      => $totalSent,
-            'total_failed'    => $totalFailed,
-            'status'          => $totalSent > 0 ? ($totalFailed > 0 ? 'partial' : 'completed') : 'failed',
-            'error_summary'   => !empty($errorReasons) ? implode(', ', array_unique(array_slice($errorReasons, 0, 5))) : null,
-        ]);
+        // Record Campaign History Log safely
+        $adminId = null;
+        if ($admin && $admin->id && User::where('id', $admin->id)->exists()) {
+            $adminId = $admin->id;
+        } elseif (Auth::id() && User::where('id', Auth::id())->exists()) {
+            $adminId = Auth::id();
+        }
+
+        $campaign = null;
+        try {
+            $campaign = PushCampaign::create([
+                'admin_id'        => $adminId,
+                'title'           => $payload['title'] ?? 'Push Broadcast',
+                'body'            => $payload['body'] ?? '',
+                'target_url'      => $payload['url'] ?? '/tasks',
+                'icon_url'        => $payload['icon'] ?? '/icon-192.png',
+                'image_url'       => $payload['image'] ?? null,
+                'audience_filter' => $audienceFilter,
+                'total_targeted'  => $totalTargeted,
+                'total_sent'      => $totalSent,
+                'total_failed'    => $totalFailed,
+                'status'          => $totalSent > 0 ? ($totalFailed > 0 ? 'partial' : 'completed') : 'failed',
+                'error_summary'   => !empty($errorReasons) ? implode(', ', array_unique(array_slice($errorReasons, 0, 5))) : null,
+            ]);
+        } catch (\Throwable $logError) {
+            Log::warning("Failed to create PushCampaign log: " . $logError->getMessage());
+        }
 
         return [
             'success'        => $totalSent > 0,
-            'message'        => "Push notification successfully dispatched to {$totalSent} devices." . ($totalFailed > 0 ? " ({$totalFailed} failed)" : ''),
+            'message'        => "পুশ নোটিফিকেশন সফলভাবে পাঠানো হয়েছে: {$totalSent} ডিভাইসে।" . ($totalFailed > 0 ? " ({$totalFailed} টিতে ডেলিভারি হয়নি)" : ''),
             'total_targeted' => $totalTargeted,
             'total_sent'     => $totalSent,
             'total_failed'   => $totalFailed,
-            'campaign_id'    => $campaign->id,
+            'campaign_id'    => $campaign?->id,
         ];
     }
 
