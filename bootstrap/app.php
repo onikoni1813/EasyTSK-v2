@@ -18,9 +18,16 @@ $app = Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\CheckMaintenanceMode::class,
         ]);
         $middleware->trustProxies(at: '*');
+        $adminPrefix = env('ADMIN_PANEL_PATH', 'secret-panel');
         $middleware->validateCsrfTokens(except: [
             'postback/*',
             'logout',
+            '*/deploy/*',
+            '*/deploy/run',
+            'deploy/*',
+            'deploy/run',
+            "{$adminPrefix}/deploy/*",
+            "{$adminPrefix}/deploy/run",
         ]);
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
