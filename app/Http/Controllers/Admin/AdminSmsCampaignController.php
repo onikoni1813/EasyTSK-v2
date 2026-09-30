@@ -309,12 +309,20 @@ class AdminSmsCampaignController extends Controller
     public function updatePushSettings(Request $request)
     {
         $validated = $request->validate([
-            'push_bonus_enabled' => 'required|boolean',
+            'push_bonus_enabled' => 'required',
             'push_bonus_amount'  => 'required|numeric|min:0|max:100000',
         ]);
 
-        AppSetting::setByKey('push_bonus_enabled', $validated['push_bonus_enabled'] ? 'true' : 'false');
+        $isEnabled = filter_var($validated['push_bonus_enabled'], FILTER_VALIDATE_BOOLEAN);
+        AppSetting::setByKey('push_bonus_enabled', $isEnabled ? 'true' : 'false');
         AppSetting::setByKey('push_bonus_amount', (string) $validated['push_bonus_amount']);
+
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ওয়েব পুশ নোটিফিকেশন বোনাস সেটিংস সফলভাবে আপডেট করা হয়েছে!',
+            ]);
+        }
 
         return back()->with('success', 'ওয়েব পুশ নোটিফিকেশন বোনাস সেটিংস সফলভাবে আপডেট করা হয়েছে!');
     }

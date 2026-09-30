@@ -835,7 +835,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useForm, Link, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import axios from 'axios';
@@ -892,11 +892,20 @@ const bonusForm = useForm({
   push_bonus_amount: props.pushBonusAmount,
 });
 
+watch(() => props.pushBonusEnabled, (val) => {
+  bonusForm.push_bonus_enabled = val;
+});
+
+watch(() => props.pushBonusAmount, (val) => {
+  bonusForm.push_bonus_amount = val;
+});
+
 const saveBonusSettings = () => {
   bonusForm.post(`${adminPath.value}/sms-campaign/push-settings`, {
     preserveScroll: true,
   });
 };
+
 
 // Web Push Form & States
 const pushForm = useForm({

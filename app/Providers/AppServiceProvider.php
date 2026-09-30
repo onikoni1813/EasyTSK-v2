@@ -47,33 +47,49 @@ class AppServiceProvider extends ServiceProvider
     {
         // Auto-sync Vite production assets and root public files to public_html in split cPanel setup
         if (app()->environment('production')) {
-            $publicHtml = dirname(base_path()) . '/public_html';
-            $corePublic = public_path();
-            $coreBuild = public_path('build');
-            $publicHtmlBuild = $publicHtml . '/build';
+            $possiblePublicHtml = [
+                dirname(base_path()) . '/public_html',
+                '/home/easytskc/public_html',
+            ];
 
-            if (is_dir($publicHtml)) {
+            $publicHtml = null;
+            foreach ($possiblePublicHtml as $p) {
+                if (is_dir($p) && realpath($p) !== realpath(base_path('public'))) {
+                    $publicHtml = $p;
+                    break;
+                }
+            }
+
+            if ($publicHtml) {
+                $repoPublic = base_path('public');
+                $repoBuild = base_path('public/build');
+                $publicHtmlBuild = $publicHtml . '/build';
+
                 // Sync root assets (favicon.svg, favicon.ico, manifest.json, sw.js, icon-*.png)
                 $syncFiles = ['favicon.svg', 'favicon.ico', 'manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png'];
                 foreach ($syncFiles as $file) {
-                    $src = $corePublic . '/' . $file;
+                    $src = $repoPublic . '/' . $file;
                     $dst = $publicHtml . '/' . $file;
                     if (file_exists($src) && (!file_exists($dst) || @filemtime($src) > @filemtime($dst))) {
                         @copy($src, $dst);
                     }
                 }
 
-                if (is_dir($coreBuild)) {
-                    if (!file_exists($publicHtmlBuild) && function_exists('symlink')) {
-                        @symlink($coreBuild, $publicHtmlBuild);
-                    }
-
-                    $coreManifest = $coreBuild . '/manifest.json';
+                if (is_dir($repoBuild)) {
+                    $repoManifest = $repoBuild . '/manifest.json';
                     $pubManifest = $publicHtmlBuild . '/manifest.json';
 
-                    if (file_exists($coreManifest) && (!file_exists($pubManifest) || @filemtime($coreManifest) > @filemtime($pubManifest))) {
+                    $needsSync = !file_exists($pubManifest);
+                    if (!$needsSync && file_exists($repoManifest)) {
+                        $needsSync = (@md5_file($repoManifest) !== @md5_file($pubManifest));
+                    }
+
+                    if ($needsSync && file_exists($repoManifest)) {
                         try {
-                            \Illuminate\Support\Facades\File::copyDirectory($coreBuild, $publicHtmlBuild);
+                            if (!is_dir($publicHtmlBuild)) {
+                                @mkdir($publicHtmlBuild, 0755, true);
+                            }
+                            \Illuminate\Support\Facades\File::copyDirectory($repoBuild, $publicHtmlBuild);
                         } catch (\Throwable $e) {
                             // Silent fail if permission issue
                         }

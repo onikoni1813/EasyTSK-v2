@@ -347,3 +347,12 @@ Route::prefix($adminPath)->name('admin.')->middleware(['auth', 'admin'])->group(
     Route::post('/sms-campaign/push-test', [AdminSmsCampaignController::class, 'testPush'])->name('sms-campaign.push-test');
     Route::post('/sms-campaign/push-settings', [AdminSmsCampaignController::class, 'updatePushSettings'])->name('sms-campaign.push-settings');
 });
+
+// Backward-compatible aliases for legacy cached frontend assets calling route('sms-campaign.*')
+Route::prefix($adminPath)->middleware(['auth', 'admin'])->group(function () {
+    Route::post('/sms-campaign/legacy-push-settings', [AdminSmsCampaignController::class, 'updatePushSettings'])->name('sms-campaign.push-settings');
+    Route::post('/sms-campaign/legacy-push-send', [AdminSmsCampaignController::class, 'sendPush'])->name('sms-campaign.push-send');
+    Route::post('/sms-campaign/legacy-push-test', [AdminSmsCampaignController::class, 'testPush'])->name('sms-campaign.push-test');
+});
+
+

@@ -161,6 +161,13 @@ class AdminDeployController extends Controller
             ]);
 
             if ($success && in_array($commandKey, ['git_pull', 'git_pull_master', 'git_pull_current', 'npm_build'])) {
+                try {
+                    Artisan::call('optimize:clear');
+                    $output .= "\n\n✓ Cleared application caches (optimize:clear)";
+                } catch (\Throwable $e) {
+                    // Ignore if permission issue
+                }
+
                 $syncOutput = $this->syncToPublicHtml();
                 if ($syncOutput) {
                     $output .= "\n\n" . $syncOutput;
@@ -201,16 +208,16 @@ class AdminDeployController extends Controller
 
         $synced = false;
         foreach ($possiblePaths as $publicHtml) {
-            if (is_dir($publicHtml)) {
-                $coreBuild = public_path('build');
+            if (is_dir($publicHtml) && realpath($publicHtml) !== realpath(base_path('public'))) {
+                $repoBuild = base_path('public/build');
                 $publicHtmlBuild = $publicHtml . '/build';
 
-                if (is_dir($coreBuild)) {
+                if (is_dir($repoBuild)) {
                     if (!is_dir($publicHtmlBuild)) {
                         @mkdir($publicHtmlBuild, 0755, true);
                     }
                     try {
-                        \Illuminate\Support\Facades\File::copyDirectory($coreBuild, $publicHtmlBuild);
+                        \Illuminate\Support\Facades\File::copyDirectory($repoBuild, $publicHtmlBuild);
                         $synced = true;
                     } catch (\Throwable $e) {
                         Log::warning("Deploy public build copy error: " . $e->getMessage());
@@ -219,7 +226,7 @@ class AdminDeployController extends Controller
 
                 $syncFiles = ['favicon.svg', 'favicon.ico', 'manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png'];
                 foreach ($syncFiles as $file) {
-                    $src = public_path($file);
+                    $src = base_path('public/' . $file);
                     $dst = $publicHtml . '/' . $file;
                     if (file_exists($src)) {
                         @copy($src, $dst);
