@@ -85,10 +85,16 @@ class ShortlinkService
                     'api-key'       => $bearerToken,
                 ];
 
+                $cleanTitle = !empty($providerName) ? $providerName : 'EasyTSK Task';
+
                 $payload = [
+                    'title'           => $cleanTitle,
+                    'name'            => $cleanTitle,
                     'url'             => $destinationUrl,
                     'destination_url' => $destinationUrl,
-                    'name'            => 'EasyTSK Task',
+                    'link'            => $destinationUrl,
+                    'target_url'      => $destinationUrl,
+                    'description'     => 'Complete verification to continue',
                     'api_key'         => $bearerToken,
                     'api'             => $bearerToken,
                 ];
@@ -124,9 +130,12 @@ class ShortlinkService
                             'X-API-KEY'     => $bearerToken,
                         ])
                         ->get($apiEndpoint, [
-                            'api_key' => $bearerToken,
-                            'api'     => $bearerToken,
-                            'url'     => $destinationUrl,
+                            'title'           => $cleanTitle,
+                            'name'            => $cleanTitle,
+                            'api_key'         => $bearerToken,
+                            'api'             => $bearerToken,
+                            'url'             => $destinationUrl,
+                            'destination_url' => $destinationUrl,
                         ]);
                 }
             } else {
@@ -317,8 +326,17 @@ class ShortlinkService
             if (!empty($json['data']['link'])) {
                 return $this->sanitizeUrl($json['data']['link']);
             }
-            if (!empty($json['link'])) {
-                return $this->sanitizeUrl($json['link']);
+            if (!empty($json['content_locker_url'])) {
+                return $this->sanitizeUrl($json['content_locker_url']);
+            }
+            if (!empty($json['contentLockerUrl'])) {
+                return $this->sanitizeUrl($json['contentLockerUrl']);
+            }
+            if (isset($json['data']) && is_string($json['data']) && (str_starts_with($json['data'], 'http://') || str_starts_with($json['data'], 'https://'))) {
+                return $this->sanitizeUrl($json['data']);
+            }
+            if (isset($json['result']) && is_string($json['result']) && (str_starts_with($json['result'], 'http://') || str_starts_with($json['result'], 'https://'))) {
+                return $this->sanitizeUrl($json['result']);
             }
 
             // 4. Fallback generic fields
