@@ -160,6 +160,13 @@ class AdminDeployController extends Controller
                 'admin_id' => $request->user()?->id,
             ]);
 
+            if ($success && in_array($commandKey, ['git_pull', 'git_pull_master', 'git_pull_current', 'npm_build'])) {
+                $syncOutput = $this->syncToPublicHtml();
+                if ($syncOutput) {
+                    $output .= "\n\n" . $syncOutput;
+                }
+            }
+
             return response()->json([
                 'success'  => $success,
                 'output'   => $output,
@@ -183,6 +190,45 @@ class AdminDeployController extends Controller
                 'exitCode' => 1,
             ], 500);
         }
+    }
+
+    private function syncToPublicHtml(): string
+    {
+        $possiblePaths = [
+            dirname(base_path()) . '/public_html',
+            '/home/easytskc/public_html',
+        ];
+
+        $synced = false;
+        foreach ($possiblePaths as $publicHtml) {
+            if (is_dir($publicHtml)) {
+                $coreBuild = public_path('build');
+                $publicHtmlBuild = $publicHtml . '/build';
+
+                if (is_dir($coreBuild)) {
+                    if (!is_dir($publicHtmlBuild)) {
+                        @mkdir($publicHtmlBuild, 0755, true);
+                    }
+                    try {
+                        \Illuminate\Support\Facades\File::copyDirectory($coreBuild, $publicHtmlBuild);
+                        $synced = true;
+                    } catch (\Throwable $e) {
+                        Log::warning("Deploy public build copy error: " . $e->getMessage());
+                    }
+                }
+
+                $syncFiles = ['favicon.svg', 'favicon.ico', 'manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png'];
+                foreach ($syncFiles as $file) {
+                    $src = public_path($file);
+                    $dst = $publicHtml . '/' . $file;
+                    if (file_exists($src)) {
+                        @copy($src, $dst);
+                    }
+                }
+            }
+        }
+
+        return $synced ? "✓ Synced compiled Vite assets to public_html/build" : "";
     }
 
     private function getGitLog(): array
