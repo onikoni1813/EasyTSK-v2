@@ -43,14 +43,15 @@ class ShortlinkService
             $response = null;
 
             if ($driver === 'adfocus') {
-                // AdFoc.us uses key= and url= parameters
+                // AdFoc.us uses key= and url= parameters.
+                // NOTE: AdFoc.us API rejects standard URL-encoded parameters (e.g. %3A%2F%2F) and expects the raw URL string.
+                $cleanEndpoint = rtrim($apiEndpoint, '/?& ');
+                $requestUrl = "{$cleanEndpoint}/?key={$apiKey}&url={$destinationUrl}";
+
                 $response = Http::timeout(10)
                     ->withoutVerifying()
                     ->withHeaders(['User-Agent' => 'EasyTSK/2.0'])
-                    ->get($apiEndpoint, [
-                        'key' => $apiKey,
-                        'url' => $destinationUrl,
-                    ]);
+                    ->get($requestUrl);
             } elseif ($driver === 'shrtfly') {
                 // ShrtFly uses api=, url=, type=1, format=json
                 $response = Http::timeout(10)
@@ -137,7 +138,16 @@ class ShortlinkService
      */
     public function testProvider(ShortlinkProvider $provider, ?string $testDestination = null): array
     {
-        $testDestination = $testDestination ?: url('/');
+        if (!$testDestination) {
+            $currentUrl = url('/');
+            // If the local environment or current host is localhost / 127.0.0.1, fallback to a public domain
+            // so external shorteners (like AdFoc.us) won't reject it as a private/internal destination.
+            if (str_contains($currentUrl, 'localhost') || str_contains($currentUrl, '127.0.0.1') || !filter_var($currentUrl, FILTER_VALIDATE_URL)) {
+                $testDestination = 'https://google.com';
+            } else {
+                $testDestination = $currentUrl;
+            }
+        }
         $start = microtime(true);
 
         $result = $this->generateShortlink(

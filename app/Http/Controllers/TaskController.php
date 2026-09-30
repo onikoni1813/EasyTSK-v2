@@ -87,6 +87,10 @@ class TaskController extends Controller
         $isLocked = $pendingTasksCount > 0;
 
         $taskHistory = UserTask::where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereHas('task')
+                  ->orWhereNull('task_id');
+            })
             ->with(['task:id,title,reward_coins,type', 'campaign:id,title,cost_per_click,type'])
             ->latest()
             ->take(5)
@@ -183,9 +187,44 @@ class TaskController extends Controller
         $isOfferwallLocked = $pendingSystemTasksCount > 0 || $pendingCommunityCount > 0;
         $totalPendingForOfferwall = $pendingSystemTasksCount + $pendingCommunityCount;
 
+        // Community Campaign Worker Submission History for current user
+        $communityLogs = UserTask::where('user_id', $user->id)
+            ->whereNotNull('campaign_id')
+            ->with(['campaign:id,title,cost_per_click,type,action'])
+            ->latest()
+            ->take(15)
+            ->get()
+            ->map(fn(UserTask $ut) => [
+                'id'           => $ut->id,
+                'title'        => $ut->campaign?->title ?? 'Campaign Task',
+                'type'         => $ut->campaign?->type ?? 'community',
+                'action'       => $ut->campaign?->action ?? 'Task',
+                'reward_coins' => (float) ($ut->campaign?->cost_per_click ?? 0),
+                'status'       => $ut->status,
+                'admin_note'   => $ut->admin_note,
+                'submitted_at' => $ut->created_at ? $ut->created_at->format('M d, Y · H:i') : '',
+            ]);
+
+        $completedCommunityUserTasks = UserTask::where('user_id', $user->id)
+            ->whereNotNull('campaign_id')
+            ->where('status', 'approved')
+            ->with('campaign:id,cost_per_click')
+            ->get();
+
+        $communityStats = [
+            'total_earned'    => (float) $completedCommunityUserTasks->sum(fn($ut) => (float) ($ut->campaign?->cost_per_click ?? 0)),
+            'pending_count'   => UserTask::where('user_id', $user->id)
+                ->whereNotNull('campaign_id')
+                ->where('status', 'pending')
+                ->count(),
+            'completed_count' => $completedCommunityUserTasks->count(),
+        ];
+
         return Inertia::render('Tasks/Index', [
             'tasks'                      => $tasks,
             'communityCampaigns'         => $communityCampaigns,
+            'communityLogs'              => $communityLogs,
+            'communityStats'             => $communityStats,
             'community_locked'           => $communityLocked,
             'pending_system_tasks_count' => $pendingSystemTasksCount,
             'community_pending_count'    => $pendingCommunityCount,
@@ -559,6 +598,10 @@ class TaskController extends Controller
         $user = Auth::user();
         
         $taskHistory = UserTask::where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereHas('task')
+                  ->orWhereNull('task_id');
+            })
             ->with(['task:id,title,reward_coins,type', 'campaign:id,title,cost_per_click,type'])
             ->latest()
             ->paginate(15)

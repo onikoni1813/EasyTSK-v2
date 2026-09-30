@@ -33,31 +33,12 @@
               </div>
             </div>
           </div>
-          <!-- Filter badges row -->
-          <div class="flex gap-1.5 flex-wrap">
-            <div v-for="cat in categories" :key="cat.key"
-              @click="activeFilter = cat.key"
-              class="badge cursor-pointer transition-all"
-              :class="activeFilter === cat.key ? cat.activeCls : 'badge-indigo opacity-50 hover:opacity-80'"
-            >
-              {{ cat.icon }} {{ cat.label }}
-              <span v-if="cat.key === 'community' && communityCampaigns && communityCampaigns.length > 0" class="ml-1 px-1.5 py-0.2 bg-violet-500/40 text-white rounded text-[10px]">
-                {{ communityCampaigns.length }}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
 
-      <!-- Official tasks empty state (when filter selected and no system tasks match) -->
-      <div v-if="activeFilter !== 'community' && activeFilter !== 'all' && filteredTasks.length === 0" class="glass-card p-10 rounded-3xl border border-slate-800 text-center">
-        <div class="text-4xl mb-3">📭</div>
-        <p class="text-sm text-slate-400">No {{ activeFilter.replace('_', ' ') }} tasks available right now.</p>
-      </div>
-
       <!-- ── Official Admin Tasks Cards Grid (Task Engine) ── -->
-      <div v-if="activeFilter !== 'community' && filteredTasks.length > 0" class="space-y-3">
-        <div v-if="activeFilter === 'all'" class="flex items-center justify-between px-1">
+      <div v-if="filteredTasks.length > 0" class="space-y-3">
+        <div class="flex items-center justify-between px-1">
           <div class="flex items-center gap-2">
             <span class="badge badge-indigo font-bold">🧩 Official System Tasks</span>
             <span class="text-[11px] text-slate-400">Complete all to unlock Community Campaigns</span>
@@ -136,63 +117,82 @@
       </div>
 
       <!-- ── Community Campaigns Hub (Tier 2 Progression) ── -->
-      <div v-if="activeFilter === 'all' || activeFilter === 'community'"
+      <div
         id="community-campaigns"
-        class="ow-hub-wrapper glass-card rounded-3xl border border-violet-500/20 overflow-hidden relative"
+        class="ow-hub-wrapper glass-card rounded-3xl border border-violet-500/15 overflow-hidden relative"
       >
-        <!-- Header -->
+        <!-- Header (Identical layout to Offerwall Hub) -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 pt-4 sm:px-6 sm:pt-5 pb-3">
           <div class="flex items-center gap-3">
             <span class="section-title">📢 Community Campaigns</span>
-            <span class="badge badge-violet shrink-0">{{ (communityCampaigns && communityCampaigns.length) || 0 }} Tasks</span>
-            <span v-if="community_locked" class="badge badge-rose shrink-0 animate-pulse-neon">🔒 Locked</span>
+            <span class="badge badge-violet shrink-0">
+              {{ activeCampaignTab === 'campaigns' ? (((communityCampaigns && communityCampaigns.length) || 0) + ' Tasks') : (((communityStats && communityStats.completed_count) || 0) + ' Completed') }}
+            </span>
+            <span v-if="community_locked && activeCampaignTab === 'campaigns'" class="badge badge-rose shrink-0 animate-pulse-neon">🔒 Locked</span>
           </div>
-          
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-violet-400 font-bold hidden sm:inline">Tasks created by members</span>
-            <Link href="/campaigns" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 border border-violet-500/30 transition-all flex items-center gap-1.5 shadow-sm">
-              <span>🚀</span>
-              <span>Promote</span>
-            </Link>
+
+          <!-- Tab Switcher (Campaigns / My History & Stats) -->
+          <div class="flex items-center gap-1.5 p-1 bg-slate-900/60 border border-white/10 rounded-2xl shrink-0 self-start sm:self-auto">
+            <button 
+              @click="activeCampaignTab = 'campaigns'" 
+              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+              :class="activeCampaignTab === 'campaigns' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/25' : 'text-slate-400 hover:text-white'"
+            >
+              <span>📢</span>
+              <span>Campaigns</span>
+            </button>
+            <button 
+              @click="activeCampaignTab = 'history'" 
+              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+              :class="activeCampaignTab === 'history' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/25' : 'text-slate-400 hover:text-white'"
+            >
+              <span>📊</span>
+              <span>History & Stats</span>
+              <span v-if="communityStats?.pending_count > 0" class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            </button>
           </div>
         </div>
 
-        <!-- Cards Area -->
-        <div class="ow-cards-area px-4 pb-4 sm:px-6 sm:pb-5 relative min-h-[160px]">
+        <!-- ── TAB 1: ACTIVE CAMPAIGNS ── -->
+        <div 
+          v-if="activeCampaignTab === 'campaigns'"
+          class="ow-cards-area px-4 pb-4 sm:px-6 sm:pb-5 relative min-h-[220px]"
+          :class="community_locked ? 'max-h-[250px] sm:max-h-[270px] overflow-hidden' : ''"
+        >
           <!-- Active Campaigns Grid -->
-          <div v-if="communityCampaigns && communityCampaigns.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div v-if="communityCampaigns && communityCampaigns.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             <div v-for="campaign in communityCampaigns" :key="'campaign-' + campaign.id"
-              class="glass-card rounded-3xl border border-violet-500/25 relative overflow-hidden flex flex-col justify-between"
-              :class="community_locked ? 'border-white/5 cursor-not-allowed select-none' : 'card-hover'"
+              class="glass-card rounded-2xl border border-violet-500/20 relative overflow-hidden flex flex-col justify-between"
+              :class="community_locked ? 'border-white/5 cursor-not-allowed select-none opacity-40' : 'card-hover'"
             >
               <!-- Glow accent -->
-              <div class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none bg-violet-500"></div>
+              <div class="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-15 pointer-events-none bg-violet-500"></div>
 
-              <div class="p-5 relative z-10 space-y-4 flex-grow flex flex-col justify-between">
-                <div class="space-y-3">
-                  <div class="flex justify-between items-start gap-3">
+              <div class="p-4 sm:p-5 relative z-10 space-y-3 flex-grow flex flex-col justify-between">
+                <div class="space-y-2.5">
+                  <div class="flex justify-between items-start gap-2.5">
                     <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-2 flex-wrap">
-                        <span class="badge badge-violet">
+                      <div class="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                        <span class="badge badge-violet text-[10px]">
                           {{ platformIcon(campaign.platform) }} {{ campaign.platform }}
                         </span>
-                        <span v-if="campaign.action" class="badge bg-slate-800 text-slate-300 border border-slate-700">
+                        <span v-if="campaign.action" class="badge bg-slate-800 text-slate-300 border border-slate-700 text-[10px]">
                           {{ campaign.action }}
                         </span>
-                        <span v-if="campaign.is_own" class="badge badge-emerald font-bold">
+                        <span v-if="campaign.is_own" class="badge badge-emerald font-bold text-[10px]">
                           👤 Your Ad
                         </span>
                         <span class="text-[10px] text-slate-500 truncate">
                           by <strong class="text-slate-400">{{ campaign.creator_name }}</strong>
                         </span>
                       </div>
-                      <h3 class="text-sm font-bold text-white leading-snug">{{ campaign.title }}</h3>
-                      <p v-if="campaign.proof_instruction || campaign.description" class="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                      <h3 class="text-xs sm:text-sm font-bold text-white leading-snug line-clamp-1">{{ campaign.title }}</h3>
+                      <p v-if="campaign.proof_instruction || campaign.description" class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
                         {{ campaign.proof_instruction || campaign.description }}
                       </p>
                     </div>
                     <div class="text-right shrink-0">
-                      <div class="text-lg font-black text-emerald-400 stat-number neon-text-emerald">+{{ campaign.cost_per_click }}</div>
+                      <div class="text-base sm:text-lg font-black text-emerald-400 stat-number neon-text-emerald">+{{ campaign.cost_per_click }}</div>
                       <div class="text-[9px] text-slate-500 font-medium">pts / action</div>
                     </div>
                   </div>
@@ -206,16 +206,16 @@
                   </div>
 
                   <!-- Rejected Notice -->
-                  <div v-if="campaign.user_status === 'rejected'" class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-2 text-xs">
-                    <span class="text-rose-400 text-sm">⚠️</span>
+                  <div v-if="campaign.user_status === 'rejected'" class="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-2 text-xs">
+                    <span class="text-rose-400 text-xs">⚠️</span>
                     <div>
-                      <div class="font-bold text-rose-400">Submission Rejected</div>
-                      <div class="text-[11px] text-rose-200">{{ campaign.admin_note || 'Proof did not match instructions.' }}</div>
+                      <div class="font-bold text-rose-400 text-xs">Submission Rejected</div>
+                      <div class="text-[10px] text-rose-200">{{ campaign.admin_note || 'Proof did not match instructions.' }}</div>
                     </div>
                   </div>
 
                   <!-- Pending Notice -->
-                  <div v-if="campaign.user_status === 'pending'" class="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center">
+                  <div v-if="campaign.user_status === 'pending'" class="p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center">
                     <span class="text-amber-400 text-xs font-bold flex items-center justify-center gap-1.5">
                       <span>⏳</span> Awaiting Admin Review
                     </span>
@@ -223,12 +223,12 @@
                 </div>
 
                 <!-- Action Button -->
-                <div class="pt-2">
+                <div class="pt-1">
                   <button
                     v-if="campaign.user_status !== 'pending'"
                     @click="!community_locked && !campaign.is_own && openCampaignTaskModal(campaign)"
                     :disabled="community_locked || campaign.is_own"
-                    class="btn-neon w-full py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 shadow-lg transition-all"
+                    class="btn-neon w-full py-2 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 shadow-lg transition-all"
                     :class="community_locked ? 'bg-slate-800 opacity-60 cursor-not-allowed' : (campaign.is_own ? 'bg-slate-800 text-slate-400 border border-white/5 cursor-not-allowed' : (campaign.user_status === 'rejected' ? 'bg-amber-600 hover:bg-amber-500' : 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-500/20'))"
                   >
                     <span v-if="community_locked">🔒</span>
@@ -242,44 +242,44 @@
           </div>
 
           <!-- Preview cards behind lock when 0 campaigns exist in DB -->
-          <div v-else-if="community_locked" class="grid grid-cols-1 md:grid-cols-2 gap-4 select-none opacity-60 pointer-events-none">
-            <div class="glass-card rounded-3xl border border-violet-500/20 p-5 space-y-4">
+          <div v-else-if="community_locked" class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 select-none opacity-40 pointer-events-none">
+            <div class="glass-card rounded-2xl border border-violet-500/20 p-4 space-y-3">
               <div class="flex justify-between items-start">
                 <div>
-                  <span class="badge badge-violet mb-1.5">✈️ Telegram · Join</span>
-                  <h3 class="text-sm font-bold text-white">Join Official Community Group</h3>
-                  <p class="text-[11px] text-slate-400 mt-1">Join channel and stay active for rewards.</p>
+                  <span class="badge badge-violet text-[10px] mb-1">✈️ Telegram · Join</span>
+                  <h3 class="text-xs sm:text-sm font-bold text-white">Join Official Community Group</h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Join channel and stay active for rewards.</p>
                 </div>
                 <div class="text-right">
-                  <div class="text-lg font-black text-emerald-400">+5.00</div>
+                  <div class="text-base sm:text-lg font-black text-emerald-400">+5.00</div>
                   <div class="text-[9px] text-slate-500">pts / action</div>
                 </div>
               </div>
-              <div class="pt-2">
-                <div class="btn-neon w-full py-2.5 rounded-xl text-xs font-bold text-white bg-slate-800 text-center">🔒 Locked</div>
+              <div class="pt-1">
+                <div class="btn-neon w-full py-2 rounded-xl text-xs font-bold text-white bg-slate-800 text-center">🔒 Locked</div>
               </div>
             </div>
-            <div class="glass-card rounded-3xl border border-violet-500/20 p-5 space-y-4">
+            <div class="glass-card rounded-2xl border border-violet-500/20 p-4 space-y-3">
               <div class="flex justify-between items-start">
                 <div>
-                  <span class="badge badge-violet mb-1.5">▶️ YouTube · Subscribe</span>
-                  <h3 class="text-sm font-bold text-white">Subscribe & Like Video</h3>
-                  <p class="text-[11px] text-slate-400 mt-1">Watch full video and submit screenshot proof.</p>
+                  <span class="badge badge-violet text-[10px] mb-1">▶️ YouTube · Subscribe</span>
+                  <h3 class="text-xs sm:text-sm font-bold text-white">Subscribe & Like Video</h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5">Watch full video and submit screenshot proof.</p>
                 </div>
                 <div class="text-right">
-                  <div class="text-lg font-black text-emerald-400">+10.00</div>
+                  <div class="text-base sm:text-lg font-black text-emerald-400">+10.00</div>
                   <div class="text-[9px] text-slate-500">pts / action</div>
                 </div>
               </div>
-              <div class="pt-2">
-                <div class="btn-neon w-full py-2.5 rounded-xl text-xs font-bold text-white bg-slate-800 text-center">🔒 Locked</div>
+              <div class="pt-1">
+                <div class="btn-neon w-full py-2 rounded-xl text-xs font-bold text-white bg-slate-800 text-center">🔒 Locked</div>
               </div>
             </div>
           </div>
 
           <!-- Empty state when no campaigns are live and unlocked -->
-          <div v-else class="py-12 px-4 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
-            <span class="text-4xl mb-1">📢</span>
+          <div v-else class="py-10 px-4 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+            <span class="text-3xl mb-1">📢</span>
             <p class="font-bold text-slate-200 text-sm">No active community campaigns available right now.</p>
             <p class="text-slate-500 text-[11px]">Tasks posted by other members will appear here automatically.</p>
           </div>
@@ -301,6 +301,90 @@
               </div>
             </div>
           </Transition>
+        </div>
+
+        <!-- ── TAB 2: MY CAMPAIGN SUBMISSION HISTORY & STATS ── -->
+        <div v-else class="px-4 pb-5 sm:px-6 space-y-4">
+          <!-- User Community Campaign Stats Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-3.5 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-lg">💰</div>
+              <div>
+                <div class="text-[10px] font-bold text-violet-400/80 uppercase tracking-wider">Total Earned</div>
+                <div class="text-base font-black text-white">+{{ communityStats?.total_earned || 0 }} <span class="text-[10px] text-violet-300 font-normal">Coins</span></div>
+              </div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">⏳</div>
+              <div>
+                <div class="text-[10px] font-bold text-amber-400/80 uppercase tracking-wider">Pending Review</div>
+                <div class="text-base font-black text-white">{{ communityStats?.pending_count || 0 }} <span class="text-[10px] text-amber-300 font-normal">Tasks</span></div>
+              </div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg">✅</div>
+              <div>
+                <div class="text-[10px] font-bold text-emerald-400/80 uppercase tracking-wider">Tasks Completed</div>
+                <div class="text-base font-black text-white">{{ communityStats?.completed_count || 0 }} <span class="text-[10px] text-emerald-300 font-normal">Tasks</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Community Campaign Submission Logs Table -->
+          <div class="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/40">
+            <div v-if="!communityLogs || communityLogs.length === 0" class="p-8 text-center text-slate-500 text-xs">
+              <span class="text-2xl block mb-1.5">📜</span>
+              You haven't completed any community campaigns yet. Complete available tasks above to earn rewards!
+            </div>
+            <div v-else class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-white/5 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-white/10">
+                  <tr>
+                    <th class="px-4 py-2.5">Campaign</th>
+                    <th class="px-4 py-2.5">Platform</th>
+                    <th class="px-4 py-2.5">Reward</th>
+                    <th class="px-4 py-2.5">Status</th>
+                    <th class="px-4 py-2.5">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-slate-300">
+                  <tr v-for="log in communityLogs" :key="'comm-log-' + log.id" class="hover:bg-white/[0.02] transition-colors">
+                    <td class="px-4 py-3">
+                      <div class="font-bold text-white truncate max-w-[200px] sm:max-w-xs">{{ log.title }}</div>
+                      <div v-if="log.status === 'rejected' && log.admin_note" class="text-[10px] text-rose-400 mt-0.5">
+                        ⚠️ {{ log.admin_note }}
+                      </div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="badge badge-violet text-[10px]">{{ log.type }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="font-mono font-bold" :class="log.status === 'approved' ? 'text-emerald-400' : 'text-slate-400'">
+                        +{{ log.reward_coins }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span 
+                        class="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
+                        :class="{
+                          'bg-amber-500/20 text-amber-400 border border-amber-500/30': log.status === 'pending',
+                          'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': log.status === 'approved',
+                          'bg-rose-500/20 text-rose-400 border border-rose-500/30': log.status === 'rejected',
+                        }"
+                      >
+                        {{ log.status === 'pending' ? '⏳ Review' : log.status === 'approved' ? '✅ Approved' : '❌ Rejected' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-400 font-mono text-[11px] whitespace-nowrap">
+                      {{ log.submitted_at }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1030,6 +1114,8 @@ import {
 const props = defineProps({
   tasks:                      Array,
   communityCampaigns:         { type: Array, default: () => [] },
+  communityLogs:              { type: Array, default: () => [] },
+  communityStats:             { type: Object, default: () => ({ total_earned: 0, pending_count: 0, completed_count: 0 }) },
   community_locked:           Boolean,
   pending_system_tasks_count: Number,
   community_pending_count:    Number,
@@ -1082,6 +1168,7 @@ onUnmounted(() => {
   clearInterval(gateTimerInterval);
 });
 
+const activeCampaignTab = ref('campaigns');
 const activeOwTab = ref('networks');
 const activeFilter = ref('all');
 const activeCustomTask = ref(null);

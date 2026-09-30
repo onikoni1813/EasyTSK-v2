@@ -112,7 +112,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-II_32_xo.css",
+    "file": "assets/app-CZC7aNTX.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -813,7 +813,7 @@
     ]
   },
   "resources/js/Pages/Tasks/Index.vue": {
-    "file": "assets/Index-DDeZT_vg.js",
+    "file": "assets/Index-DwKhTVqj.js",
     "name": "Index",
     "src": "resources/js/Pages/Tasks/Index.vue",
     "isDynamicEntry": true,
@@ -826,7 +826,7 @@
       "_webPush-GI6MBNen.js"
     ],
     "css": [
-      "assets/Index-sG4wLz7T.css"
+      "assets/Index-B4j2_ucT.css"
     ]
   },
   "resources/js/Pages/Welcome.vue": {
@@ -870,7 +870,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-DGa1piil.js",
+    "file": "assets/app-CRu_w9aP.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -943,7 +943,7 @@
       "resources/js/Pages/Withdraw/Index.vue"
     ],
     "css": [
-      "assets/app-II_32_xo.css"
+      "assets/app-CZC7aNTX.css"
     ]
   }
 }

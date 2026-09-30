@@ -144,7 +144,9 @@ class AdminTaskController extends Controller
             }
         }
 
-        // The database's ON DELETE CASCADE will automatically wipe the related user_tasks and screenshot_hashes records
+        // Explicitly wipe related user_tasks to guarantee no orphan records in task history
+        $task->userTasks()->delete();
+
         $task->delete();
         
         return back()->with('success', '🗑️ টাস্ক এবং এর সকল ডেটা সফলভাবে মুছে ফেলা হয়েছে!');

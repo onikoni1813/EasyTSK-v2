@@ -130,7 +130,7 @@ class ShortlinkTaskController extends Controller
                     'success' => true,
                     'shortened_url' => $res['shortened_url'],
                     'token' => $token,
-                    'provider' => $task->provider_name ?? 'Shortlink',
+                    'provider' => 'Sponsored Partner',
                 ]);
             }
 
@@ -147,7 +147,7 @@ class ShortlinkTaskController extends Controller
                 'success' => true,
                 'shortened_url' => $apiEndpoint,
                 'token' => $token,
-                'provider' => $task->provider_name ?? 'Shortlink',
+                'provider' => 'Sponsored Partner',
             ]);
         }
 
