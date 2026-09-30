@@ -28,11 +28,19 @@ class ShortlinkService
         $apiKey = trim($apiKey);
         $destinationUrl = trim($destinationUrl);
 
-        if (empty($apiEndpoint) || empty($apiKey)) {
+        if (empty($apiKey)) {
             return [
                 'success' => false,
                 'shortened_url' => null,
-                'message' => 'Shortlink provider is missing API endpoint or API key.',
+                'message' => 'API Key ফিল্ডটি ফাঁকা! অনুগ্রহ করে Provider এডিট করে API Key সংরক্ষণ করুন।',
+            ];
+        }
+
+        if (empty($apiEndpoint)) {
+            return [
+                'success' => false,
+                'shortened_url' => null,
+                'message' => 'API Endpoint URL প্রদান করা হয়নি!',
             ];
         }
 
@@ -64,30 +72,61 @@ class ShortlinkService
                         'format' => 'json',
                     ]);
             } elseif ($driver === 'admaven') {
-                // Ad-Maven Content Locker API accepts api_key and destination url
+                // Ad-Maven Content Locker API requires Authorization Bearer & X-API-KEY headers
+                $cleanKey = trim($apiKey);
+                $bearerToken = str_starts_with($cleanKey, 'Bearer ') ? trim(substr($cleanKey, 7)) : $cleanKey;
+
+                $headers = [
+                    'User-Agent'    => 'EasyTSK/2.0',
+                    'Accept'        => 'application/json',
+                    'Content-Type'  => 'application/json',
+                    'Authorization' => 'Bearer ' . $bearerToken,
+                    'X-API-KEY'     => $bearerToken,
+                    'api-key'       => $bearerToken,
+                ];
+
+                $payload = [
+                    'url'             => $destinationUrl,
+                    'destination_url' => $destinationUrl,
+                    'name'            => 'EasyTSK Task',
+                    'api_key'         => $bearerToken,
+                    'api'             => $bearerToken,
+                ];
+
+                // Attempt 1: JSON POST with Bearer and X-API-KEY headers
                 $response = Http::timeout(10)
                     ->withoutVerifying()
-                    ->withHeaders([
-                        'User-Agent' => 'EasyTSK/2.0',
-                        'Accept' => 'application/json',
-                    ])
-                    ->asForm()
-                    ->post($apiEndpoint, [
-                        'api_key' => $apiKey,
-                        'api' => $apiKey,
-                        'url' => $destinationUrl,
-                        'destination_url' => $destinationUrl,
-                    ]);
+                    ->withHeaders($headers)
+                    ->post($apiEndpoint, $payload);
 
-                // Fallback to GET if POST was not successful
+                // Attempt 2: Form POST if JSON POST failed
                 if (!$response || !$response->successful()) {
                     $response = Http::timeout(10)
                         ->withoutVerifying()
-                        ->withHeaders(['User-Agent' => 'EasyTSK/2.0'])
+                        ->withHeaders([
+                            'User-Agent'    => 'EasyTSK/2.0',
+                            'Accept'        => 'application/json',
+                            'Authorization' => 'Bearer ' . $bearerToken,
+                            'X-API-KEY'     => $bearerToken,
+                        ])
+                        ->asForm()
+                        ->post($apiEndpoint, $payload);
+                }
+
+                // Attempt 3: GET query if POST failed
+                if (!$response || !$response->successful()) {
+                    $response = Http::timeout(10)
+                        ->withoutVerifying()
+                        ->withHeaders([
+                            'User-Agent'    => 'EasyTSK/2.0',
+                            'Accept'        => 'application/json',
+                            'Authorization' => 'Bearer ' . $bearerToken,
+                            'X-API-KEY'     => $bearerToken,
+                        ])
                         ->get($apiEndpoint, [
-                            'api_key' => $apiKey,
-                            'api' => $apiKey,
-                            'url' => $destinationUrl,
+                            'api_key' => $bearerToken,
+                            'api'     => $bearerToken,
+                            'url'     => $destinationUrl,
                         ]);
                 }
             } else {
@@ -108,7 +147,17 @@ class ShortlinkService
 
                 // Check if response has JSON error message
                 $json = $response ? $response->json() : null;
-                $errMsg = $json['message'] ?? (is_string($json['result'] ?? null) ? $json['result'] : null) ?? "Provider returned HTTP {$status}.";
+                $errMsg = $json['message'] ?? (is_string($json['result'] ?? null) ? $json['result'] : null) ?? null;
+
+                if ($status == 401 || $errMsg === 'Unauthorized') {
+                    if ($driver === 'admaven') {
+                        $errMsg = 'AdMaven Unauthorized (401): API Key সঠিক নয় অথবা AdMaven একাউন্টের প্রোফাইল তথ্য (Payment method, address, domain) অসম্পূর্ণ। AdMaven ড্যাশবোর্ডে গিয়ে "New Content locker" -> "Key Generator" থেকে Key তৈরি করে সেভ করুন।';
+                    } else {
+                        $errMsg = 'Unauthorized (401): API Key সঠিক নয় অথবা প্রোভাইডারে রিকোয়েস্ট অনুমোদিত নয়।';
+                    }
+                } elseif (empty($errMsg)) {
+                    $errMsg = "Provider returned HTTP {$status}.";
+                }
 
                 return [
                     'success' => false,
@@ -165,6 +214,15 @@ class ShortlinkService
      */
     public function testProvider(ShortlinkProvider $provider, ?string $testDestination = null): array
     {
+        if (empty(trim($provider->api_key ?? ''))) {
+            return [
+                'success' => false,
+                'shortened_url' => null,
+                'message' => '⚠️ API Key ফিল্ডটি ফাঁকা! অনুগ্রহ করে Edit বাটনে ক্লিক করে আপনার ' . $provider->name . ' একাউন্ট থেকে API Key কপি করে সেভ করুন।',
+                'latency_ms' => 0,
+            ];
+        }
+
         if (!$testDestination) {
             $currentUrl = url('/');
             // If the local environment or current host is localhost / 127.0.0.1, fallback to a public domain
@@ -247,8 +305,17 @@ class ShortlinkService
             if (!empty($json['locker_url'])) {
                 return $this->sanitizeUrl($json['locker_url']);
             }
+            if (!empty($json['lockerUrl'])) {
+                return $this->sanitizeUrl($json['lockerUrl']);
+            }
             if (!empty($json['data']['locker_url'])) {
                 return $this->sanitizeUrl($json['data']['locker_url']);
+            }
+            if (!empty($json['data']['shortened_url'])) {
+                return $this->sanitizeUrl($json['data']['shortened_url']);
+            }
+            if (!empty($json['data']['link'])) {
+                return $this->sanitizeUrl($json['data']['link']);
             }
             if (!empty($json['link'])) {
                 return $this->sanitizeUrl($json['link']);

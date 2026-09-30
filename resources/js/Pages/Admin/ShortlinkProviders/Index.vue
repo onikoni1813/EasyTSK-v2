@@ -106,7 +106,8 @@
                   </button>
                 </div>
                 <div class="text-xs font-mono text-amber-300 truncate mt-0.5">
-                  <span v-if="showKeys[provider.id]">{{ provider.api_key }}</span>
+                  <span v-if="!provider.api_key" class="text-rose-400 font-sans italic text-[11px] font-semibold">⚠️ No API Key set — Click Edit</span>
+                  <span v-else-if="showKeys[provider.id]">{{ provider.api_key }}</span>
                   <span v-else>••••••••••••••••••••••••••••••••</span>
                 </div>
               </div>
@@ -224,7 +225,10 @@
 
             <!-- API Key -->
             <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">API Key / Token *</label>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-semibold text-slate-300">API Key / Token *</label>
+                <span v-if="form.name && (form.name.toLowerCase().includes('admaven') || form.api_url.toLowerCase().includes('ad-maven'))" class="text-[10px] text-cyan-400 font-medium">AdMaven Content Locker Key</span>
+              </div>
               <input 
                 v-model="form.api_key" 
                 type="text" 
@@ -232,6 +236,9 @@
                 placeholder="Paste API token from provider dashboard..." 
                 class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-amber-300 focus:border-cyan-500 focus:outline-none"
               />
+              <p v-if="form.name && (form.name.toLowerCase().includes('admaven') || form.api_url.toLowerCase().includes('ad-maven'))" class="text-[10px] text-cyan-300/90 mt-1.5 leading-relaxed bg-cyan-950/40 p-2 rounded-lg border border-cyan-800/40">
+                💡 <strong>Ad-Maven টিপস:</strong> Ad-Maven ড্যাশবোর্ডে গিয়ে <code>New Content Locker ➔ Key Generator</code> থেকে তৈরি করা API Key এখানে পেস্ট করুন। আপনার AdMaven একাউন্টের প্রোফাইল তথ্য (Payment info/Address) সম্পূর্ণ থাকতে হবে।
+              </p>
               <div v-if="form.errors.api_key" class="text-[10px] text-rose-500 mt-1">{{ form.errors.api_key }}</div>
             </div>
 
@@ -417,6 +424,14 @@ const syncOfficialPresets = () => {
 
 const testProviderApi = async (provider) => {
   if (testingId.value) return;
+  if (!provider.api_key || !provider.api_key.trim()) {
+    testResults.value[provider.id] = {
+      success: false,
+      message: '⚠️ API Key ফিল্ডটি ফাঁকা! অনুগ্রহ করে Edit বাটনে ক্লিক করে ' + provider.name + ' এর API Key সেভ করুন।',
+      latency_ms: 0,
+    };
+    return;
+  }
   testingId.value = provider.id;
   try {
     const res = await axios.post(`${adminPath.value}/shortlink-providers/${provider.id}/test`);
