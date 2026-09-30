@@ -6,5 +6,7 @@ deployment:
     - /bin/sed -i 's|/../vendor/|/../easytsk-v2/vendor/|g' $DEPLOYPATH/index.php
     - /bin/sed -i 's|/../bootstrap/|/../easytsk-v2/bootstrap/|g' $DEPLOYPATH/index.php
     - /bin/sed -i 's|/../storage/|/../easytsk-v2/storage/|g' $DEPLOYPATH/index.php
+    - php artisan deploy:sync --migrate || true
+
 
 

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Automatically executed by Git after every git pull or git merge
+echo ""
+echo "🚀 [EasyTSK Auto-Deploy] Git pull completed. Syncing public_html & clearing caches..."
+if [ -f "artisan" ]; then
+    php artisan deploy:sync --migrate
+else
+    echo "⚠️ artisan not found in current directory."
+fi
+echo "✨ [EasyTSK Auto-Deploy] All public assets & caches updated successfully!"
+echo ""

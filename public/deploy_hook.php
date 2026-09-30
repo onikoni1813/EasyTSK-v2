@@ -44,30 +44,35 @@ if (($_SERVER['HTTP_X_GITHUB_EVENT'] ?? '') === 'ping') {
 $projectPath = dirname(__DIR__); // default parent
 // If in cPanel where project is in /easytsk v2
 $possiblePaths = [
-    dirname(__DIR__),
+    '/home/easytskc/easytsk-v2',
+    dirname(dirname(__DIR__)) . '/easytsk-v2',
+    dirname(__DIR__) . '/easytsk-v2',
     dirname(dirname(__DIR__)) . '/easytsk v2',
     dirname(__DIR__) . '/easytsk v2',
+    dirname(__DIR__),
 ];
 
 $validProjectRoot = null;
 foreach ($possiblePaths as $p) {
     if (file_exists($p . '/artisan')) {
-        $validProjectRoot = $p;
+        $validProjectRoot = realpath($p);
         break;
     }
 }
 
 if (!$validProjectRoot) {
-    $validProjectRoot = dirname(__DIR__);
+    $validProjectRoot = realpath(dirname(__DIR__));
 }
 
 // 3. Run Git Pull if git is available
 $gitOutput = '';
+$syncOutput = '';
 if (function_exists('shell_exec')) {
     $gitOutput = shell_exec("cd " . escapeshellarg($validProjectRoot) . " && git pull origin main 2>&1");
+    $syncOutput = shell_exec("cd " . escapeshellarg($validProjectRoot) . " && php artisan deploy:sync --migrate 2>&1");
 }
 
-// 4. Clear Laravel bootstrap/cache files directly
+// 4. Fallback manual clear of Laravel bootstrap/cache files directly
 $cacheDir = $validProjectRoot . '/bootstrap/cache';
 $clearedFiles = [];
 if (is_dir($cacheDir)) {
@@ -82,9 +87,10 @@ if (is_dir($cacheDir)) {
 
 echo json_encode([
     'success'       => true,
-    'message'       => 'Standalone deployer executed successfully!',
+    'message'       => 'EasyTSK auto-deploy executed successfully!',
     'project_root'  => $validProjectRoot,
     'git_output'    => trim((string)$gitOutput),
+    'sync_output'   => trim((string)$syncOutput),
     'cache_cleared' => $clearedFiles,
     'timestamp'     => date('Y-m-d H:i:s'),
 ], JSON_PRETTY_PRINT);

@@ -1,20 +1,8 @@
 #!/bin/bash
 git pull origin main
 
-# Run database migrations
-php artisan migrate --force
-
-# Clean and sync compiled Vite assets & public files to ~/public_html
-mkdir -p ~/public_html/build
-cp -rf public/build/* ~/public_html/build/
-cp -f public/favicon.* ~/public_html/ 2>/dev/null || true
-cp -f public/icon-*.png ~/public_html/ 2>/dev/null || true
-cp -f public/manifest.json ~/public_html/ 2>/dev/null || true
-cp -f public/sw.js ~/public_html/ 2>/dev/null || true
-
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
-php artisan optimize:clear
+# Execute automated public sync, asset copying, migrations & cache optimization
+php artisan deploy:sync --migrate
 
 echo "🚀 Live Site Updated Successfully!"
+
