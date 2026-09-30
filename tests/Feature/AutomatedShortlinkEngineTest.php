@@ -222,8 +222,11 @@ class AutomatedShortlinkEngineTest extends TestCase
 
         Http::fake([
             'publishers.ad-maven.com/api/public/content_locker*' => Http::response([
-                'status' => 'success',
-                'shortened_url' => 'https://ad-maven.com/locker/xyz999',
+                [
+                    'short' => 'FIG5ff8P',
+                    'full_short' => 'https://speedy-links.com/s?FIG5ff8P',
+                    'destination_url' => 'https://easytsk.com',
+                ]
             ], 200),
         ]);
 
@@ -232,7 +235,7 @@ class AutomatedShortlinkEngineTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson([
             'success' => true,
-            'shortened_url' => 'https://ad-maven.com/locker/xyz999',
+            'shortened_url' => 'https://speedy-links.com/s?FIG5ff8P',
         ]);
     }
 

@@ -297,63 +297,74 @@ class ShortlinkService
         $json = $response->json();
 
         if (is_array($json)) {
-            // 1. Standard AdLinkFly field
-            if (!empty($json['shortenedUrl'])) {
-                return $this->sanitizeUrl($json['shortenedUrl']);
+            // Flatten / unpack list if response is an array of items (e.g. Ad-Maven returns [ {"short": "...", "full_short": "..."} ])
+            $candidates = [];
+            if (isset($json[0]) && is_array($json[0])) {
+                $candidates[] = $json[0];
+            }
+            if (isset($json['data']) && is_array($json['data'])) {
+                if (isset($json['data'][0]) && is_array($json['data'][0])) {
+                    $candidates[] = $json['data'][0];
+                }
+                $candidates[] = $json['data'];
+            }
+            $candidates[] = $json;
+
+            foreach ($candidates as $item) {
+                // 1. AdMaven full_short field
+                if (!empty($item['full_short']) && filter_var($item['full_short'], FILTER_VALIDATE_URL)) {
+                    return $this->sanitizeUrl($item['full_short']);
+                }
+                if (!empty($item['fullShort']) && filter_var($item['fullShort'], FILTER_VALIDATE_URL)) {
+                    return $this->sanitizeUrl($item['fullShort']);
+                }
+
+                // 2. Standard AdLinkFly field
+                if (!empty($item['shortenedUrl'])) {
+                    return $this->sanitizeUrl($item['shortenedUrl']);
+                }
+
+                // 3. ShrtFly field
+                if (!empty($item['result']['shorten_url'])) {
+                    return $this->sanitizeUrl($item['result']['shorten_url']);
+                }
+
+                // 4. Content Locker & shortened fields
+                if (!empty($item['shortened_url'])) {
+                    return $this->sanitizeUrl($item['shortened_url']);
+                }
+                if (!empty($item['locker_url'])) {
+                    return $this->sanitizeUrl($item['locker_url']);
+                }
+                if (!empty($item['lockerUrl'])) {
+                    return $this->sanitizeUrl($item['lockerUrl']);
+                }
+                if (!empty($item['content_locker_url'])) {
+                    return $this->sanitizeUrl($item['content_locker_url']);
+                }
+                if (!empty($item['contentLockerUrl'])) {
+                    return $this->sanitizeUrl($item['contentLockerUrl']);
+                }
+                if (!empty($item['link']) && filter_var($item['link'], FILTER_VALIDATE_URL)) {
+                    return $this->sanitizeUrl($item['link']);
+                }
+                if (!empty($item['short_url']) && filter_var($item['short_url'], FILTER_VALIDATE_URL)) {
+                    return $this->sanitizeUrl($item['short_url']);
+                }
+                if (!empty($item['url']) && filter_var($item['url'], FILTER_VALIDATE_URL)) {
+                    return $this->sanitizeUrl($item['url']);
+                }
+                if (!empty($item['short']) && filter_var($item['short'], FILTER_VALIDATE_URL)) {
+                    return $this->sanitizeUrl($item['short']);
+                }
             }
 
-            // 2. ShrtFly field
-            if (!empty($json['result']['shorten_url'])) {
-                return $this->sanitizeUrl($json['result']['shorten_url']);
-            }
-
-            // 3. AdMaven Content Locker fields
-            if (!empty($json['shortened_url'])) {
-                return $this->sanitizeUrl($json['shortened_url']);
-            }
-            if (!empty($json['locker_url'])) {
-                return $this->sanitizeUrl($json['locker_url']);
-            }
-            if (!empty($json['lockerUrl'])) {
-                return $this->sanitizeUrl($json['lockerUrl']);
-            }
-            if (!empty($json['data']['locker_url'])) {
-                return $this->sanitizeUrl($json['data']['locker_url']);
-            }
-            if (!empty($json['data']['shortened_url'])) {
-                return $this->sanitizeUrl($json['data']['shortened_url']);
-            }
-            if (!empty($json['data']['link'])) {
-                return $this->sanitizeUrl($json['data']['link']);
-            }
-            if (!empty($json['content_locker_url'])) {
-                return $this->sanitizeUrl($json['content_locker_url']);
-            }
-            if (!empty($json['contentLockerUrl'])) {
-                return $this->sanitizeUrl($json['contentLockerUrl']);
-            }
+            // Direct string URL in data or result
             if (isset($json['data']) && is_string($json['data']) && (str_starts_with($json['data'], 'http://') || str_starts_with($json['data'], 'https://'))) {
                 return $this->sanitizeUrl($json['data']);
             }
             if (isset($json['result']) && is_string($json['result']) && (str_starts_with($json['result'], 'http://') || str_starts_with($json['result'], 'https://'))) {
                 return $this->sanitizeUrl($json['result']);
-            }
-
-            // 4. Fallback generic fields
-            if (!empty($json['url'])) {
-                return $this->sanitizeUrl($json['url']);
-            }
-            if (!empty($json['short'])) {
-                return $this->sanitizeUrl($json['short']);
-            }
-            if (!empty($json['short_url'])) {
-                return $this->sanitizeUrl($json['short_url']);
-            }
-            if (!empty($json['data']['url'])) {
-                return $this->sanitizeUrl($json['data']['url']);
-            }
-            if (!empty($json['data']['shortenedUrl'])) {
-                return $this->sanitizeUrl($json['data']['shortenedUrl']);
             }
         }
 
