@@ -203,4 +203,61 @@ class AutomatedShortlinkEngineTest extends TestCase
         $this->assertNotNull($userTask);
         $this->assertEquals('approved', $userTask->status);
     }
+
+    public function test_user_can_start_shortlink_with_admaven_content_locker_provider(): void
+    {
+        $user = User::factory()->create(['health' => 100, 'main_balance' => 0]);
+
+        $task = Task::create([
+            'title' => 'AdMaven Content Locker Task',
+            'type' => 'shortlink',
+            'provider_name' => 'AdMaven Content Locker',
+            'target_url' => 'https://publishers.ad-maven.com/api/public/content_locker',
+            'secret_code' => 'sample_admaven_api_key_123',
+            'reward_coins' => 75.00,
+            'reward_xp' => 15,
+            'cooldown_hours' => 24,
+            'status' => 'active',
+        ]);
+
+        Http::fake([
+            'publishers.ad-maven.com/api/public/content_locker*' => Http::response([
+                'status' => 'success',
+                'shortened_url' => 'https://ad-maven.com/locker/xyz999',
+            ], 200),
+        ]);
+
+        $response = $this->actingAs($user)->postJson("/tasks/{$task->id}/shortlink/start");
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'shortened_url' => 'https://ad-maven.com/locker/xyz999',
+        ]);
+    }
+
+    public function test_direct_hosted_locker_url_replaces_dynamic_placeholders(): void
+    {
+        $user = User::factory()->create(['health' => 100, 'main_balance' => 0]);
+
+        $task = Task::create([
+            'title' => 'Direct AdMaven Locker',
+            'type' => 'shortlink',
+            'provider_name' => 'AdMaven Content Locker',
+            'target_url' => 'https://ad-maven.com/locker/hosted123?subId={token}&uid={user_id}',
+            'secret_code' => '',
+            'reward_coins' => 30.00,
+            'reward_xp' => 5,
+            'cooldown_hours' => 0,
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($user)->postJson("/tasks/{$task->id}/shortlink/start");
+
+        $response->assertStatus(200);
+        $data = $response->json();
+        $this->assertTrue($data['success']);
+        $this->assertStringContainsString('https://ad-maven.com/locker/hosted123?subId=', $data['shortened_url']);
+        $this->assertStringContainsString("&uid={$user->id}", $data['shortened_url']);
+    }
 }

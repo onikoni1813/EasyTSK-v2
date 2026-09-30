@@ -63,6 +63,33 @@ class ShortlinkService
                         'type' => 1,
                         'format' => 'json',
                     ]);
+            } elseif ($driver === 'admaven') {
+                // Ad-Maven Content Locker API accepts api_key and destination url
+                $response = Http::timeout(10)
+                    ->withoutVerifying()
+                    ->withHeaders([
+                        'User-Agent' => 'EasyTSK/2.0',
+                        'Accept' => 'application/json',
+                    ])
+                    ->asForm()
+                    ->post($apiEndpoint, [
+                        'api_key' => $apiKey,
+                        'api' => $apiKey,
+                        'url' => $destinationUrl,
+                        'destination_url' => $destinationUrl,
+                    ]);
+
+                // Fallback to GET if POST was not successful
+                if (!$response || !$response->successful()) {
+                    $response = Http::timeout(10)
+                        ->withoutVerifying()
+                        ->withHeaders(['User-Agent' => 'EasyTSK/2.0'])
+                        ->get($apiEndpoint, [
+                            'api_key' => $apiKey,
+                            'api' => $apiKey,
+                            'url' => $destinationUrl,
+                        ]);
+                }
             } else {
                 // Standard AdLinkFly & generic API shorteners (ShrinkMe, Exe, GPLinks, Droplink, Cuty, ClkSh, CutWin, FcLc, KutLi, ShrinkEarn, etc.)
                 $response = Http::timeout(10)
@@ -178,6 +205,10 @@ class ShortlinkService
             return 'shrtfly';
         }
 
+        if (str_contains($combined, 'ad-maven') || str_contains($combined, 'admaven')) {
+            return 'admaven';
+        }
+
         return 'adlinkfly';
     }
 
@@ -209,7 +240,21 @@ class ShortlinkService
                 return $this->sanitizeUrl($json['result']['shorten_url']);
             }
 
-            // 3. Fallback generic fields
+            // 3. AdMaven Content Locker fields
+            if (!empty($json['shortened_url'])) {
+                return $this->sanitizeUrl($json['shortened_url']);
+            }
+            if (!empty($json['locker_url'])) {
+                return $this->sanitizeUrl($json['locker_url']);
+            }
+            if (!empty($json['data']['locker_url'])) {
+                return $this->sanitizeUrl($json['data']['locker_url']);
+            }
+            if (!empty($json['link'])) {
+                return $this->sanitizeUrl($json['link']);
+            }
+
+            // 4. Fallback generic fields
             if (!empty($json['url'])) {
                 return $this->sanitizeUrl($json['url']);
             }

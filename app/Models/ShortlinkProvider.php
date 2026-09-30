@@ -112,6 +112,13 @@ class ShortlinkProvider extends Model
             'default_key' => 'e172743ea8084e90c2dc17231eb274aa',
             'type' => 'adfocus',
         ],
+        'admaven' => [
+            'name' => 'AdMaven Content Locker',
+            'api_url' => 'https://publishers.ad-maven.com/api/public/content_locker',
+            'icon' => '🎯',
+            'default_key' => '',
+            'type' => 'admaven',
+        ],
         'custom' => [
             'name' => 'Custom Shortener',
             'api_url' => '',

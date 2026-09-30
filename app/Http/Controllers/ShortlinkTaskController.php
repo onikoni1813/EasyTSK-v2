@@ -141,13 +141,19 @@ class ShortlinkTaskController extends Controller
             ], 502);
         }
 
-        // If target_url is already a fixed direct shortlink (fallback mode)
+        // If target_url is already a fixed direct shortlink or hosted locker (fallback mode)
         if (!empty($apiEndpoint)) {
+            $resolvedUrl = str_replace(
+                ['{token}', '{callback_url}', '{user_id}'],
+                [$token, urlencode($callbackUrl), (string) $user->id],
+                $apiEndpoint
+            );
+
             return response()->json([
                 'success' => true,
-                'shortened_url' => $apiEndpoint,
+                'shortened_url' => $resolvedUrl,
                 'token' => $token,
-                'provider' => 'Sponsored Partner',
+                'provider' => $task->provider_name ?: 'Sponsored Partner',
             ]);
         }
 
