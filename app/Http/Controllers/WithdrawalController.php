@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
 use App\Models\PaymentMethod;
+use App\Models\ReferralTracking;
+use App\Models\User;
 use App\Models\Withdrawal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -40,6 +42,25 @@ class WithdrawalController extends Controller
         }
 
         $isFirstWithdrawal = Withdrawal::where('user_id', $user->id)->where('status', '!=', 'rejected')->count() === 0;
+
+        $minUnlockedRequired = (int) AppSetting::getByKey('min_unlocked_referrals_for_next_withdraw', 1);
+        $unlockedReferrals = ReferralTracking::where('referrer_id', $user->id)
+            ->whereIn('status', ['unlocked', 'claimed'])
+            ->count();
+
+        // 1st withdrawal is unconditional regarding referrals (Trust Build).
+        // 2nd withdrawal onwards requires at least $minUnlockedRequired unlocked active referrals.
+        $referralRequirementMet = true;
+        if (!$isFirstWithdrawal && $minUnlockedRequired > 0) {
+            $referralRequirementMet = ($unlockedReferrals >= $minUnlockedRequired);
+            if (!$referralRequirementMet) {
+                $canWithdraw = false;
+            }
+        }
+
+        if (!$user->referral_code) {
+            $user->update(['referral_code' => User::generateReferralCode()]);
+        }
         
         $firstWithdrawLimit = (int) AppSetting::getByKey('first_withdraw_limit', 1000);
         $nextWithdrawLimit = (int) AppSetting::getByKey('next_withdraw_limit', 500);
@@ -85,6 +106,11 @@ class WithdrawalController extends Controller
             'remainingSeconds' => $remainingSeconds,
             'conversionRate' => $conversionRate,
             'minWithdrawCoins' => $minWithdrawCoins,
+            'isFirstWithdrawal' => $isFirstWithdrawal,
+            'minUnlockedReferralsRequired' => $minUnlockedRequired,
+            'unlockedReferralsCount' => $unlockedReferrals,
+            'referralRequirementMet' => $referralRequirementMet,
+            'referralCode' => $user->referral_code,
             'paymentMethods' => $paymentMethods,
             'savedMethod' => $user->payment_method,
             'savedNumber' => $user->payment_number,
@@ -148,6 +174,19 @@ class WithdrawalController extends Controller
             }
 
             $isFirstWithdrawal = Withdrawal::where('user_id', $lockedUser->id)->where('status', '!=', 'rejected')->count() === 0;
+
+            // Referral requirement check: 1st withdrawal is free; 2nd withdrawal onwards requires unlocked referrals
+            $minUnlockedRequired = (int) AppSetting::getByKey('min_unlocked_referrals_for_next_withdraw', 1);
+            if (!$isFirstWithdrawal && $minUnlockedRequired > 0) {
+                $unlockedReferrals = ReferralTracking::where('referrer_id', $lockedUser->id)
+                    ->whereIn('status', ['unlocked', 'claimed'])
+                    ->count();
+
+                if ($unlockedReferrals < $minUnlockedRequired) {
+                    $needed = $minUnlockedRequired - $unlockedReferrals;
+                    throw new \Exception("Withdrawal Requirement: You need at least {$minUnlockedRequired} unlocked active referral(s) for your 2nd withdrawal onwards. You currently have {$unlockedReferrals} unlocked referral(s). Please invite {$needed} more friend(s) who complete tasks to unlock.");
+                }
+            }
             
             $firstWithdrawLimit = (int) AppSetting::getByKey('first_withdraw_limit', 1000);
             $nextWithdrawLimit = (int) AppSetting::getByKey('next_withdraw_limit', 500);

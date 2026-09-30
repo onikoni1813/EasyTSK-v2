@@ -145,7 +145,7 @@
         </div>
       </div>
 
-      <div v-else-if="!canWithdraw" class="glass-card p-5 rounded-3xl border border-amber-500/40 bg-amber-500/10 space-y-2">
+      <div v-else-if="hasPending || cooldownSeconds > 0" class="glass-card p-5 rounded-3xl border border-amber-500/40 bg-amber-500/10 space-y-2">
         <div class="flex items-center space-x-3 text-amber-300">
           <span class="text-xl">⏳</span>
           <div v-if="hasPending">
@@ -160,6 +160,98 @@
         <div v-if="!hasPending && cooldownSeconds > 0" class="text-center py-2 bg-slate-950/60 rounded-2xl border border-amber-500/20">
           <span class="text-2xl font-black text-amber-400 font-mono">{{ formatTimer(cooldownSeconds) }}</span>
         </div>
+      </div>
+
+      <!-- 1st Withdrawal Special Trust Banner -->
+      <div v-if="isFirstWithdrawal" class="glass-card p-4 sm:p-5 rounded-3xl border border-emerald-500/40 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-emerald-500/10">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-2xl shrink-0">
+            🎉
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="text-sm sm:text-base font-bold text-white">১ম উইথড্র অফার — সম্পূর্ণ শর্তহীন (Trust Build)</h3>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                No Referrals Needed
+              </span>
+            </div>
+            <p class="text-xs text-slate-300 mt-0.5">
+              নতুন ইউজারদের জন্য প্রথম উইথড্রতে কোনো প্রকার রেফার করার শর্ত নেই। সরাসরি আপনার উপার্জিত পয়েন্ট ক্যাশআউট করুন!
+            </p>
+          </div>
+        </div>
+        <div class="shrink-0 self-end sm:self-center">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold font-mono">
+            ✨ 1st Payout Free
+          </span>
+        </div>
+      </div>
+
+      <!-- 2nd+ Withdrawal Referral Condition Locked Banner -->
+      <div v-else-if="!isFirstWithdrawal && !referralRequirementMet && minUnlockedReferralsRequired > 0" class="glass-card p-5 sm:p-6 rounded-3xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-slate-900 to-indigo-950/40 space-y-4 shadow-xl shadow-amber-500/10">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-500/20 pb-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-2xl shrink-0">
+              👥
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="text-sm sm:text-base font-bold text-white">পরবর্তী উইথড্র আনলক করতে রেফার শর্ত</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  🔒 Referrals Required
+                </span>
+              </div>
+              <p class="text-xs text-amber-200/80 mt-1 leading-relaxed">
+                ১ম উইথড্র সফল হওয়ার পর পরবর্তী উইথড্র করতে অন্তত <strong class="text-white font-bold">{{ minUnlockedReferralsRequired }} জন সক্রিয়/আনলকড বন্ধুকে</strong> রেফার করতে হবে (যারা কাজ সম্পন্ন করে আনলক হয়েছে)।
+              </p>
+            </div>
+          </div>
+
+          <div class="shrink-0 self-start sm:self-auto">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold font-mono">
+              {{ unlockedReferralsCount }} / {{ minUnlockedReferralsRequired }} Unlocked
+            </span>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="space-y-1.5 bg-slate-950/60 p-4 rounded-2xl border border-amber-500/20">
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-300 font-semibold">আপনার আনলকড সক্রিয় রেফারাল অগ্রগতি:</span>
+            <span class="text-amber-400 font-mono font-bold">{{ unlockedReferralsCount }} / {{ minUnlockedReferralsRequired }} সম্পন্ন</span>
+          </div>
+          <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-800">
+            <div class="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400 transition-all duration-500"
+              :style="{ width: `${Math.min(100, (unlockedReferralsCount / (minUnlockedReferralsRequired || 1)) * 100)}%` }"
+            ></div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+            <span>💡 বন্ধুদের রেফার করুন, তারা কাজ সম্পন্ন করে পয়েন্ট অর্জন করলেই আনলক হবে এবং আপনার উইথড্র সাথে সাথে চালু হবে।</span>
+            <span class="text-amber-300 font-bold shrink-0 ml-2">বাকি: {{ Math.max(0, minUnlockedReferralsRequired - unlockedReferralsCount) }} জন</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-center gap-3 pt-1">
+          <Link href="/reffer" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition">
+            <span>🚀 বন্ধুদের ইনভাইট করুন (Referral Hub)</span>
+          </Link>
+          <button type="button" @click="copyReferralLink" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition">
+            <span v-if="copiedLink">✅ লিংক কপি হয়েছে!</span>
+            <span v-else>📋 আপনার রেফার লিংক কপি করুন</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2nd+ Withdrawal Referral Condition Met Banner -->
+      <div v-else-if="!isFirstWithdrawal && referralRequirementMet && minUnlockedReferralsRequired > 0" class="glass-card p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2.5 text-emerald-300">
+          <span>✅</span>
+          <span>রেফারাল শর্ত সম্পন্ন হয়েছে (<strong>{{ unlockedReferralsCount }}/{{ minUnlockedReferralsRequired }}</strong> আনলকড ফ্রেন্ডস)। আপনি যে কোনো সময় উইথড্র করতে পারবেন।</span>
+        </div>
+        <Link href="/reffer" class="text-indigo-400 hover:underline shrink-0 font-bold">
+          রেফারাল হিস্টোরি →
+        </Link>
       </div>
 
       <!-- Account Qualification & Phone OTP Verification Banner -->
@@ -499,6 +591,14 @@
               <span>🔒 Account Qualification (Phone OTP) Required</span>
             </button>
             <button 
+              v-else-if="!isFirstWithdrawal && !referralRequirementMet && minUnlockedReferralsRequired > 0"
+              type="button" 
+              disabled
+              class="w-full py-3.5 px-4 bg-amber-500/10 text-amber-300 font-bold text-xs rounded-2xl border border-amber-500/30 cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <span>🔒 ২য় উইথড্র আনলক করতে আরও {{ Math.max(1, minUnlockedReferralsRequired - unlockedReferralsCount) }} জন ফ্রেন্ড রেফার করুন</span>
+            </button>
+            <button 
               v-else
               type="submit" 
               :disabled="!canWithdraw || form.processing"
@@ -622,7 +722,39 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  isFirstWithdrawal: {
+    type: Boolean,
+    default: true,
+  },
+  minUnlockedReferralsRequired: {
+    type: Number,
+    default: 1,
+  },
+  unlockedReferralsCount: {
+    type: Number,
+    default: 0,
+  },
+  referralRequirementMet: {
+    type: Boolean,
+    default: true,
+  },
+  referralCode: {
+    type: String,
+    default: '',
+  },
 });
+
+const copiedLink = ref(false);
+const copyReferralLink = () => {
+  const code = props.referralCode || user.value?.referral_code;
+  const link = `${window.location.origin}/register?ref=${code}`;
+  navigator.clipboard.writeText(link).then(() => {
+    copiedLink.value = true;
+    setTimeout(() => {
+      copiedLink.value = false;
+    }, 3000);
+  });
+};
 
 const showWalletModal = ref(false);
 const cooldownSeconds = ref(props.remainingSeconds || 0);

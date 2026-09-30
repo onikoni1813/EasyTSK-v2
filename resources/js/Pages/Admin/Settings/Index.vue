@@ -153,6 +153,19 @@
               </div>
 
               <div>
+                <label class="block text-sm font-semibold text-slate-300 mb-1.5">
+                  2nd+ Withdrawal Min Unlocked Referrals (২য় উইথড্র থেকে রেফার শর্ত)
+                </label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <UsersIcon class="w-4 h-4 text-purple-400" />
+                  </div>
+                  <input v-model="settingsForm.min_unlocked_referrals_for_next_withdraw" type="number" min="0" required class="w-full pl-10 pr-4 py-3 bg-slate-950/50 border border-slate-700/50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white transition-all" />
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1.5">১ম উইথড্র সম্পূর্ণ শর্তহীন (Trust Build)। ২য় উইথড্র থেকে সর্বনিম্ন কতজন আনলকড (সক্রিয়) রেফার লাগবে? (ডিফল্ট: ১, ০ দিলে কোনো রেফার লাগবে না)</p>
+              </div>
+
+              <div>
                 <label class="block text-sm font-semibold text-slate-300 mb-1.5">Minimum Required Health Score (%)</label>
                 <div class="relative">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -744,6 +757,7 @@ const props = defineProps({
   campaignClickerReward: Number,
   firstWithdrawLimit: Number,
   nextWithdrawLimit: Number,
+  minUnlockedReferralsForWithdraw: Number,
   referralBonus: Number,
   referralTarget: Number,
   offerwallPendingHours: Number,
@@ -802,6 +816,7 @@ const settingsForm = useForm({
   campaign_clicker_reward: props.campaignClickerReward || 1.0,
   first_withdraw_limit: props.firstWithdrawLimit || 1000,
   next_withdraw_limit: props.nextWithdrawLimit || 500,
+  min_unlocked_referrals_for_next_withdraw: props.minUnlockedReferralsForWithdraw !== undefined ? props.minUnlockedReferralsForWithdraw : 1,
   referral_bonus: props.referralBonus || 500,
   referral_target: props.referralTarget || 1000,
   offerwall_pending_hours: props.offerwallPendingHours || 24,

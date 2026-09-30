@@ -25,6 +25,7 @@ class AdminSettingsController extends Controller
 
         $firstWithdrawLimit = AppSetting::getByKey('first_withdraw_limit', '1000');
         $nextWithdrawLimit = AppSetting::getByKey('next_withdraw_limit', '500');
+        $minUnlockedReferralsForWithdraw = AppSetting::getByKey('min_unlocked_referrals_for_next_withdraw', '1');
 
         $referralBonus = AppSetting::getByKey('referral_bonus', '500');
         $referralTarget = AppSetting::getByKey('referral_target', '1000');
@@ -73,6 +74,7 @@ class AdminSettingsController extends Controller
             'campaignClickerReward' => (float) $campaignClickerReward,
             'firstWithdrawLimit' => (int) $firstWithdrawLimit,
             'nextWithdrawLimit' => (int) $nextWithdrawLimit,
+            'minUnlockedReferralsForWithdraw' => (int) $minUnlockedReferralsForWithdraw,
             'referralBonus' => (float) $referralBonus,
             'referralTarget' => (float) $referralTarget,
             'offerwallPendingHours' => (int) $offerwallPendingHours,
@@ -116,6 +118,7 @@ class AdminSettingsController extends Controller
             'campaign_clicker_reward' => 'nullable|numeric|min:0.1',
             'first_withdraw_limit' => 'required|numeric|min:1',
             'next_withdraw_limit' => 'required|numeric|min:1',
+            'min_unlocked_referrals_for_next_withdraw' => 'nullable|integer|min:0|max:100',
             'referral_bonus' => 'required|numeric|min:1',
             'referral_target' => 'required|numeric|min:1',
             'offerwall_pending_hours' => 'required|integer|min:0',
@@ -165,6 +168,9 @@ class AdminSettingsController extends Controller
         }
         AppSetting::setByKey('first_withdraw_limit', $request->first_withdraw_limit);
         AppSetting::setByKey('next_withdraw_limit', $request->next_withdraw_limit);
+        if ($request->has('min_unlocked_referrals_for_next_withdraw')) {
+            AppSetting::setByKey('min_unlocked_referrals_for_next_withdraw', $request->min_unlocked_referrals_for_next_withdraw);
+        }
         AppSetting::setByKey('referral_bonus', $request->referral_bonus);
         AppSetting::setByKey('referral_target', $request->referral_target);
         AppSetting::setByKey('offerwall_pending_hours', $request->offerwall_pending_hours);

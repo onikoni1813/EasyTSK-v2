@@ -38,6 +38,7 @@ class PostbackTest extends TestCase
     public function test_valid_postback_credits_user_balance(): void
     {
         \App\Models\AppSetting::setByKey('offerwall_pending_hours', 0);
+        \App\Models\AppSetting::setByKey('conversion_rate', 100);
 
         $user = User::factory()->create([
             'main_balance' => 0,
