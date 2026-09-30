@@ -357,12 +357,15 @@
                       type="number" 
                       v-model="bonusForm.push_bonus_amount" 
                       min="0" 
-                      max="1000" 
+                      max="100000" 
                       step="1"
                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-amber-500/50 rounded-xl text-xs text-amber-300 font-mono font-bold outline-none"
                     />
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">Points</span>
                   </div>
+                  <span v-if="bonusForm.errors.push_bonus_amount" class="text-[10px] text-rose-400 block font-semibold mt-1">
+                    {{ bonusForm.errors.push_bonus_amount }}
+                  </span>
                 </div>
 
                 <button 
@@ -890,7 +893,7 @@ const bonusForm = useForm({
 });
 
 const saveBonusSettings = () => {
-  bonusForm.post(route('sms-campaign.push-settings'), {
+  bonusForm.post(`${adminPath.value}/sms-campaign/push-settings`, {
     preserveScroll: true,
   });
 };

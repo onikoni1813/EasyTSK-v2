@@ -310,7 +310,7 @@ class AdminSmsCampaignController extends Controller
     {
         $validated = $request->validate([
             'push_bonus_enabled' => 'required|boolean',
-            'push_bonus_amount'  => 'required|numeric|min:0|max:1000',
+            'push_bonus_amount'  => 'required|numeric|min:0|max:100000',
         ]);
 
         AppSetting::setByKey('push_bonus_enabled', $validated['push_bonus_enabled'] ? 'true' : 'false');
