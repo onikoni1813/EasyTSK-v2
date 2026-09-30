@@ -275,6 +275,7 @@ const artisanCommands = [
   { key: 'view_cache',    label: 'view:cache',      icon: '👁️',  color: 'indigo', danger: false },
   { key: 'optimize',      label: 'optimize',        icon: '⚡',  color: 'emerald',danger: false },
   { key: 'optimize_clear',label: 'optimize:clear',  icon: '🔄',  color: 'rose',   danger: false },
+  { key: 'deploy_sync',   label: 'Sync to public_html', icon: '⚡', color: 'emerald', danger: false },
   { key: 'storage_link',  label: 'storage:link',    icon: '🔗',  color: 'sky',    danger: false },
   { key: 'queue_restart', label: 'queue:restart',   icon: '🔁',  color: 'violet', danger: false },
   { key: 'down',          label: 'artisan down',    icon: '🛑',  color: 'rose',   danger: true  },
@@ -291,10 +292,8 @@ const depCommands = [
 // Quick Deploy steps
 const QUICK_DEPLOY_STEPS = [
   { key: 'git_pull',      label: 'git pull origin main' },
-  { key: 'composer_install', label: 'composer install' },
-  { key: 'migrate',       label: 'php artisan migrate' },
+  { key: 'deploy_sync',   label: 'Sync public_html & migrations' },
   { key: 'optimize_clear',label: 'optimize:clear' },
-  { key: 'optimize',      label: 'optimize' },
 ];
 
 // --- Methods ---

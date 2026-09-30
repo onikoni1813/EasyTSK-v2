@@ -24,6 +24,7 @@ class AdminDeployController extends Controller
         'composer_update'    => ['composer', 'update', '--no-interaction'],
         'npm_install'        => ['npm', 'install'],
         'npm_build'          => ['npm', 'run', 'build'],
+        'deploy_sync'        => ['php', 'artisan', 'deploy:sync', '--migrate'],
         'migrate'            => ['php', 'artisan', 'migrate', '--force'],
         'migrate_fresh'      => ['php', 'artisan', 'migrate:fresh', '--force', '--seed'],
         'db_seed'            => ['php', 'artisan', 'db:seed', '--force'],
@@ -74,6 +75,7 @@ class AdminDeployController extends Controller
         'view_cache'      => ['command' => 'view:cache', 'params' => []],
         'optimize'        => ['command' => 'optimize', 'params' => []],
         'optimize_clear'  => ['command' => 'optimize:clear', 'params' => []],
+        'deploy_sync'     => ['command' => 'deploy:sync', 'params' => ['--migrate' => true]],
         'queue_restart'   => ['command' => 'queue:restart', 'params' => []],
         'storage_link'    => ['command' => 'storage:link', 'params' => []],
         'down'            => ['command' => 'down', 'params' => []],
@@ -162,15 +164,16 @@ class AdminDeployController extends Controller
 
             if ($success && in_array($commandKey, ['git_pull', 'git_pull_master', 'git_pull_current', 'npm_build'])) {
                 try {
-                    Artisan::call('optimize:clear');
-                    $output .= "\n\n✓ Cleared application caches (optimize:clear)";
+                    Artisan::call('deploy:sync', ['--migrate' => true]);
+                    $syncMsg = trim(Artisan::output());
+                    if ($syncMsg) {
+                        $output .= "\n\n" . $syncMsg;
+                    }
                 } catch (\Throwable $e) {
-                    // Ignore if permission issue
-                }
-
-                $syncOutput = $this->syncToPublicHtml();
-                if ($syncOutput) {
-                    $output .= "\n\n" . $syncOutput;
+                    $syncOutput = $this->syncToPublicHtml();
+                    if ($syncOutput) {
+                        $output .= "\n\n" . $syncOutput;
+                    }
                 }
             }
 
