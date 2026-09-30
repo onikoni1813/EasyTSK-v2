@@ -597,6 +597,32 @@
                 </div>
               </div>
 
+              <!-- Quick SMS Templates -->
+              <div class="space-y-2 p-3 bg-slate-950/60 rounded-2xl border border-slate-800">
+                <div class="flex items-center justify-between">
+                  <label class="block text-[11px] font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>💡</span> কুইক এসএমএস টেমপ্লেট (১টি মাত্র SMS | সর্বোচ্চ ৭০ ক্যারেক্টার):
+                  </label>
+                  <span class="text-[10px] text-slate-500 hidden sm:inline">ক্লিক করলে মেসেজ বক্স ও টার্গেট অডিয়েন্স অটো-সিলেক্ট হবে</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  <button 
+                    v-for="(t, idx) in smsTemplates" 
+                    :key="idx"
+                    type="button"
+                    @click="applySmsTemplate(t)"
+                    class="px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition cursor-pointer flex items-center gap-1.5"
+                    :class="form.message === t.text ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold shadow-md shadow-amber-500/10' : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300'"
+                  >
+                    <span>{{ t.icon }}</span>
+                    <span>{{ t.label }}</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono" :class="form.message === t.text ? 'bg-amber-400/20 text-amber-200' : 'bg-slate-950/60 text-slate-400'">
+                      {{ t.text.length }} chars
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               <!-- Message Textarea -->
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
@@ -1009,6 +1035,72 @@ const testForm = useForm({
   phone: props.adminPhone || '',
   message: '',
 });
+
+const smsTemplates = [
+  {
+    icon: '💖',
+    label: 'মিস করছি আপনাকে',
+    title: 'Inactive Re-engagement (Miss You)',
+    text: 'EasyTSK: মিস করছি আপনাকে! নতুন কাজ করে বিকাশে টাকা নিন: easytsk.com',
+    filter: 'inactive_3d',
+  },
+  {
+    icon: '🎁',
+    label: 'বোনাস পয়েন্ট অপেক্ষা করছে',
+    title: 'Pending Bonus Reminder',
+    text: 'EasyTSK: আপনার একাউন্টে বোনাস পয়েন্ট অপেক্ষা করছে: easytsk.com',
+    filter: 'inactive_3d',
+  },
+  {
+    icon: '⏳',
+    label: 'অনেক দিন কাজ করেননি?',
+    title: 'Long Inactive Alert',
+    text: 'EasyTSK: অনেক দিন কাজ করেননি? নতুন টাস্ক করে আয় করুন: easytsk.com',
+    filter: 'inactive_7d',
+  },
+  {
+    icon: '🔥',
+    label: 'নতুন হাই-পেইং টাস্ক',
+    title: 'New High Paying Tasks',
+    text: 'EasyTSK: নতুন হাই-পেইং টাস্ক এসেছে! এখনই কাজ শুরু করুন: easytsk.com',
+    filter: 'inactive_3d',
+  },
+  {
+    icon: '💰',
+    label: 'কাজ বন্ধ রেখেছেন কেন?',
+    title: 'Cashout Stored Points',
+    text: 'EasyTSK: কাজ বন্ধ রেখেছেন কেন? আজই পয়েন্ট ক্যাশ করুন: easytsk.com',
+    filter: 'inactive_7d',
+  },
+  {
+    icon: '💸',
+    label: 'পয়েন্ট উইথড্র রিমাইন্ডার',
+    title: 'Withdrawal Alert',
+    text: 'EasyTSK: পয়েন্ট উইথড্র করুন! বিকাশ ও নগদে টাকা নিন: easytsk.com',
+    filter: 'balance_min',
+  },
+  {
+    icon: '✨',
+    label: 'নতুন ইউজার স্বাগতম',
+    title: 'New Registration Welcome',
+    text: 'EasyTSK: স্বাগতম! প্রথম কাজ করে বোনাস পয়েন্ট নিন: easytsk.com',
+    filter: 'today_new',
+  },
+];
+
+const applySmsTemplate = (t) => {
+  form.message = t.text;
+  testForm.message = t.text;
+  if (t.title) {
+    form.title = t.title;
+  }
+  if (t.filter) {
+    form.filter_type = t.filter;
+    if (t.filter === 'balance_min') {
+      fetchBalanceAudienceCount(form.min_balance);
+    }
+  }
+};
 
 const dynamicBalanceCount = ref(props.audienceCounts?.balance_gt_500 ?? 0);
 const isLoadingCount = ref(false);
