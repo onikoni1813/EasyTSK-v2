@@ -178,6 +178,13 @@ class ShortlinkService
             $body = trim($response->body());
             $shortenedUrl = $this->parseResponse($driver, $response);
 
+            // Robust regex fallback if JSON structure was unusual or raw string returned
+            if (empty($shortenedUrl) && !empty($body)) {
+                if (preg_match('/"(?:full_short|fullShort|locker_url|shortened_url|content_locker_url)"\s*:\s*"([^"]+)"/i', $body, $m)) {
+                    $shortenedUrl = $this->sanitizeUrl($m[1]);
+                }
+            }
+
             if (!empty($shortenedUrl) && filter_var($shortenedUrl, FILTER_VALIDATE_URL)) {
                 return [
                     'success' => true,

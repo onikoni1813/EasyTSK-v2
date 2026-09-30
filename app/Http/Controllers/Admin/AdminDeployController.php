@@ -20,6 +20,8 @@ class AdminDeployController extends Controller
         'git_pull_master'    => ['git', 'pull', 'origin', 'master'],
         'git_pull_current'   => ['git', 'pull'],
         'git_status'         => ['git', 'status'],
+        'git_fetch'          => ['git', 'fetch', 'origin'],
+        'git_reset_hard'     => ['git', 'reset', '--hard', 'origin/main'],
         'composer_install'   => ['composer', 'install', '--no-interaction', '--prefer-dist', '--optimize-autoloader'],
         'composer_update'    => ['composer', 'update', '--no-interaction'],
         'npm_install'        => ['npm', 'install'],

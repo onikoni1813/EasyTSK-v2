@@ -260,9 +260,9 @@ const quickDeploySteps    = ref([]);
 // --- Command Definitions ---
 const gitCommands = [
   { key: 'git_pull',        label: 'git pull (main)',   icon: '⬇️', color: 'orange', danger: false },
-  { key: 'git_pull_master', label: 'git pull (master)', icon: '⬇️', color: 'orange', danger: false },
-  { key: 'git_pull_current',label: 'git pull (current)',icon: '🔄', color: 'orange', danger: false },
   { key: 'git_status',      label: 'git status',        icon: '🔍', color: 'slate',  danger: false },
+  { key: 'git_reset_hard',  label: 'Force Sync (reset --hard)', icon: '⚡', color: 'rose', danger: true },
+  { key: 'git_pull_current',label: 'git pull (current)',icon: '🔄', color: 'orange', danger: false },
 ];
 
 const artisanCommands = [
