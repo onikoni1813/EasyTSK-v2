@@ -21,10 +21,10 @@ class OfferwallPostbackController extends Controller
 
     public function handlePostback(Request $request, string $provider)
     {
-        $normalizedProvider = strtolower(str_replace([' ', '-', '_'], '', $provider));
+        $normalizedProvider = strtolower(str_replace([' ', '-', '_', '.'], '', $provider));
         $offerwall = \App\Models\Offerwall::where(function ($query) use ($provider, $normalizedProvider) {
             $query->where('name', $provider)
-                ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(name, ' ', ''), '-', ''), '_', '')) = ?", [$normalizedProvider]);
+                ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(name, ' ', ''), '-', ''), '_', ''), '.', '')) = ?", [$normalizedProvider]);
         })->first();
 
         if (!$offerwall) {
@@ -40,7 +40,7 @@ class OfferwallPostbackController extends Controller
 
         // Helper closure for provider-specific acknowledgment responses
         $respondSuccess = function () use ($normalizedProvider) {
-            if ($normalizedProvider === 'earnwall') {
+            if ($normalizedProvider === 'earnwall' || $normalizedProvider === 'offerwallme' || $normalizedProvider === 'offerwall') {
                 return response('ok', 200)->header('Content-Type', 'text/plain');
             }
             if ($normalizedProvider === 'moneyrain' || $normalizedProvider === 'capsbit') {
@@ -187,11 +187,12 @@ class OfferwallPostbackController extends Controller
                     }
                 }
 
-                // 4. EarnWall Signature Formula: md5(subId . transId . reward . secret_key)
-                if (!$isValidSecret && $normalizedProvider === 'earnwall') {
-                    $earnwallReward = (string) ($request->input('reward') ?? $rawReward);
-                    $earnwallRaw = $subId . $transId . $earnwallReward . $offerwall->secret_key;
-                    if (hash_equals(md5($earnwallRaw), $cleanProvidedSecret)) {
+                // 4. EarnWall & Offerwall.me Signature Formula: md5(subId . transId . reward . secret_key)
+                if (!$isValidSecret && in_array($normalizedProvider, ['earnwall', 'offerwallme', 'offerwall'])) {
+                    $postbackReward = (string) ($request->input('reward') ?? $rawReward);
+                    $offerwallMeRaw = $subId . $transId . $postbackReward . $offerwall->secret_key;
+                    if (hash_equals(md5($offerwallMeRaw), $cleanProvidedSecret) || 
+                        hash_equals(md5($subId . $transId . $reward . $offerwall->secret_key), $cleanProvidedSecret)) {
                         $isValidSecret = true;
                     }
                 }

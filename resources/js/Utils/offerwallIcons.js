@@ -146,6 +146,21 @@ export const networkPresets = [
     status_chargeback_value: '2'
   },
   {
+    name: 'Offerwall.me',
+    icon: '🌐',
+    logo: 'https://offerwall.me/offerwall-mark.svg',
+    desc: 'Offerwall.me PTC Ads, Shortlinks, Tasks, and Surveys with instant postbacks and HMAC signed identity.',
+    pattern: 'https://offerwall.me/offerwall/YOUR_API_KEY/{user_id}',
+    ratio: 1.00,
+    param_user_id: 'subId',
+    param_amount: 'reward',
+    param_transaction_id: 'transId',
+    param_status: 'status',
+    param_secret_key: 'signature',
+    status_chargeback_value: '2',
+    allowed_ips: '95.216.65.163, 2a01:4f9:2b:1dc::2'
+  },
+  {
     name: 'MoneyRain',
     icon: '🌧️',
     logo: 'https://offerwall.moneyrain.top/assets/favicon-rain-v1.png',

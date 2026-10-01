@@ -109,5 +109,22 @@ class DemoOfferwallSeeder extends Seeder
             'param_secret_key' => 'signature',
             'status_chargeback_value' => 'reversed',
         ]);
+
+        Offerwall::create([
+            'name' => 'Offerwall.me',
+            'description' => 'Offerwall.me PTC Ads, Shortlinks, Tasks, and Surveys with instant postbacks and HMAC signed identity.',
+            'image_url' => 'https://offerwall.me/offerwall-mark.svg',
+            'iframe_url_pattern' => 'https://offerwall.me/offerwall/YOUR_API_KEY/{user_id}',
+            'secret_key' => 'demosecret_offerwallme',
+            'reward_ratio' => 1.00,
+            'status' => true,
+            'param_user_id' => 'subId',
+            'param_amount' => 'reward',
+            'param_transaction_id' => 'transId',
+            'param_status' => 'status',
+            'param_secret_key' => 'signature',
+            'status_chargeback_value' => '2',
+            'allowed_ips' => '95.216.65.163, 2a01:4f9:2b:1dc::2',
+        ]);
     }
 }

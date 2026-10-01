@@ -588,4 +588,143 @@ class PostbackTest extends TestCase
             'status' => 'reversed',
         ]);
     }
+
+    public function test_offerwallme_postback_credits_user_and_returns_ok(): void
+    {
+        \App\Models\AppSetting::setByKey('offerwall_pending_hours', 0);
+        \App\Models\AppSetting::setByKey('conversion_rate', 100);
+
+        $user = User::factory()->create(['main_balance' => 0]);
+        $secret = 'test_secret_offerwallme_123';
+        $apiKey = 'test_api_key_456';
+        $transId = 'OW_TX_' . uniqid();
+        $reward = '150';
+
+        Offerwall::create([
+            'name' => 'Offerwall.me',
+            'iframe_url_pattern' => "https://offerwall.me/offerwall/{$apiKey}/{user_id}",
+            'status' => true,
+            'secret_key' => $secret,
+            'param_user_id' => 'subId',
+            'param_transaction_id' => 'transId',
+            'param_amount' => 'reward',
+            'param_status' => 'status',
+            'param_secret_key' => 'signature',
+            'status_chargeback_value' => '2',
+            'reward_ratio' => 1.0,
+        ]);
+
+        $sig = md5($user->id . $transId . $reward . $secret);
+
+        // Offerwall.me sends POST request with subId, transId, reward, status=1, signature
+        $response = $this->post('/postback/offerwall.me', [
+            'subId' => $user->id,
+            'transId' => $transId,
+            'reward' => $reward,
+            'status' => '1',
+            'signature' => $sig,
+            'offer_name' => 'Complete Survey 1',
+            'offer_type' => 'offer',
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals('ok', $response->getContent());
+        $this->assertEquals(15000, $user->fresh()->main_balance);
+
+        $this->assertDatabaseHas('offerwall_logs', [
+            'user_id' => $user->id,
+            'provider' => 'Offerwall.me',
+            'transaction_id' => $transId,
+            'amount' => 15000,
+            'status' => 'approved',
+        ]);
+    }
+
+    public function test_offerwallme_chargeback_reverses_balance(): void
+    {
+        \App\Models\AppSetting::setByKey('offerwall_pending_hours', 0);
+        \App\Models\AppSetting::setByKey('conversion_rate', 100);
+
+        $user = User::factory()->create(['main_balance' => 0]);
+        $secret = 'test_secret_offerwallme_cb';
+        $transId = 'OW_CB_' . uniqid();
+        $reward = '300';
+
+        Offerwall::create([
+            'name' => 'Offerwall.me',
+            'iframe_url_pattern' => 'https://offerwall.me/offerwall/KEY/{user_id}',
+            'status' => true,
+            'secret_key' => $secret,
+            'param_user_id' => 'subId',
+            'param_transaction_id' => 'transId',
+            'param_amount' => 'reward',
+            'param_status' => 'status',
+            'param_secret_key' => 'signature',
+            'status_chargeback_value' => '2',
+            'reward_ratio' => 1.0,
+        ]);
+
+        $sig = md5($user->id . $transId . $reward . $secret);
+
+        // 1. Initial credit
+        $this->post('/postback/offerwallme', [
+            'subId' => $user->id,
+            'transId' => $transId,
+            'reward' => $reward,
+            'status' => '1',
+            'signature' => $sig,
+        ])->assertStatus(200);
+        $this->assertEquals(30000, $user->fresh()->main_balance);
+
+        // 2. Chargeback with status=2
+        $cbResponse = $this->post('/postback/offerwallme', [
+            'subId' => $user->id,
+            'transId' => $transId,
+            'reward' => $reward,
+            'status' => '2',
+            'signature' => $sig,
+        ]);
+        $cbResponse->assertStatus(200);
+        $this->assertEquals('ok', $cbResponse->getContent());
+        $this->assertEquals(0, $user->fresh()->main_balance);
+        $this->assertDatabaseHas('offerwall_logs', [
+            'transaction_id' => $transId,
+            'status' => 'reversed',
+        ]);
+    }
+
+    public function test_offerwallme_generates_signed_user_id_url_for_task_view(): void
+    {
+        $user = User::factory()->create();
+        $apiKey = 'test_pub_api_key_789';
+        $secretKey = 'test_private_secret_key_abc';
+
+        $ow = Offerwall::create([
+            'name' => 'Offerwall.me',
+            'iframe_url_pattern' => "https://offerwall.me/offerwall/{$apiKey}/{user_id}",
+            'api_key' => $apiKey,
+            'secret_key' => $secretKey,
+            'status' => true,
+        ]);
+
+        $response = $this->actingAs($user)->get('/tasks');
+        $response->assertStatus(200);
+
+        $pageOfferwalls = $response->viewData('page')['props']['offerwalls'] ?? [];
+        $found = collect($pageOfferwalls)->firstWhere('name', 'Offerwall.me');
+
+        $this->assertNotNull($found);
+        $pattern = $found['iframe_url_pattern'];
+        $this->assertStringContainsString('identityExpires=', $pattern);
+        $this->assertStringContainsString('identitySignature=', $pattern);
+
+        // Verify signature format HMAC-SHA256
+        parse_str(parse_url($pattern, PHP_URL_QUERY), $queryParams);
+        $this->assertNotEmpty($queryParams['identityExpires']);
+        $this->assertNotEmpty($queryParams['identitySignature']);
+
+        $expectedMsg = "offerwall-user-v1\n{$apiKey}\n{$user->id}\n{$queryParams['identityExpires']}";
+        $expectedSig = hash_hmac('sha256', $expectedMsg, $secretKey);
+        $this->assertEquals($expectedSig, $queryParams['identitySignature']);
+    }
 }

@@ -80,7 +80,45 @@ class TaskController extends Controller
             return $task;
         })->filter()->values();
 
-        $offerwalls = \App\Models\Offerwall::where('status', true)->orderBy('order')->get();
+        $offerwalls = \App\Models\Offerwall::where('status', true)->orderBy('order')->get()->map(function ($ow) use ($user) {
+            $pattern = $ow->iframe_url_pattern;
+            $normalized = strtolower(str_replace([' ', '-', '_', '.'], '', $ow->name));
+            
+            // Support Offerwall.me signed user IDs (Mandatory since Oct 1, 2026)
+            if (($normalized === 'offerwallme' || str_contains(strtolower($pattern), 'offerwall.me')) && !empty($ow->secret_key)) {
+                $apiKey = $ow->api_key;
+                if (empty($apiKey)) {
+                    if (preg_match('#offerwall\.me/offerwall/([a-zA-Z0-9_\-\.]+)(?:/|\?|$)#i', $pattern, $matches)) {
+                        $candidate = $matches[1];
+                        if (!str_contains($candidate, '{') && !str_contains($candidate, '[')) {
+                            $apiKey = $candidate;
+                        }
+                    }
+                }
+
+                if ($apiKey && $user) {
+                    $expiry = time() + 3600; // 1-hour expiration recommended by Offerwall.me
+                    $msg = "offerwall-user-v1\n{$apiKey}\n{$user->id}\n{$expiry}";
+                    $signature = hash_hmac('sha256', $msg, $ow->secret_key);
+
+                    if (str_contains($pattern, '{identity_expires}') || str_contains($pattern, '{identity_signature}')) {
+                        $pattern = str_ireplace('{identity_expires}', (string) $expiry, $pattern);
+                        $pattern = str_ireplace('{identity_signature}', $signature, $pattern);
+                    } elseif (!str_contains($pattern, 'identitySignature=')) {
+                        $separator = str_contains($pattern, '?') ? '&' : '?';
+                        $pattern .= "{$separator}identityExpires={$expiry}&identitySignature={$signature}";
+                    }
+                    $ow->iframe_url_pattern = $pattern;
+                }
+            }
+
+            // Replace {api_key} if user provided api_key in admin panel
+            if (!empty($ow->api_key)) {
+                $ow->iframe_url_pattern = str_ireplace(['{api_key}', '[api_key]'], $ow->api_key, $ow->iframe_url_pattern);
+            }
+
+            return $ow;
+        });
         $pendingTasksCount = $tasks->filter(function($t) {
             return !in_array($t->user_status, ['pending', 'approved']);
         })->count();
