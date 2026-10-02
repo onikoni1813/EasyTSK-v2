@@ -48,6 +48,21 @@ export const networkPresets = [
     status_chargeback_value: '2'
   },
   {
+    name: 'AdsLab',
+    icon: '🧪',
+    logo: 'https://adslab.me/assets/images/logo/logo.png',
+    desc: 'Premium app installs, tasks and CPA campaigns via Custom Native API & Postback.',
+    pattern: 'https://adslab.me/api/tasks-share/YOUR_APP_ID/YOUR_SECRET_KEY/BD/{user_id}/127.0.0.1/offers',
+    ratio: 1.00,
+    is_api: true,
+    param_user_id: 'sub1',
+    param_amount: 'reward',
+    param_transaction_id: 'txid',
+    param_status: 'status',
+    param_secret_key: 'hash',
+    status_chargeback_value: '2'
+  },
+  {
     name: 'Monlix',
     icon: '✨',
     logo: '',
@@ -262,6 +277,7 @@ export const badgePresets = [
 export const networkIconMap = {
   timewall: { icon: '⏱️', bg: 'from-cyan-500/20 to-blue-600/30 border-cyan-500/40 text-cyan-300' },
   notik: { icon: '⚡', bg: 'from-amber-500/20 to-orange-600/30 border-amber-500/40 text-amber-300' },
+  adslab: { icon: '🧪', bg: 'from-blue-500/20 to-cyan-600/30 border-blue-500/40 text-cyan-300' },
   bitlabs: { icon: '🧪', bg: 'from-emerald-500/20 to-teal-600/30 border-emerald-500/40 text-emerald-300' },
   monlix: { icon: '✨', bg: 'from-purple-500/20 to-pink-600/30 border-purple-500/40 text-purple-300' },
   cpx: { icon: '📊', bg: 'from-blue-500/20 to-indigo-600/30 border-blue-500/40 text-blue-300' },

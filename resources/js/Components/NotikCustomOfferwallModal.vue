@@ -14,7 +14,7 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 sm:gap-2">
                 <h2 class="text-sm sm:text-lg font-black text-white tracking-tight truncate">
-                  Notik <span class="text-cyan-400">Offerwall</span>
+                  {{ offerwall?.name || 'Native' }} <span class="text-cyan-400">Offerwall</span>
                 </h2>
                 <span class="px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500/20 to-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shrink-0">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
@@ -155,9 +155,9 @@
             <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl sm:text-3xl mx-auto border border-amber-500/30">
               ⚙️
             </div>
-            <h3 class="text-base sm:text-lg font-bold text-white">Notik API Setup Required</h3>
+            <h3 class="text-base sm:text-lg font-bold text-white">{{ offerwall?.name || 'API' }} Setup Required</h3>
             <p class="text-[11px] sm:text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
-              {{ errorMessage || 'Notik API credentials (api_key, pub_id, app_id) are not yet configured in the Admin Offerwall Manager.' }}
+              {{ errorMessage || 'API credentials are not yet configured in the Admin Offerwall Manager.' }}
             </p>
             <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3">
               <button 
@@ -321,8 +321,12 @@ const fetchOffers = async (forceRefresh = false) => {
   loading.value = true;
   errorMessage.value = '';
 
+  const isAdsLab = (props.offerwall?.name || '').toLowerCase().includes('adslab');
+  const endpoint = isAdsLab ? '/offerwall/adslab/offers' : '/offerwall/notik/offers';
+  const providerName = isAdsLab ? 'AdsLab' : 'Notik';
+
   try {
-    const res = await axios.get('/offerwall/notik/offers', {
+    const res = await axios.get(endpoint, {
       params: { refresh: forceRefresh ? 1 : 0 }
     });
 
@@ -332,11 +336,11 @@ const fetchOffers = async (forceRefresh = false) => {
       isConfigured.value = res.data.is_configured ?? true;
     } else {
       isConfigured.value = res.data.is_configured ?? false;
-      errorMessage.value = res.data.message || 'Failed to load Notik offers.';
+      errorMessage.value = res.data.message || `Failed to load ${providerName} offers.`;
     }
   } catch (err) {
-    console.error('Failed to fetch Notik offers', err);
-    errorMessage.value = err.response?.data?.message || 'Error connecting to Notik API.';
+    console.error(`Failed to fetch ${providerName} offers`, err);
+    errorMessage.value = err.response?.data?.message || `Error connecting to ${providerName} API.`;
   } finally {
     loading.value = false;
   }

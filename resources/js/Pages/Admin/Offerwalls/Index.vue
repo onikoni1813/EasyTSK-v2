@@ -803,8 +803,8 @@ function getReleaseStatus(log) {
               </label>
             </div>
 
-            <!-- Credentials inputs when API is enabled or provider is Notik -->
-            <div v-if="form.is_api || (form.name && form.name.toLowerCase().includes('notik'))" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <!-- Credentials inputs when API is enabled or provider is Notik/AdsLab -->
+            <div v-if="form.is_api || (form.name && (form.name.toLowerCase().includes('notik') || form.name.toLowerCase().includes('adslab')))" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
               <div class="space-y-1">
                 <label class="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Publisher ID (pub_id)</label>
                 <input v-model="form.pub_id" placeholder="e.g. 12345" class="w-full bg-black/40 border border-cyan-500/30 focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none font-mono transition-all">
@@ -821,7 +821,7 @@ function getReleaseStatus(log) {
               </div>
 
               <div class="sm:col-span-3 text-[11px] text-slate-400 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
-                💡 <b>Notik Publisher Portal</b> (<a href="https://publisher.notik.me" target="_blank" class="text-cyan-400 underline font-semibold">publisher.notik.me</a>) থেকে এই ৩টি ক্রেডেনশিয়াল এবং উপরে <b>Secret Key</b> সেট করলে সাইটে অটোমেটিক অফার কার্ডগুলো লোড হবে।
+                💡 <b>Notik / AdsLab Portal</b> থেকে ক্রেডেনশিয়াল এবং উপরে <b>Secret Key</b> সেট করলে সাইটে অটোমেটিক অফার কার্ডগুলো লোড হবে। (AdsLab এর জন্য শুধু App ID এবং Secret Key দিলেই হবে)।
               </div>
             </div>
           </div>

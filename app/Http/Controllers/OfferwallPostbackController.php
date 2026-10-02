@@ -242,7 +242,8 @@ class OfferwallPostbackController extends Controller
                         md5($offerwall->secret_key . $subId . $transId),
                         md5($offerwall->secret_key),
 
-                        // SHA256 hashes (Notik v1 & others)
+                        // SHA256 hashes (AdsLab, Notik v1 & others)
+                        hash('sha256', $transId . '-' . $offerwall->secret_key),
                         hash('sha256', $pubId . $subId . $reward . $offerwall->secret_key),
                         hash('sha256', $pubId . $subId . $rawReward . $offerwall->secret_key),
                         hash('sha256', $subId . $transId . $reward . $offerwall->secret_key),

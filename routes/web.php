@@ -102,6 +102,7 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/tasks-history', [TaskController::class, 'history'])->name('tasks.history');
     Route::get('/offerwall/notik/offers', [\App\Http\Controllers\User\NotikOfferwallController::class, 'getOffers'])->name('offerwall.notik.offers');
+    Route::get('/offerwall/adslab/offers', [\App\Http\Controllers\User\AdsLabOfferwallController::class, 'getOffers'])->name('offerwall.adslab.offers');
     Route::post('/tasks/{task}/social-proof', [TaskController::class, 'submitSocialProof'])->name('tasks.social-proof');
     Route::post('/tasks/campaign/{campaign}/submit', [TaskController::class, 'submitCampaignProof'])->name('tasks.campaign.submit');
     Route::post('/tasks/{task}/shortlink/start', [\App\Http\Controllers\ShortlinkTaskController::class, 'start'])->name('tasks.shortlink.start');

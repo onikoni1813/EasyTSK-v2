@@ -96,8 +96,8 @@
     "file": "assets/index-DhXgJQ-f.js",
     "name": "index"
   },
-  "_offerwallIcons-PTLNfbCo.js": {
-    "file": "assets/offerwallIcons-PTLNfbCo.js",
+  "_offerwallIcons-dSA4QeP9.js": {
+    "file": "assets/offerwallIcons-dSA4QeP9.js",
     "name": "offerwallIcons"
   },
   "_vendor-vue-DHsfI0AR.js": {
@@ -194,14 +194,14 @@
     ]
   },
   "resources/js/Pages/Admin/Offerwalls/Index.vue": {
-    "file": "assets/Index-DqM01dL3.js",
+    "file": "assets/Index-CUGAbVfm.js",
     "name": "Index",
     "src": "resources/js/Pages/Admin/Offerwalls/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-vue-DHsfI0AR.js",
       "_AdminLayout-s9YJFqVn.js",
-      "_offerwallIcons-PTLNfbCo.js",
+      "_offerwallIcons-dSA4QeP9.js",
       "__plugin-vue_export-helper-DlAUqK2U.js"
     ]
   },
@@ -813,7 +813,7 @@
     ]
   },
   "resources/js/Pages/Tasks/Index.vue": {
-    "file": "assets/Index-DnIeVRaU.js",
+    "file": "assets/Index-CwglkuFs.js",
     "name": "Index",
     "src": "resources/js/Pages/Tasks/Index.vue",
     "isDynamicEntry": true,
@@ -822,11 +822,11 @@
       "_index-DhXgJQ-f.js",
       "_AppLayout-BqZk74eZ.js",
       "__plugin-vue_export-helper-DlAUqK2U.js",
-      "_offerwallIcons-PTLNfbCo.js",
+      "_offerwallIcons-dSA4QeP9.js",
       "_webPush-GI6MBNen.js"
     ],
     "css": [
-      "assets/Index-B4j2_ucT.css"
+      "assets/Index-6JWuW_ZQ.css"
     ]
   },
   "resources/js/Pages/Welcome.vue": {
@@ -870,7 +870,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-Da0o8arV.js",
+    "file": "assets/app-CjOnkoyv.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
