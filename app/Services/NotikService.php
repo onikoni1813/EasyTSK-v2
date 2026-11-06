@@ -228,6 +228,53 @@ class NotikService
             ];
         }
 
+        if (empty($offers) && (app()->environment('local') || config('app.debug') || in_array($clientIp, ['127.0.0.1', '::1']))) {
+            $offers = [
+                [
+                    'id'           => 'notik_demo_1',
+                    'name'         => 'Coin Master: Reach Village 3',
+                    'short_desc'   => 'Download & open the game, build your village and reach Level 3.',
+                    'image_url'    => 'https://api.iconify.design/twemoji:coin.svg',
+                    'click_url'    => '#',
+                    'payout_usd'   => 1.50,
+                    'reward_coins' => 1250,
+                    'categories'   => ['Games', 'Apps'],
+                    'device_os'    => 'android',
+                ],
+                [
+                    'id'           => 'notik_demo_2',
+                    'name'         => 'Brain Out: Complete Level 15',
+                    'short_desc'   => 'Test your IQ! Install the app and finish 15 fun brain puzzle levels.',
+                    'image_url'    => 'https://api.iconify.design/twemoji:brain.svg',
+                    'click_url'    => '#',
+                    'payout_usd'   => 0.85,
+                    'reward_coins' => 750,
+                    'categories'   => ['Games'],
+                    'device_os'    => 'all',
+                ],
+                [
+                    'id'           => 'notik_demo_3',
+                    'name'         => 'Daily Survey: Shopping Habits',
+                    'short_desc'   => 'Answer 10 quick lifestyle and consumer survey questions.',
+                    'image_url'    => 'https://api.iconify.design/twemoji:clipboard.svg',
+                    'click_url'    => '#',
+                    'payout_usd'   => 0.50,
+                    'reward_coins' => 450,
+                    'categories'   => ['Surveys'],
+                    'device_os'    => 'all',
+                ],
+            ];
+            return [
+                'success'       => true,
+                'offers'        => $offers,
+                'message'       => 'Demo offers loaded',
+                'is_cached'     => false,
+                'is_configured' => true,
+                'country'       => $countryCode,
+                'device_os'     => $deviceOs,
+            ];
+        }
+
         return [
             'success'       => true,
             'offers'        => [],

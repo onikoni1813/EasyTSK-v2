@@ -1339,8 +1339,10 @@ const openIframeDirect = (ow) => {
 
 const openOfferwall = (ow) => {
   if (props.is_locked) return;
-  const isNotik = (ow.name || '').toLowerCase().replace(/[^a-z0-9]/g, '') === 'notik';
-  if (ow.is_api || isNotik) {
+  const normalized = (ow.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const isNotik = normalized === 'notik';
+  const isAdsLab = normalized === 'adslab';
+  if (ow.is_api || isNotik || isAdsLab) {
     activeNotikOfferwall.value = ow;
     isNotikModalOpen.value = true;
     return;

@@ -206,10 +206,28 @@ class OfferwallPostbackController extends Controller
                     }
                 }
 
-                // 6. Dynamic SHA1 & SHA256 Hash verification for providers like TimeWall, Notik, etc.
+                // 6. Dynamic SHA1 & SHA256 Hash verification for providers like TimeWall, Notik, AdsLab, etc.
                 if (!$isValidSecret) {
                     $pubId = $request->input('pub_id', '');
+                    $pid = (string) ($request->input('pid') ?? $request->input('placementId') ?? '');
+                    $vCurrency = (string) $request->input('vCurrency', '');
+                    $typeVal = (string) $request->input('type', '');
+
                     $possibleHashes = [
+                        // AdsLab standard signatures (HMAC-SHA256 and SHA256)
+                        hash_hmac('sha256', "{$subId}:{$pid}:{$reward}:{$transId}", $offerwall->secret_key),
+                        hash_hmac('sha256', "{$subId}:{$pid}:{$rawReward}:{$transId}", $offerwall->secret_key),
+                        hash_hmac('sha256', "{$subId}{$pid}{$reward}{$transId}", $offerwall->secret_key),
+                        hash_hmac('sha256', "{$subId}{$pid}{$rawReward}{$transId}", $offerwall->secret_key),
+                        hash_hmac('sha256', "{$subId}:{$transId}:{$reward}", $offerwall->secret_key),
+                        hash_hmac('sha256', "{$subId}:{$transId}", $offerwall->secret_key),
+                        hash_hmac('sha256', $transId, $offerwall->secret_key),
+                        hash_hmac('sha256', $subId . $transId, $offerwall->secret_key),
+                        hash_hmac('sha256', "{$subId}:{$reward}", $offerwall->secret_key),
+                        md5("{$subId}:{$pid}:{$reward}:{$transId}:{$offerwall->secret_key}"),
+                        md5("{$subId}{$pid}{$reward}{$transId}{$offerwall->secret_key}"),
+                        md5("{$subId}:{$reward}:{$transId}:{$offerwall->secret_key}"),
+
                         // TimeWall standard: hash("sha256", userID . revenue . SecretKey)
                         hash('sha256', $subId . $rawRevenue . $offerwall->secret_key),
                         hash('sha256', $subId . $rawReward . $offerwall->secret_key),

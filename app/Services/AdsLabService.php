@@ -244,9 +244,9 @@ class AdsLabService
             return [];
         }
 
-        $items = $rawJson;
+        $items = $rawJson['tasks'] ?? $rawJson['offers'] ?? $rawJson['data'] ?? $rawJson;
 
-        if (empty($items)) {
+        if (empty($items) || !is_array($items)) {
             return [];
         }
 
